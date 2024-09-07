@@ -1,0 +1,27 @@
+# Các file tạm
+*.swp
+*~
+.DS_Store
+
+# Thư mục cache
+cache/
+tmp/
+*.tmp
+
+# Thư mục build
+build/
+dist/
+
+# Thư mục node_modules
+node_modules/
+
+# File cấu hình
+config.json
+database.yml
+.env
+# File log
+*.log
+
+# Thư mục IDE
+.idea/
+.vscode/
