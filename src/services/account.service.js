@@ -18,7 +18,16 @@ const createAccountService = async (username, password,role) => {
     return null;
   }
 };
-const checkAccountService = async (username, password) => {
+const checkAccountExist = async (username) => {
+  try {
+    const account = await Account.findOne({ username }); 
+    return account !== null ? true : false;
+  } catch (error) {
+    log.error("Error in getAccountByUsername", error);
+    return null;
+  }
+}
+const getAccountByUsernamePassword = async (username, password) => {
 try {
       //check username
   const account = await Account.findOne({ username });
@@ -53,5 +62,6 @@ try {
 };
 module.exports = {
   createAccountService,
-  checkAccountService,
+  getAccountByUsernamePassword,
+  checkAccountExist
 };

@@ -1,10 +1,10 @@
 // const { signInService } = require("../services/auth.service");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
-const { checkAccountService } = require("../services/account.service");
+const { getAccountByUsernamePassword } = require("../services/account.service");
 const signIn = async (req, res) => {
   const { username, password } = req.body;
-  const data = await checkAccountService(username, password);
+  const data = await getAccountByUsernamePassword(username, password);
   if (data.statusCode == 200 && data.account) {
     const payload = {
       username: data.account.username,
