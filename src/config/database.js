@@ -18,7 +18,9 @@ const dbState =[{
 }
 ];
 const connection = async () => {
-    await mongoose.connect(process.env.MONGO_DB_URL);
+    await mongoose.connect(process.env.MONGO_DB_URL).catch((error)=>{
+        console.log("Error connecting database: ",error);  
+    });
     const state = Number(mongoose.connection.readyState);
     console.log(`Database: ${dbState.find(db => db.value === state).message}`);
 }

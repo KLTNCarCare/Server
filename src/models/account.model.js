@@ -1,9 +1,9 @@
-const e = require('express');
 const mongoose = require('mongoose');
+const { phoneNumberRegex } = require('../utils/regex');
     const accountSchema = mongoose.Schema({
         username:{
             type:String,
-            match: [/^\d{10}$/, 'Username must be a string of 10 digits'],
+            match: [phoneNumberRegex, 'Username must be a string of 10 digits'],
             required:true,
             unique:true
         },
