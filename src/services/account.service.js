@@ -33,14 +33,12 @@ try {
         }
       : {
           message: "Bad request",
-          account: null,
           statusCode: 400,
         };
   }
 
   return{
     message:'Bad request',
-    account:null,
     statusCode:400
   };
 
@@ -48,7 +46,7 @@ try {
    console.log(error);
    return {
     message:"Internal Server Error",
-    status:500
+    statusCode:500
    }
     
 }
