@@ -1,7 +1,7 @@
 const Account = require("../models/account.model");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
-const createAccountService = async (username, password) => {
+const createAccountService = async (username, password,role) => {
   try {
     // Hash password
     const hashPassword = await bcrypt.hash(password, saltRounds);
@@ -10,11 +10,11 @@ const createAccountService = async (username, password) => {
       username,
       password: hashPassword,
       userId: Math.random().toString(36).substring(7),
-      role: "customer",
+      role: role,
     });
     return result;
   } catch (error) {
-    console.log(error);
+    console.log("Error in createAccountService", error);
     return null;
   }
 };

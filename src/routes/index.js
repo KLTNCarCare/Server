@@ -9,6 +9,6 @@ const authMiddleware = require('../middlewares/auth.middleware');
 router.all('*',delayMiddleware,authMiddleware);
 router.use('/account', accountRouter);
 router.use('/auth', authRouter);
-router.use('/heart-beat',(req,res)=>{res.status(200).json("Heart beat")});
+router.use('/heart-beat',(req,res)=>{res.status(200).json(req.body)});
 router.use('/employee',employeeRouter);
 module.exports = router;
