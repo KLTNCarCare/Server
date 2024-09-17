@@ -1,5 +1,9 @@
-const router = require('express').Router();
-const {sendHello,createAccount} = require('../controllers/account.controller');
-router.get('/heart-beat', sendHello);
-router.post('/create-account',createAccount);
-module.exports = router;
+import { Router } from 'express';
+import { sendHello, createAccount } from '../controllers/account.controller.js';
+
+const router = Router();
+
+router.get('/', sendHello);
+router.post('/', createAccount);
+
+export default router;

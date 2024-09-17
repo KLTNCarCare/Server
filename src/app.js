@@ -1,34 +1,42 @@
-const express = require("express");
+import express from "express";
+import cors from "cors";
+import connection from "./config/database.js";
+import router from "./routes/index.js";
+
 const app = express();
-const connection = require("./config/database");
-const router = require("./routes");
-const cors = require("cors");
+
 const startServer = async (port) => {
-  //connect database
+  // Connect to the database
   await connection();
 
-  //middleware cors
-  app.use(cors());
+  // Configure CORS
+  const corsOptions = {
+    origin: "http://localhost:3000",
+    credentials: true,
+  };
 
-  //config request body
+  // CORS middleware
+  app.use(cors(corsOptions));
+
+  // Configure request body
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  //middleware router
+  // Router middleware
   app.use("/v1/api", router);
 
-  //middleware error 404
+  // 404 error handling middleware
   app.use((req, res, next) => {
     const err = new Error("Not Found");
     err.status = 404;
     next(err);
   });
 
-  // Middleware xử lý lỗi toàn cục
+  // Global error handling middleware
   app.use((err, req, res, next) => {
-    console.error(err.stack); // Ghi lỗi vào console (hoặc log lỗi vào file)
+    console.error(err.stack); // Log the error to the console (or log it to a file)
 
-    // Nếu môi trường là 'development', gửi thông tin lỗi chi tiết
+    // If the environment is 'development', send detailed error information
     if (app.get("env") === "development") {
       return res.status(err.status || 500).json({
         error: {
@@ -38,7 +46,7 @@ const startServer = async (port) => {
       });
     }
 
-    // Nếu không phải môi trường 'development', chỉ gửi thông báo lỗi chung
+    // If not in 'development' environment, send a generic error message
     return res.status(err.status || 500).json({
       error: {
         message: "Internal Server Error",
@@ -46,9 +54,10 @@ const startServer = async (port) => {
     });
   });
 
-  //start server
+  // Start the server
   app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
   });
 };
-module.exports = startServer;
+
+export default startServer;

@@ -1,6 +1,7 @@
-const delayMiddleware = (req,res,next)=>{
+const delayMiddleware = (req, res, next) => {
     setTimeout(() => {
         next();
-    },100);
-}
-module.exports= delayMiddleware
+    }, 100);
+};
+
+export default delayMiddleware;

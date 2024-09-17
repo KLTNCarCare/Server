@@ -1,12 +1,17 @@
-const router = require('express').Router();
-const accountRouter = require('./account.route');
-const authRouter = require('./auth.route');
-const delayMiddleware = require('../middlewares/delay.middleware');
+import { Router } from 'express';
+import accountRouter from './account.route.js';
+import authRouter from './auth.route.js';
+import delayMiddleware from '../middlewares/delay.middleware.js';
 
-//delayMiddleware return response
-router.all('*',delayMiddleware);
+const router = Router();
+
+// delayMiddleware return response
+router.all('*', delayMiddleware);
 
 router.use('/account', accountRouter);
 router.use('/auth', authRouter);
-router.use('/heart-beat',(req,res)=>{res.status(200).json("Heart beat")});
-module.exports = router;
+router.use('/heart-beat', (req, res) => {
+  res.status(200).json("Heart beat");
+});
+
+export default router;
