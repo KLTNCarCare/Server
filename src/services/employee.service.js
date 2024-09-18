@@ -1,6 +1,8 @@
 const Employee = require("../models/employee.model");
+const { generateID } = require("./lastID.service");
 const createEmployeeService = async (employee) => {
     try {
+        employee.empId = await generateID("NV");
         return await Employee.create(employee);
     } catch (error) {
         console.log("Error at createEmployee: ", error);

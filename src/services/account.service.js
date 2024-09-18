@@ -1,12 +1,16 @@
 const Account = require("../models/account.model");
 const bcrypt = require("bcrypt");
+const { generateID } = require("./lastID.service");
 const saltRounds = 10;
 const createAccountService = async (username, password,role) => {
   try {
     // Hash password
     const hashPassword = await bcrypt.hash(password, saltRounds);
+    // create accountId
+    const accountId = await generateID("TK");
     // Store in database
     let result = await Account.create({
+      accountId: accountId,
       username,
       password: hashPassword,
       userId: Math.random().toString(36).substring(7),
