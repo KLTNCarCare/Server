@@ -3,7 +3,6 @@ const lastIdSchema = mongoose.Schema({
   modelCode: {
     type: String,
     required: true,
-    enum: ["NV","TK", "KH","SP"],
   },
   lastId: {
     type: Number,
