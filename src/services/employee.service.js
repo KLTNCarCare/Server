@@ -1,23 +1,17 @@
 const Employee = require("../models/employee.model");
 const { generateID } = require("./lastID.service");
-const createEmployeeService = async (employee) => {
-    try {
-        employee.empId = await generateID("NV");
-        return await Employee.create(employee);
-    } catch (error) {
-        console.log("Error at createEmployee: ", error);
-        return null;
-    }
+const createEmp = async (employee) => {
+  employee.empId = await generateID("NV");
+  return await Employee.create(employee);
 };
-const getEmpByIdService = async (empId) => {
-    try{
-        return await Employee.findOne({empId});
-    }catch(error){
-        console.log("Error at getEmpByIdService: ", error);
-        return null;
-    }
-}
+const deleleEmp = async (id) =>
+  await Employee.findByIdAndUpdate(id, { status: "inactive" }, { new: true });
+const updateEmp = async (id, newEmp) =>
+  await Employee.findByIdAndUpdate(id, newEmp, { new: true });
+const getEmpById = async (id) => await Employee.findById(id);
 module.exports = {
-    createEmployeeService,
-    getEmpByIdService,
+  createEmp,
+  deleleEmp,
+  updateEmp,
+  getEmpById,
 };
