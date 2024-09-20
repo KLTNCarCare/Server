@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { phoneNumberRegex } = require("../utils/regex");
+const { increaseLastId } = require("../services/lastID.service");
 const accountSchema = mongoose.Schema({
   accountId: {
     type: String,
@@ -31,9 +32,17 @@ const accountSchema = mongoose.Schema({
   createdAt: { type: Date, default: Date.now, immutable: true },
   updatedAt: { type: Date, default: Date.now },
 });
-accountSchema.pre("save", function (next) {
-  this.updatedAt = Date.now();
+accountSchema.pre("findByIdAndUpdate", function (next) {
+  this.getUpdate().updatedAt = Date.now();
   next();
+});
+// inscrease Last id
+accountSchema.post("save", async (doc) => {
+  try {
+    await increaseLastId("TK");
+  } catch (error) {
+    console.log("Error in increase last id", error);
+  }
 });
 const Account = mongoose.model("Account", accountSchema);
 module.exports = Account;

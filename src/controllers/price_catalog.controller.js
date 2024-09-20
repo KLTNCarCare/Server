@@ -10,6 +10,7 @@ const {
   getAllCatalog,
   getActiveCurrentDate,
   getActiveCatalog,
+  getTotalPage,
 } = require("../services/price_catalog.service");
 const createPriceCatalog = async (req, res) => {
   try {
@@ -168,8 +169,9 @@ const getAll = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const catalogs = await getAllCatalog(page, limit);
-    return res.status(200).json(catalogs);
+    const totalPage = await getTotalPage(limit);
+    const data = await getAllCatalog(page, limit);
+    return res.status(200).json({ data, totalPage });
   } catch (error) {
     console.log("Error in getAllCatalog", error);
     return res.status(500).json({ message: "Internal server error" });

@@ -5,22 +5,22 @@ const createCatalog = async (priceCatalog) => {
   return await PriceCatalog.create(priceCatalog);
 };
 const updateEndDate = async (id, newDate) =>
-  await PriceCatalog.findByIdAndUpdate(id, { endDate: newDate }, { new: true });
+  await PriceCatalog.findOneAndUpdate(
+    { _id: id },
+    { endDate: newDate },
+    { new: true }
+  );
 
 const activeCatalog = async (id) =>
-  await PriceCatalog.findByIdAndUpdate(id, { status: "active" }, { new: true });
+  await PriceCatalog.findOneAndUpdate(id, { status: "active" }, { new: true });
 const inactiveCatalog = async (id) =>
-  await PriceCatalog.findByIdAndUpdate(
+  await PriceCatalog.findOneAndUpdate(
     id,
     { status: "inactive" },
     { new: true }
   );
 const deleteCatalog = async (id) =>
-  await PriceCatalog.findByIdAndUpdate(
-    id,
-    { status: "deleted" },
-    { new: true }
-  );
+  await PriceCatalog.findOneAndUpdate(id, { status: "deleted" }, { new: true });
 
 const getCatalogActiveByDate = async (date) =>
   await PriceCatalog.find({
@@ -28,6 +28,7 @@ const getCatalogActiveByDate = async (date) =>
     endDate: { $gte: date },
     status: "active",
   });
+
 const getCatalogById = async (id) => await PriceCatalog.findById(id);
 // get catalog with active status and current date
 const getActiveCurrentDate = async (page, limit) =>
@@ -48,7 +49,12 @@ const getAllCatalog = async (page, limit) =>
   await PriceCatalog.find({ status: { $ne: "deleted" } })
     .skip((page - 1) * limit)
     .limit(limit);
-
+const getTotalPage = async (limit) => {
+  const total = await PriceCatalog.countDocuments({
+    status: { $ne: "deleted" },
+  });
+  return Math.ceil(total / limit);
+};
 module.exports = {
   createCatalog,
   getCatalogById,
@@ -60,4 +66,5 @@ module.exports = {
   getAllCatalog,
   getActiveCurrentDate,
   getActiveCatalog,
+  getTotalPage,
 };

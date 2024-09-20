@@ -35,8 +35,8 @@ const updateEmployee = async (req, res) => {
     if (!id) {
       return res.status(404).json({ message: "Employee not found" });
     }
-    //filter  data
     const employee = req.body;
+    employee.updatedAt = new Date();
     const result = await updateEmp(id, employee);
     if (!result) {
       return res.status(500).json({ message: "Internal server error" });

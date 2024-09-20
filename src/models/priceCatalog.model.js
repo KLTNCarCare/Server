@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { increaseLastId } = require("../services/lastID.service");
 const itemSchema = mongoose.Schema({
   itemId: {
     type: String,
@@ -45,8 +46,8 @@ const priceCatalogSchema = mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 // Pre save hook to update the updatedAt value
-priceCatalogSchema.pre("save", function (next) {
-  this.updatedAt = Date.now();
+priceCatalogSchema.pre("findOneAndUpdate", function (next) {
+  this.getUpdate().updatedAt = Date.now();
   next();
 });
 // check range start date and end date
@@ -56,6 +57,13 @@ priceCatalogSchema.pre("save", function (next) {
   }
   next();
 });
-
+// inscrease Last id
+priceCatalogSchema.post("save", async (doc) => {
+  try {
+    await increaseLastId("BG");
+  } catch (error) {
+    console.log("Error in increase last id", error);
+  }
+});
 const PriceCatalog = mongoose.model("PriceCatalog", priceCatalogSchema);
 module.exports = PriceCatalog;

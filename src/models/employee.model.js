@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { personIdRegex } = require("../utils/regex");
+const { increaseLastId } = require("../services/lastID.service");
 
 const employeeSchema = mongoose.Schema({
   empId: {
@@ -44,9 +45,17 @@ const employeeSchema = mongoose.Schema({
   createdAt: { type: Date, default: Date.now, immutable: true },
   updatedAt: { type: Date, default: Date.now },
 });
-employeeSchema.pre("save", function (next) {
-  this.updatedAt = Date.now();
+employeeSchema.pre("findByIdAndUpdate", function (next) {
+  this.getUpdate().updatedAt = Date.now();
   next();
+});
+// inscrease Last id
+employeeSchema.post("save", async (doc) => {
+  try {
+    await increaseLastId("NV");
+  } catch (error) {
+    console.log("Error in increase last id", error);
+  }
 });
 const Employee = mongoose.model("Employee", employeeSchema);
 module.exports = Employee;
