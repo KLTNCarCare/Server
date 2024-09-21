@@ -45,7 +45,7 @@ const employeeSchema = mongoose.Schema({
   createdAt: { type: Date, default: Date.now, immutable: true },
   updatedAt: { type: Date, default: Date.now },
 });
-employeeSchema.pre("findByIdAndUpdate", function (next) {
+employeeSchema.pre("findOneAndUpdate", function (next) {
   this.getUpdate().updatedAt = Date.now();
   next();
 });

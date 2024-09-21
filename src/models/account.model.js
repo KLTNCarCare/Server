@@ -32,7 +32,7 @@ const accountSchema = mongoose.Schema({
   createdAt: { type: Date, default: Date.now, immutable: true },
   updatedAt: { type: Date, default: Date.now },
 });
-accountSchema.pre("findByIdAndUpdate", function (next) {
+accountSchema.pre("findOneAndUpdate", function (next) {
   this.getUpdate().updatedAt = Date.now();
   next();
 });

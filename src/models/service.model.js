@@ -16,12 +16,12 @@ const serviceSchema = mongoose.Schema({
     type: String,
     required: true,
   },
-  createdDate: {
+  createdAt: {
     type: Date,
     default: Date.now,
     immutable: true,
   },
-  updatedDate: {
+  updatedAt: {
     type: Date,
     default: Date.now,
   },

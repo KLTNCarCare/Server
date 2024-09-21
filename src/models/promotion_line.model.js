@@ -57,11 +57,11 @@ const lineSchema = new mongoose.Schema({
     enum: ["active", "inactive"],
     default: "active",
   },
-  createdDate: {
+  createdAt: {
     type: Date,
     default: Date.now,
   },
-  updatedDate: {
+  updatedAt: {
     type: Date,
     default: Date.now,
   },
@@ -88,7 +88,7 @@ lineSchema.pre("save", async function (next) {
   }
 });
 // modify updatedAt
-lineSchema.pre("findByIdAndUpdate", function (next) {
+lineSchema.pre("findOneAndUpdate", function (next) {
   this.getUpdate().updatedAt = Date.now();
   next();
 });

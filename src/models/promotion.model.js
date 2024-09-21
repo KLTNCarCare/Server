@@ -29,12 +29,12 @@ const promotionSchema = new mongoose.Schema({
     enum: ["active", "inactive"],
     default: "active",
   },
-  createdDate: {
+  createdAt: {
     type: Date,
     default: Date.now,
     immutable: true,
   },
-  updatedDate: {
+  updatedAt: {
     type: Date,
     default: Date.now,
   },
@@ -46,7 +46,7 @@ promotionSchema.pre("save", function (next) {
   }
   next();
 });
-promotionSchema.pre("findByIdAndUpdate", function (next) {
+promotionSchema.pre("findOneAndUpdate", function (next) {
   this.getUpdate().updatedAt = Date.now();
   next();
 });

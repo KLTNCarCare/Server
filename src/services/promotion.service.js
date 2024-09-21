@@ -8,7 +8,7 @@ const createPromotion = async (promotion) => {
 };
 
 const updatePromotion = async (id, promotion) =>
-  await Promotion.findByIdAndUpdate(id, promotion);
+  await Promotion.findOneAndUpdate({ _id: id }, promotion, { new: true });
 
 const deletePromotion = async (id) => {
   await PromotionLine.updateMany(
@@ -16,8 +16,8 @@ const deletePromotion = async (id) => {
     { status: "inactive" },
     { new: true }
   );
-  return await Promotion.findByIdAndUpdate(
-    id,
+  return await Promotion.findOneAndUpdate(
+    { _id: id },
     { status: "inactive" },
     { new: true }
   );
@@ -50,6 +50,7 @@ const getTotalPage = async (limit) => {
   const totalPromotion = await Promotion.countDocuments({ status: "active" });
   return Math.ceil(totalPromotion / limit);
 };
+const getPromotionLineById = async (id) => await PromotionLine.findById(id);
 module.exports = {
   createPromotion,
   updatePromotion,
@@ -60,5 +61,6 @@ module.exports = {
   updatePromotionLine,
   deletePromotionLine,
   getPromotionLineByParent,
+  getPromotionLineById,
   getTotalPage,
 };

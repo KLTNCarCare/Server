@@ -1,3 +1,4 @@
+const { isTime } = require("validator");
 const {
   createPromotion,
   deletePromotion,
@@ -9,6 +10,7 @@ const {
   getPromotionLineByParent,
   getPromotion,
   getTotalPage,
+  getPromotionLineById,
 } = require("../services/promotion.service");
 
 const savePromotion = async (req, res) => {
@@ -40,22 +42,25 @@ const removePromotion = async (req, res) => {
 const editPromotion = async (req, res) => {
   try {
     const id = req.params.id;
-
-    let promotion = await getPromotion(id);
+    const promotion = await getPromotion(id);
     if (!promotion) {
       return res.status(404).json({ message: "Promotion not found" });
     }
-    promotion = { ...promotion, ...req.body };
+    const infoChange = {
+      promotionName: req.body.promotionName || promotion.promotionName,
+      description: req.body.description || promotion.description,
+      startDate: req.body.startDate || promotion.startDate,
+      endDate: req.body.endDate || promotion.endDate,
+    };
+    const startDate = new Date(infoChange.startDate);
+    const endDate = new Date(infoChange.endDate);
     //check date range
-    const startDate = new Date(promotion.startDate);
-    const endDate = new Date(promotion.endDate);
     if (startDate >= endDate || Date.now() >= startDate) {
       return res
         .status(400)
         .json({ message: "Valid range : Date now <  startDate < endDate" });
     }
-
-    const result = await updatePromotion(id, promotion);
+    const result = await updatePromotion(id, infoChange);
     if (!result) {
       return res.status(500).json({ message: "Internal server error" });
     }
@@ -98,18 +103,32 @@ const removePromotionLine = async (req, res) => {
 const editPromotionLine = async (req, res) => {
   try {
     const id = req.params.id;
-    let line = await getPromotionLine(id);
+    let line = await getPromotionLineById(id);
     if (!line) {
-      return res.status(404).json({ message: "Promotion line not found" });
+      return res.status(400).json({ message: "Promotion line not found" });
     }
-    line = { ...line, ...req.body };
+    console.log(">>line before", line);
+    console.log(">>body before", req.body);
+
+    const infoChange = {
+      description: req.body.description || line.description,
+      discount: req.body.discount || line.discount,
+      startDate: req.body.startDate || line.startDate,
+      endDate: req.body.endDate || line.endDate,
+      itemId: req.body.itemId || line.itemId,
+      itemGiftId: req.body.itemGiftId || line.itemGiftId,
+      discount: req.body.discount || line.discount,
+      limitDiscount: req.body.limitDiscount || line.limitDiscount,
+    };
+    console.log(">>infoChange", infoChange);
+
     //check date range
     const parent = await getPromotion(line.parentId);
     if (!parent) {
-      return res.status(404).json({ message: "Promotion not found" });
+      return res.status(500).json({ message: "Promotion not found" });
     }
-    const startDate = new Date(line.startDate);
-    const endDate = new Date(line.endDate);
+    const startDate = new Date(infoChange.startDate);
+    const endDate = new Date(infoChange.endDate);
     const parentStartDate = new Date(parent.startDate);
     const parentEndDate = new Date(parent.endDate);
     if (startDate <= parentStartDate || endDate >= parentEndDate) {
@@ -118,7 +137,7 @@ const editPromotionLine = async (req, res) => {
           "Valid range : parent.startDate <  startDate < endDate < parent.endDate",
       });
     }
-    const result = await updatePromotionLine(id, line);
+    const result = await updatePromotionLine(id, infoChange);
     if (!result) {
       return res.status(500).json({ message: "Internal server error" });
     }
