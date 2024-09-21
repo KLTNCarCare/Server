@@ -14,12 +14,22 @@ const productSchema = mongoose.Schema({
   categoryId: {
     type: String,
     required: true,
+    immutable: true,
   },
   inStock: {
     type: Number,
     required: true,
     default: 0,
     min: 0,
+  },
+  manufacturer: {
+    type: String,
+    required: true,
+  },
+  unit: {
+    type: String,
+    required: true,
+    default: "cái",
   },
   status: {
     type: String,

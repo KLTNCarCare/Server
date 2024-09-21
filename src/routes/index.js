@@ -8,6 +8,7 @@ const priceCatalogRouter = require("./price_catalog.route");
 const promotionRouter = require("./promotion.route");
 const categoryRouter = require("./category.route");
 const serviceRouter = require("./service.route");
+const productRouter = require("./product.route");
 //delayMiddleware return response
 router.all("*", delayMiddleware);
 router.use("/account", accountRouter);
@@ -20,4 +21,5 @@ router.use("/price-catalog", priceCatalogRouter);
 router.use("/promotion", promotionRouter);
 router.use("/category", categoryRouter);
 router.use("/service", serviceRouter);
+router.use("/product", productRouter);
 module.exports = router;

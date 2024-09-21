@@ -20,10 +20,8 @@ const getTotalPage = async (limit) => {
   const count = await Service.countDocuments({ status: "active" });
   return Math.ceil(count / limit);
 };
-const findAllService = async (page, limit) =>
-  await Service.find({ status: "active" })
-    .skip((page - 1) * limit)
-    .limit(limit);
+const findAllService = async (categoryId) =>
+  await Service.find({ categoryId: categoryId });
 module.exports = {
   createService,
   deleteService,
