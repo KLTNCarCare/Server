@@ -53,11 +53,9 @@ const editService = async (req, res) => {
 };
 const getAllServices = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const totalPage = await getTotalPage(limit);
-    const data = await findAllService(page, limit);
-    return res.status(200).json({ data, totalPage });
+    const cate_id = req.params.id;
+    const data = await findAllService(cate_id);
+    return res.status(200).json(data);
   } catch (error) {
     console.log("Error in getAll", error);
     return res.status(500).json({ message: "Internal server error" });
