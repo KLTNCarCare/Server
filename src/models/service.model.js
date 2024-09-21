@@ -15,6 +15,12 @@ const serviceSchema = mongoose.Schema({
   categoryId: {
     type: String,
     required: true,
+    immutable: true,
+  },
+  status: {
+    type: String,
+    enum: ["active", "inactive"],
+    default: "active",
   },
   createdAt: {
     type: Date,
