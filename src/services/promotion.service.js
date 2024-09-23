@@ -7,9 +7,22 @@ const createPromotion = async (promotion) => {
   return await Promotion.create(promotion);
 };
 
-const updatePromotion = async (id, promotion) =>
-  await Promotion.findOneAndUpdate({ _id: id }, promotion, { new: true });
-
+const updatePromotion = async (id, promotion) => {
+  const result = await Promotion.findOneAndUpdate({ _id: id }, promotion, {
+    new: true,
+  });
+  await PromotionLine.updateMany(
+    { parentId: id, startDate: { $lt: promotion.startDate } },
+    { $set: { startDate: promotion.startDate } },
+    { new: true }
+  );
+  await PromotionLine.updateMany(
+    { parentId: id, endDate: { $gt: promotion.endDate } },
+    { $set: { endDate: promotion.endDate } },
+    { new: true }
+  );
+  return result;
+};
 const deletePromotion = async (id) => {
   await PromotionLine.updateMany(
     { parentId: id },

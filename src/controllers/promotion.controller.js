@@ -107,9 +107,6 @@ const editPromotionLine = async (req, res) => {
     if (!line) {
       return res.status(400).json({ message: "Promotion line not found" });
     }
-    console.log(">>line before", line);
-    console.log(">>body before", req.body);
-
     const infoChange = {
       description: req.body.description || line.description,
       discount: req.body.discount || line.discount,
@@ -120,7 +117,6 @@ const editPromotionLine = async (req, res) => {
       discount: req.body.discount || line.discount,
       limitDiscount: req.body.limitDiscount || line.limitDiscount,
     };
-    console.log(">>infoChange", infoChange);
 
     //check date range
     const parent = await getPromotion(line.parentId);
@@ -131,7 +127,7 @@ const editPromotionLine = async (req, res) => {
     const endDate = new Date(infoChange.endDate);
     const parentStartDate = new Date(parent.startDate);
     const parentEndDate = new Date(parent.endDate);
-    if (startDate <= parentStartDate || endDate >= parentEndDate) {
+    if (startDate < parentStartDate || endDate > parentEndDate) {
       return res.status(400).json({
         message:
           "Valid range : parent.startDate <  startDate < endDate < parent.endDate",
