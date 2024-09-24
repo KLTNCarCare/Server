@@ -16,13 +16,7 @@ const lineSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: [
-      "gift-bill",
-      "gift-service",
-      "discount-service",
-      "discount-product",
-      "discount-bill",
-    ],
+    enum: ["discount-service", "discount-product", "discount-bill"],
   },
   description: {
     type: String,
@@ -76,7 +70,7 @@ lineSchema.pre("save", async function (next) {
     const endDate = new Date(this.endDate);
     const parentStartDate = new Date(parent.startDate);
     const parentEndDate = new Date(parent.endDate);
-    if (startDate <= parentStartDate || endDate >= parentEndDate) {
+    if (startDate < parentStartDate || endDate > parentEndDate) {
       return next(
         new Error(
           "Valid range : parent.startDate <  startDate < endDate < parent.endDate"
