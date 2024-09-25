@@ -3,6 +3,8 @@ const { generateID } = require("./lastID.service");
 
 const createService = async (service) => {
   service.serviceId = await generateID("DV");
+  console.log(service);
+
   return await Service.create(service);
 };
 

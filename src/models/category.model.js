@@ -12,12 +12,6 @@ const categorySchema = mongoose.Schema({
     type: String,
     required: true,
   },
-  categoryType: {
-    type: String,
-    required: true,
-    enum: ["service", "product"],
-    immutable: true,
-  },
   duration: {
     type: Number,
     required: true,

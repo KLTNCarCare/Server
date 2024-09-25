@@ -41,6 +41,8 @@ const lineSchema = new mongoose.Schema({
   discount: {
     type: Number,
     default: 0,
+    min: 0,
+    max: 100,
   },
   limitDiscount: {
     type: Number,
