@@ -16,7 +16,7 @@ const lineSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ["discount-service", "discount-product", "discount-bill"],
+    enum: ["discount-service", "discount-bill"],
   },
   description: {
     type: String,
