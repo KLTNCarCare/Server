@@ -7,8 +7,14 @@ const startServer = async (port) => {
   //connect database
   await connection();
 
+  // option cors
+  const corsOptions = {
+    origin: "http://localhost:3000", // Thay thế bằng nguồn gốc của bạn
+    credentials: true, // Cho phép gửi cookie và các thông tin xác thực khác
+  };
+
   //middleware cors
-  app.use(cors());
+  app.use(cors(corsOptions));
 
   //config request body
   app.use(express.json());
