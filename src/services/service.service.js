@@ -11,6 +11,13 @@ const createService = async (service) => {
 const deleteService = async (id) =>
   await Service.findOneAndUpdate(
     { _id: id },
+    { status: "deleted" },
+    { new: true }
+  );
+
+const inactiveService = async (id) =>
+  await Service.findOneAndUpdate(
+    { _id: id },
     { status: "inactive" },
     { new: true }
   );
@@ -30,4 +37,5 @@ module.exports = {
   updateService,
   getTotalPage,
   findAllService,
+  inactiveService,
 };

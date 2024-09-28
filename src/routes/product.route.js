@@ -6,7 +6,6 @@ const {
   getAllProduct,
 } = require("../controllers/product.controller");
 const auth = require("../middlewares/auth.middleware");
-const { updateProduct } = require("../services/product.service");
 router.post("/create", auth(["admin"]), saveProduct);
 router.put("/delete/:id", auth(["admin"]), removeProduct);
 router.put("/edit/:id", auth(["admin"]), editProduct);
