@@ -1,21 +1,24 @@
 const mongoose = require("mongoose");
 const { increaseLastId } = require("../services/lastID.service");
-const itemSchema = mongoose.Schema({
-  itemId: {
-    type: String,
-    required: true,
-    immutable: true,
+const itemSchema = mongoose.Schema(
+  {
+    itemId: {
+      type: String,
+      required: true,
+      immutable: true,
+    },
+    itemName: {
+      type: String,
+      required: true,
+    },
+    price: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
   },
-  itemName: {
-    type: String,
-    required: true,
-  },
-  price: {
-    type: Number,
-    required: true,
-    min: 0,
-  },
-});
+  { _id: false }
+);
 const priceCatalogSchema = mongoose.Schema({
   priceId: {
     type: String,

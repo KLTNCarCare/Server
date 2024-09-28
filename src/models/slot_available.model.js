@@ -6,7 +6,7 @@ const slotAvailabelSchema = mongoose.Schema({
     required: true,
     immutable: true,
   },
-  slot_available: {
+  slots: {
     type: [Number],
     validate: {
       validator: function (v) {
