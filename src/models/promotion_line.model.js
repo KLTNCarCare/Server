@@ -35,7 +35,7 @@ const lineSchema = new mongoose.Schema({
     default: null,
   },
   itemGiftId: {
-    type: [String],
+    type: String,
     default: null,
   },
   discount: {

@@ -12,6 +12,7 @@ const {
   getTotalPage,
   getPromotionLineById,
 } = require("../services/promotion.service");
+const { findById, findServiceById } = require("../services/service.service");
 
 const savePromotion = async (req, res) => {
   try {
@@ -159,7 +160,15 @@ const getAllPromotion = async (req, res) => {
 const getPromotionLineByParentId = async (req, res) => {
   try {
     const parentId = req.params.parentId;
-    const result = await getPromotionLineByParent(parentId);
+    let result = await getPromotionLineByParent(parentId);
+    for (let line of result) {
+      if (line.type == "discount-service") {
+        line.item = await findServiceById(line.itemId);
+        line.itemGift = await findServiceById(line.itemGiftId);
+      }
+    }
+
+    //get list item gift
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in getPromotionLineByParentId", error);
