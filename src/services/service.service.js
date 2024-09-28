@@ -11,6 +11,13 @@ const createService = async (service) => {
 const deleteService = async (id) =>
   await Service.findOneAndUpdate(
     { _id: id },
+    { status: "deleted" },
+    { new: true }
+  );
+
+const inactiveService = async (id) =>
+  await Service.findOneAndUpdate(
+    { _id: id },
     { status: "inactive" },
     { new: true }
   );
@@ -22,6 +29,8 @@ const getTotalPage = async (limit) => {
   const count = await Service.countDocuments({ status: "active" });
   return Math.ceil(count / limit);
 };
+const findById = async (id) => await Service.findById(id);
+
 const findAllService = async (categoryId) =>
   await Service.find({ categoryId: categoryId });
 module.exports = {
@@ -30,4 +39,6 @@ module.exports = {
   updateService,
   getTotalPage,
   findAllService,
+  inactiveService,
+  findById,
 };

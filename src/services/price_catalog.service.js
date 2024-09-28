@@ -20,7 +20,11 @@ const inactiveCatalog = async (id) =>
     { new: true }
   );
 const deleteCatalog = async (id) =>
-  await PriceCatalog.findOneAndUpdate(id, { status: "deleted" }, { new: true });
+  await PriceCatalog.findOneAndUpdate(
+    { _id: id },
+    { status: "deleted" },
+    { new: true }
+  );
 
 const getCatalogActiveByDate = async (date) =>
   await PriceCatalog.find({
