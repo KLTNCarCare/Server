@@ -1,80 +1,24 @@
-const mongoose = require("mongoose");
+const Appointment = require("../models/appointment.model");
 
-const customerSchema = mongoose.Schema(
-  {
-    phone: {
-      type: String,
-      required: true,
+const countAppointmentAtTime = async (time) =>
+  await Appointment.countDocuments({
+    startTime: { $lte: time },
+    endTime: { $gte: time },
+  });
+const findAppointmentInRangeDate = async (d1, d2) =>
+  await Appointment.aggregate([
+    { $match: { startTime: { $gte: d1, $lte: d2 } } },
+    {
+      $project: {
+        _id: 0,
+        startTime: 1,
+        endTime: 1,
+      },
     },
-
-    name: { type: String, required: true },
-  },
-  { _id: false }
-);
-const vehicleSchema = mongoose.Schema(
-  {
-    licensePlate: {
-      type: String,
-      required: true,
-    },
-    model: {
-      type: String,
-      required: true,
-    },
-  },
-  { _id: false }
-);
-const serviceSchema = mongoose.Schema({
-  typeId: {
-    type: String,
-    required: true,
-  },
-  typeName: { type: String, required: true },
-  servieId: { type: String },
-  serviceName: {
-    type: String,
-  },
-  price: { type: double },
-});
-const appointmentSchema = mongoose.Schema({
-  customer: {
-    type: customerSchema,
-    required: true,
-  },
-  vehicle: {
-    type: vehicleSchema,
-    required: true,
-  },
-  notes: {
-    type: String,
-    default: null,
-  },
-  status: {
-    type: String,
-    enum: [
-      "pending",
-      "confirmed",
-      "in-progress",
-      "completed",
-      "canceled",
-      "no-show",
-      "reschuduled",
-    ],
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    immutable,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
-  items: {
-    type: serviceSchema,
-    required: true,
-  },
-});
-
-const Appointment = mongoose.model("Appointment", appointmentSchema);
-module.exports = Appointment;
+  ]);
+const createAppointment = async (data) => await Appointment.create(data);
+module.exports = {
+  createAppointment,
+  countAppointmentAtTime,
+  findAppointmentInRangeDate,
+};
