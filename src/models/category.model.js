@@ -23,7 +23,7 @@ const categorySchema = mongoose.Schema({
 });
 
 categorySchema.pre("findOneAndUpdate", function (next) {
-  this._update.updatedAt = new Date();
+  this.getUpdate().updatedAt = new Date();
   next();
 });
 categorySchema.post("save", async function (doc) {

@@ -14,7 +14,7 @@ const customerSchema = {
   phone: {
     type: String,
     required: true,
-    immutable,
+    immutable: true,
   },
   email: {
     type: String,

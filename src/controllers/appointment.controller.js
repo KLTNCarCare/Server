@@ -3,6 +3,8 @@ const {
   countAppointmentAtTime,
   createAppointment,
   findAppointmentInRangeDate,
+  pushServiceToAppointment,
+  pullServiceToAppointment,
 } = require("../services/appointment.service");
 
 //get time available in day
@@ -131,8 +133,42 @@ const saveAppointment = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-//check slot
+// add service
+const addServiceToAppointment = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const service = req.body;
+    const result = await pushServiceToAppointment(id, service);
+    if (!result) {
+      return res.status(500).json({ message: "add service failure" });
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    console.log("Error in addServiceToAppointment", error);
 
-//update time booking
-//
-module.exports = { saveAppointment, getTimeAvailable };
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+// chỉ được xoá service có status là pending
+const deleteServiceToAppointment = async (req, res) => {
+  try {
+    const { id, serviceId } = req.params;
+    const result = await pullServiceToAppointment(id, serviceId);
+
+    if (result.modifiedCount === 0) {
+      return res.status(500).json({
+        message: "delete failure. Only can delete service is pending",
+      });
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    console.log("Error in deleteServiceToAppointment", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+module.exports = {
+  saveAppointment,
+  getTimeAvailable,
+  deleteServiceToAppointment,
+  addServiceToAppointment,
+};

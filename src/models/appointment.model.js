@@ -15,33 +15,36 @@ const vehicleSchema = mongoose.Schema(
   {
     licensePlate: {
       type: String,
-      required: true,
+      default: null,
     },
     model: {
       type: String,
-      required: true,
+      default: null,
     },
   },
   { _id: false }
 );
-const serviceSchema = mongoose.Schema({
-  typeId: {
-    type: String,
-    required: true,
+const serviceSchema = mongoose.Schema(
+  {
+    typeId: {
+      type: String,
+      required: true,
+    },
+    typeName: { type: String, required: true },
+    serviceId: { type: String, required: true },
+    serviceName: {
+      type: String,
+      required: true,
+    },
+    price: { type: Number, required: true },
+    status: {
+      type: String,
+      enum: ["pending", "in-progess", "completed", "canceled"],
+      default: "pending",
+    },
   },
-  typeName: { type: String, required: true },
-  servieId: { type: String, required: true },
-  serviceName: {
-    type: String,
-    required: true,
-  },
-  price: { type: Number, required: true },
-  status: {
-    type: String,
-    enum: ["pending", "in-progess", "completed", "canceled"],
-    default: ["pending"],
-  },
-});
+  { _id: false }
+);
 const appointmentSchema = mongoose.Schema({
   customer: {
     type: customerSchema,
