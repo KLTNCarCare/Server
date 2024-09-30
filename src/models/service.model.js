@@ -17,6 +17,12 @@ const serviceSchema = mongoose.Schema({
     required: true,
     immutable: true,
   },
+  duration: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 20,
+  },
   status: {
     type: String,
     enum: ["active", "inactive", "deleted"],
