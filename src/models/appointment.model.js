@@ -30,11 +30,17 @@ const serviceSchema = mongoose.Schema({
     required: true,
   },
   typeName: { type: String, required: true },
-  servieId: { type: String },
+  servieId: { type: String, required: true },
   serviceName: {
     type: String,
+    required: true,
   },
-  price: { type: Number },
+  price: { type: Number, required: true },
+  status: {
+    type: String,
+    enum: ["pending", "in-progess", "completed", "canceled"],
+    default: ["pending"],
+  },
 });
 const appointmentSchema = mongoose.Schema({
   customer: {
@@ -84,6 +90,9 @@ const appointmentSchema = mongoose.Schema({
     required: true,
   },
 });
-
+appointmentSchema.pre("findOneAndUpdate", function (next) {
+  this.getUpdate().updatedAt = Date.now();
+  next();
+});
 const Appointment = mongoose.model("Appointment", appointmentSchema);
 module.exports = Appointment;

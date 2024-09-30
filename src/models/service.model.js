@@ -43,7 +43,7 @@ const serviceSchema = mongoose.Schema({
   },
 });
 serviceSchema.pre("findOneAndUpdate", function (next) {
-  this._update.updatedAt = new Date();
+  this.getUpdate().updatedAt = new Date();
   next();
 });
 serviceSchema.post("save", async function (doc) {
