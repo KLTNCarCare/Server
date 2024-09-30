@@ -70,9 +70,8 @@ const getTimeAvailable = async (req, res) => {
       }
     }
     return res.status(200).json({
-      slots_available,
-      booked_slots: booked_slots,
-      existing_apps,
+      date_book: dateBook,
+      booking_available: slots_available,
     });
   } catch (error) {
     console.log("Error in getTimeAvailable:", error);
