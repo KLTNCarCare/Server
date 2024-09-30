@@ -12,11 +12,6 @@ const categorySchema = mongoose.Schema({
     type: String,
     required: true,
   },
-  duration: {
-    type: Number,
-    required: true,
-    min: 0,
-  },
   status: {
     type: String,
     enum: ["active", "inactive", "deteted"],
@@ -33,10 +28,10 @@ categorySchema.pre("findOneAndUpdate", function (next) {
 });
 categorySchema.post("save", async function (doc) {
   try {
-    await increaseLastId("LH");
+    await increaseLastId("GDV");
   } catch (error) {
     console.log(error);
   }
 });
-const Category = mongoose.model("Categorie", categorySchema);
+const Category = mongoose.model("Service_package", categorySchema);
 module.exports = Category;

@@ -107,13 +107,11 @@ const saveAppointment = async (req, res) => {
       ) {
         continue;
       }
-      console.log("current timeeee", current_time.getHours());
       const slot = existing_apps.filter(
         (ele) =>
           new Date(ele.startTime) <= current_time &&
           new Date(ele.endTime) > current_time
       ).length;
-      //console.log("exist", slot);
 
       if (slot >= max_slot) {
         isAvailable = false;

@@ -80,7 +80,7 @@ const appointmentSchema = mongoose.Schema({
     default: Date.now,
   },
   items: {
-    type: serviceSchema,
+    type: [serviceSchema],
     required: true,
   },
 });

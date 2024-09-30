@@ -12,6 +12,10 @@ const serviceSchema = mongoose.Schema({
     type: String,
     required: true,
   },
+  description: {
+    type: String,
+    default: "",
+  },
   categoryId: {
     type: String,
     required: true,
