@@ -17,6 +17,8 @@ const findAppointmentInRangeDate = async (d1, d2) =>
     },
   ]);
 const createAppointment = async (data) => await Appointment.create(data);
+const updateStatusAppoinment = async (id, status) =>
+  await Appointment.findOneAndUpdate({ _id: id }, { status }, { new: true });
 module.exports = {
   createAppointment,
   countAppointmentAtTime,

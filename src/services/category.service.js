@@ -2,7 +2,7 @@ const Category = require("../models/category.model");
 const { generateID } = require("./lastID.service");
 
 const createCategory = async (category) => {
-  category.categoryId = await generateID("LH");
+  category.categoryId = await generateID("GDV");
   return await Category.create(category);
 };
 const delCategory = async (id) =>
