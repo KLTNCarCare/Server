@@ -38,10 +38,10 @@ const removeService = async (req, res) => {
 const editService = async (req, res) => {
   try {
     const id = req.params.id;
-    const { serviceName } = req.body;
+    const { serviceName, duration } = req.body;
     console.log(serviceName);
 
-    const result = await updateService(id, { serviceName });
+    const result = await updateService(id, { serviceName, duration });
     if (!result) {
       return res.status(500).json({ message: "Unsuccessful" });
     }
