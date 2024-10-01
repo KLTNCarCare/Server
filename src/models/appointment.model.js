@@ -93,7 +93,7 @@ const appointmentSchema = mongoose.Schema({
     required: true,
   },
 });
-appointmentSchema.pre("findOneAndUpdate", function (next) {
+appointmentSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
   this.getUpdate().updatedAt = Date.now();
   next();
 });

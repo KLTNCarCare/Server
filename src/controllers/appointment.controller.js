@@ -5,6 +5,7 @@ const {
   findAppointmentInRangeDate,
   pushServiceToAppointment,
   pullServiceToAppointment,
+  updateStatusAppoinment,
 } = require("../services/appointment.service");
 
 //get time available in day
@@ -157,7 +158,7 @@ const deleteServiceToAppointment = async (req, res) => {
 
     if (result.modifiedCount === 0) {
       return res.status(500).json({
-        message: "delete failure. Only can delete service is pending",
+        message: "Delete failure!Only can delete service is pending!",
       });
     }
     return res.status(200).json(result);
@@ -166,9 +167,57 @@ const deleteServiceToAppointment = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+// cập nhật trạng thái là in-progress khi xe đang được xử lý
+const inProgressAppointment = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await updateStatusAppoinment(id, "in-progress");
+    if (!result) {
+      return res.status(400).json({ message: "Update status failure" });
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    console.log("Error in inProgressAppointment", error);
+
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+//cập nhật trạng thái là confirmed khi tiếp nhận xe của khách
+const confirmAppointment = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await updateStatusAppoinment(id, "confirmed");
+    if (!result) {
+      return res.status(400).json({ message: "Update status failure" });
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    console.log("Error in inProgressAppointment", error);
+
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+//cập nhật trạng thái là completed khi xe đã xử lý xong
+const completeAppointment = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await updateStatusAppoinment(id, "completed");
+    if (!result) {
+      return res.status(400).json({ message: "Update status failure" });
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    console.log("Error in inProgressAppointment", error);
+
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 module.exports = {
   saveAppointment,
   getTimeAvailable,
   deleteServiceToAppointment,
   addServiceToAppointment,
+  inProgressAppointment,
+  confirmAppointment,
+  completeAppointment,
 };

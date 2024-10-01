@@ -33,7 +33,7 @@ const findServiceById = async (id) => await Service.findById(id);
 const findServicesByListId = async (list) =>
   await Service.find({ _id: { $in: list } });
 const findAllService = async (categoryId) =>
-  await Service.find({ categoryId: categoryId });
+  await Service.find({ categoryId, status: { $ne: "deleted" } });
 module.exports = {
   createService,
   deleteService,
