@@ -49,8 +49,12 @@ const priceCatalogSchema = mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 // Pre save hook to update the updatedAt value
-priceCatalogSchema.pre("findOneAndUpdate", function (next) {
-  this.getUpdate().updatedAt = Date.now();
+priceCatalogSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
+  const update = this.getUpdate();
+  if (update) {
+    update.updatedAt = new Date();
+    this.setUpdate(update); // Đảm bảo cập nhật lại giá trị
+  }
   next();
 });
 // check range start date and end date

@@ -45,8 +45,12 @@ const employeeSchema = mongoose.Schema({
   createdAt: { type: Date, default: Date.now, immutable: true },
   updatedAt: { type: Date, default: Date.now },
 });
-employeeSchema.pre("findOneAndUpdate", function (next) {
-  this.getUpdate().updatedAt = Date.now();
+employeeSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
+  const update = this.getUpdate();
+  if (update) {
+    update.updatedAt = new Date();
+    this.setUpdate(update); // Đảm bảo cập nhật lại giá trị
+  }
   next();
 });
 // inscrease Last id
