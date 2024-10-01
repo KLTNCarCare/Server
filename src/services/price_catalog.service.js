@@ -26,13 +26,14 @@ const deleteCatalog = async (id) =>
     { new: true }
   );
 
-const getCatalogActiveByDate = async (date) =>
+const getCatalogActiveByRangeDate = async (start, end) =>
   await PriceCatalog.find({
-    startDate: { $lte: date },
-    endDate: { $gte: date },
+    $or: [
+      { startDate: { $gte: start, $lte: end } },
+      { endDate: { $gte: start, $lte: end } },
+    ],
     status: "active",
   });
-
 const getCatalogById = async (id) => await PriceCatalog.findById(id);
 // get catalog with active status and current date
 const getActiveCurrentDate = async (page, limit) =>
@@ -63,7 +64,7 @@ module.exports = {
   createCatalog,
   getCatalogById,
   updateEndDate,
-  getCatalogActiveByDate,
+  getCatalogActiveByRangeDate,
   activeCatalog,
   deleteCatalog,
   inactiveCatalog,

@@ -11,6 +11,7 @@ const {
   getActiveCurrentDate,
   getActiveCatalog,
   getTotalPage,
+  getCatalogActiveByRangeDate,
 } = require("../services/price_catalog.service");
 const createPriceCatalog = async (req, res) => {
   try {
@@ -73,26 +74,30 @@ const activePriceCatalog = async (req, res) => {
     }
     const items_active = catalog.items.map((item) => item.itemId);
     //get  list catalog active by date
-    const ls = await getCatalogActiveByDate(new Date(catalog.startDate));
+    const ls = await getCatalogActiveByRangeDate(
+      new Date(catalog.startDate),
+      new Date(catalog.endDate)
+    );
 
     //check item exist in another catalog
-    if (ls.length > 0) {
-      for (const catalog of ls) {
-        const check = catalog.items.some((item) =>
-          items_active.includes(item.itemId)
-        );
-        if (check) {
-          return res.status(400).json({
-            message: "Have Item is already in catalog: " + catalog.priceId,
-          });
-        }
-      }
-    }
-    const result = await activeCatalog(id);
-    if (!result) {
-      return res.status(500).json({ message: "Internal server error" });
-    }
-    return res.status(200).json(result);
+    // if (ls.length > 0) {
+    //   for (const catalog of ls) {
+    //     const check = catalog.items.some((item) =>
+    //       items_active.includes(item.itemId)
+    //     );
+    //     if (check) {
+    //       return res.status(400).json({
+    //         message: "Have Item is already in catalog: " + catalog.priceId,
+    //       });
+    //     }
+    //   }
+    // }
+    // const result = await activeCatalog(id);
+    // if (!result) {
+    //   return res.status(500).json({ message: "Internal server error" });
+    // }
+    // return res.status(200).json(result);
+    return res.status(200).json(ls);
   } catch (error) {
     console.log("Error in activePriceCatalog", error);
     return res.status(500).json({ message: "Internal server error" });

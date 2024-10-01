@@ -1,5 +1,4 @@
 const Appointment = require("../models/appointment.model");
-
 const countAppointmentAtTime = async (time) =>
   await Appointment.countDocuments({
     startTime: { $lte: time },
@@ -19,8 +18,24 @@ const findAppointmentInRangeDate = async (d1, d2) =>
 const createAppointment = async (data) => await Appointment.create(data);
 const updateStatusAppoinment = async (id, status) =>
   await Appointment.findOneAndUpdate({ _id: id }, { status }, { new: true });
+const pushServiceToAppointment = async (id, service) =>
+  await Appointment.findOneAndUpdate(
+    { _id: id },
+    { $addToSet: { items: service } },
+    { new: true }
+  );
+// chỉ được xoá service có status là pending
+const pullServiceToAppointment = async (id, serviceId) =>
+  await Appointment.updateOne(
+    { _id: id },
+    { $pull: { items: { serviceId: serviceId, status: "pending" } } },
+    { new: true }
+  );
 module.exports = {
   createAppointment,
   countAppointmentAtTime,
   findAppointmentInRangeDate,
+  updateStatusAppoinment,
+  pushServiceToAppointment,
+  pullServiceToAppointment,
 };
