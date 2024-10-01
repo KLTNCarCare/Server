@@ -80,23 +80,23 @@ const activePriceCatalog = async (req, res) => {
     );
 
     //check item exist in another catalog
-    // if (ls.length > 0) {
-    //   for (const catalog of ls) {
-    //     const check = catalog.items.some((item) =>
-    //       items_active.includes(item.itemId)
-    //     );
-    //     if (check) {
-    //       return res.status(400).json({
-    //         message: "Have Item is already in catalog: " + catalog.priceId,
-    //       });
-    //     }
-    //   }
-    // }
-    // const result = await activeCatalog(id);
-    // if (!result) {
-    //   return res.status(500).json({ message: "Internal server error" });
-    // }
-    // return res.status(200).json(result);
+    if (ls.length > 0) {
+      for (const catalog of ls) {
+        const check = catalog.items.some((item) =>
+          items_active.includes(item.itemId)
+        );
+        if (check) {
+          return res.status(400).json({
+            message: "Have Item is already in catalog: " + catalog.priceId,
+          });
+        }
+      }
+    }
+    const result = await activeCatalog(id);
+    if (!result) {
+      return res.status(500).json({ message: "Internal server error" });
+    }
+    return res.status(200).json(result);
     return res.status(200).json(ls);
   } catch (error) {
     console.log("Error in activePriceCatalog", error);
