@@ -82,6 +82,8 @@ const getAllCategories = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    console.log(page, limit);
+
     const totalPage = await getTotalCategory(limit);
     const data = await findAllCategory(page, limit);
     return res.status(200).json({ data, totalPage });

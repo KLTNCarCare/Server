@@ -20,7 +20,7 @@ const findAllCategory = async (page, limit) =>
     .limit(limit);
 
 const getTotalCategory = async (limit) => {
-  const total = await Category.countDocuments({ status: "active" });
+  const total = await Category.countDocuments({ status: { $ne: "deleted" } });
   return Math.ceil(total / limit);
 };
 
