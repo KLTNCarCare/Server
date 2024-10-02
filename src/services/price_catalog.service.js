@@ -31,6 +31,7 @@ const getCatalogActiveByRangeDate = async (start, end) =>
     $or: [
       { startDate: { $gte: start, $lte: end } },
       { endDate: { $gte: start, $lte: end } },
+      { startDate: { $lte: start }, endDate: { $gte: end } },
     ],
     status: "active",
   });
