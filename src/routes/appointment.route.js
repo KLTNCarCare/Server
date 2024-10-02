@@ -8,6 +8,7 @@ const {
   confirmAppointment,
   completeAppointment,
   getAllSlotInDay,
+  getAppointmentInDay,
 } = require("../controllers/appointment.controller");
 const auth = require("../middlewares/auth.middleware");
 router.post("/create", auth(["admin", "staff", "customer"]), saveAppointment);
@@ -20,6 +21,11 @@ router.get(
   "/slot-in-day",
   auth(["admin", "staff", "customer"]),
   getAllSlotInDay
+);
+router.get(
+  "/get-appointment-in-day",
+  auth(["admin", "staff"]),
+  getAppointmentInDay
 );
 router.put(
   "/add-service/:id",

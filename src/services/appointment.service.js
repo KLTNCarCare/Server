@@ -19,9 +19,15 @@ const findAppointmentInRangeDate = async (d1, d2) =>
         ],
       },
     },
+    // {
+    //   $project: {
+    //     _id: 0,
+    //     startTime: 1,
+    //     endTime: 1,
+    //   },
+    // },
     {
-      $project: {
-        _id: 0,
+      $sort: {
         startTime: 1,
         endTime: 1,
       },
@@ -106,6 +112,14 @@ const getAllSlotInDate = async (d) => {
   }));
   return result;
 };
+const getAppointmentInDate = async (d) => {
+  const date_booking = new Date(d);
+  date_booking.setHours(0, 0, 0, 0);
+  const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
+  const t2 = date_booking.getTime() + end_work * 60 * 60 * 1000;
+  const result = await findAppointmentInRangeDate(new Date(t1), new Date(t2));
+  return result;
+};
 module.exports = {
   createAppointment,
   countAppointmentAtTime,
@@ -116,4 +130,5 @@ module.exports = {
   getTimePointAvailableBooking,
   groupSlotTimePoint,
   getAllSlotInDate,
+  getAppointmentInDate,
 };

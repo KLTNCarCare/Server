@@ -9,6 +9,7 @@ const {
   getTimePointAvailableBooking,
   groupSlotTimePoint,
   getAllSlotInDate,
+  getAppointmentInDate,
 } = require("../services/appointment.service");
 
 //get time available in day
@@ -196,6 +197,20 @@ const getAllSlotInDay = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+const getAppointmentInDay = async (req, res) => {
+  try {
+    const day = req.body.date;
+    if (!day) return res.status(400).json({ message: "Bad request" });
+    if (!validator.isISO8601(day))
+      if (!validator.isInt(day))
+        return res.status(400).json({ message: "Bad request" });
+    const result = await getAppointmentInDate(day);
+    return res.status(200).json(result);
+  } catch (error) {
+    console.log("Error in getAllSlotInDay", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 module.exports = {
   saveAppointment,
   getTimeAvailable,
@@ -205,4 +220,5 @@ module.exports = {
   confirmAppointment,
   completeAppointment,
   getAllSlotInDay,
+  getAppointmentInDay,
 };
