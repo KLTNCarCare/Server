@@ -6,6 +6,7 @@ const {
   getTotalCategory,
   findAllCategory,
   inactiveCategoryById,
+  activeCategoryById,
 } = require("../services/category.service");
 
 const saveCategory = async (req, res) => {
@@ -49,7 +50,19 @@ const inactiveCategory = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-
+const activeCategory = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await activeCategoryById(id);
+    if (!result) {
+      return res.status(400).json({ message: "Failed to inactive category" });
+    }
+    return res.status(200).json({ message: "Category inactive successfully" });
+  } catch (error) {
+    console.log("Error in inactiveCategory", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 const editCategory = async (req, res) => {
   try {
     const id = req.params.id;
@@ -83,4 +96,5 @@ module.exports = {
   editCategory,
   getAllCategories,
   inactiveCategory,
+  activeCategory,
 };
