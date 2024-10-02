@@ -19,9 +19,15 @@ const findAppointmentInRangeDate = async (d1, d2) =>
         ],
       },
     },
+    // {
+    //   $project: {
+    //     _id: 0,
+    //     startTime: 1,
+    //     endTime: 1,
+    //   },
+    // },
     {
-      $project: {
-        _id: 0,
+      $sort: {
         startTime: 1,
         endTime: 1,
       },
@@ -53,9 +59,8 @@ const groupSlotTimePoint = async (list_booking, start, end) => {
   ) {
     const hour_current =
       new Date(time_point).getHours() + new Date(time_point).getMinutes() / 60;
-    // bỏ qua khung giờ [5:7)
+    // bỏ qua khung giờ [start_work:end_work)
     if (hour_current < start_work || hour_current >= end_work) continue;
-    console.log(hour_current); // log
     //đếm slot
     const slot_time_point = list_booking.filter(
       (ele) =>
@@ -73,15 +78,11 @@ const getTimePointAvailableBooking = async (date, duration) => {
   const t2 =
     date_booking.getTime() +
     (24 + (start_work + duration - interval)) * 60 * 60 * 1000;
-  console.log(
-    new Date(t1).getHours() + new Date(t1).getMinutes() / 60,
-    new Date(t2).getHours() + new Date(t2).getMinutes() / 60
-  ); //log
-
-  const booking_exist = await findAppointmentInRangeDate(t1, t2);
-  console.log("booking", booking_exist.length); //log
+  const booking_exist = await findAppointmentInRangeDate(
+    new Date(t1),
+    new Date(t2)
+  );
   const slot_time_point = await groupSlotTimePoint(booking_exist, t1, t2);
-  console.log(slot_time_point, slot_time_point.length);
 
   const time_available = [];
   for (let i = 0; i < (end_work - start_work) / interval; i++) {
@@ -95,6 +96,30 @@ const getTimePointAvailableBooking = async (date, duration) => {
   }
   return time_available;
 };
+const getAllSlotInDate = async (d) => {
+  const date_booking = new Date(d);
+  date_booking.setHours(0, 0, 0, 0);
+  const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
+  const t2 = date_booking.getTime() + end_work * 60 * 60 * 1000;
+  const booking_exist = await findAppointmentInRangeDate(
+    new Date(t1),
+    new Date(t2)
+  );
+  const slot_list = await groupSlotTimePoint(booking_exist, t1, t2);
+  const result = slot_list.map((slot, index) => ({
+    time_point: (index + 14) / 2,
+    slot_current: slot,
+  }));
+  return result;
+};
+const getAppointmentInDate = async (d) => {
+  const date_booking = new Date(d);
+  date_booking.setHours(0, 0, 0, 0);
+  const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
+  const t2 = date_booking.getTime() + end_work * 60 * 60 * 1000;
+  const result = await findAppointmentInRangeDate(new Date(t1), new Date(t2));
+  return result;
+};
 module.exports = {
   createAppointment,
   countAppointmentAtTime,
@@ -104,4 +129,6 @@ module.exports = {
   pullServiceToAppointment,
   getTimePointAvailableBooking,
   groupSlotTimePoint,
+  getAllSlotInDate,
+  getAppointmentInDate,
 };
