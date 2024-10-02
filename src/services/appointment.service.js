@@ -13,8 +13,9 @@ const findAppointmentInRangeDate = async (d1, d2) =>
     {
       $match: {
         $or: [
-          { startTime: { $gte: d1, $lte: d2 } },
-          { endtTime: { $gte: d1, $lte: d2 } },
+          { startTime: { $gte: d1, $lt: d2 } },
+          { endtTime: { $gt: d1, $lte: d2 } },
+          { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
         ],
       },
     },
@@ -50,9 +51,11 @@ const groupSlotTimePoint = async (list_booking, start, end) => {
     time_point < end;
     time_point += interval * 60 * 60 * 1000
   ) {
-    const hour_current = new Date(time_point).getHours();
+    const hour_current =
+      new Date(time_point).getHours() + new Date(time_point).getMinutes() / 60;
     // bỏ qua khung giờ [5:7)
     if (hour_current < start_work || hour_current >= end_work) continue;
+    console.log(hour_current); // log
     //đếm slot
     const slot_time_point = list_booking.filter(
       (ele) =>
@@ -66,18 +69,19 @@ const groupSlotTimePoint = async (list_booking, start, end) => {
 const getTimePointAvailableBooking = async (date, duration) => {
   const date_booking = new Date(date);
   date_booking.setHours(0, 0, 0, 0);
-  const t1 = new Date(date_booking);
-  const t2 = new Date(date_booking);
-  t1.setHours(start_work, 0, 0, 0);
-  t2.setDate(date_booking.getDate() + 1);
-  t2.setHours(start_work + duration - interval, 0, 0, 0);
+  const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
+  const t2 =
+    date_booking.getTime() +
+    (24 + (start_work + duration - interval)) * 60 * 60 * 1000;
+  console.log(
+    new Date(t1).getHours() + new Date(t1).getMinutes() / 60,
+    new Date(t2).getHours() + new Date(t2).getMinutes() / 60
+  ); //log
+
   const booking_exist = await findAppointmentInRangeDate(t1, t2);
-  console.log("booking", booking_exist.length);
-  const slot_time_point = await groupSlotTimePoint(
-    booking_exist,
-    t1.getTime(),
-    t2.getTime()
-  );
+  console.log("booking", booking_exist.length); //log
+  const slot_time_point = await groupSlotTimePoint(booking_exist, t1, t2);
+  console.log(slot_time_point, slot_time_point.length);
 
   const time_available = [];
   for (let i = 0; i < (end_work - start_work) / interval; i++) {
