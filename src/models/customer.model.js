@@ -36,8 +36,12 @@ const customerSchema = {
   createdAt: { type: Date, default: Date.now, immutable: true },
   updatedAt: { type: Date, default: Date.now },
 };
-customerSchema.pre("findOneAndUpdate", function (next) {
-  this.getUpdate().updatedAt = Date.now();
+customerSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
+  const update = this.getUpdate();
+  if (update) {
+    update.updatedAt = new Date();
+    this.setUpdate(update); // Đảm bảo cập nhật lại giá trị
+  }
   next();
 });
 const Customer = mongoose.model("Customer", customerSchema);

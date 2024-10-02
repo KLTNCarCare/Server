@@ -19,7 +19,7 @@ const activeCatalog = async (id) =>
   );
 const inactiveCatalog = async (id) =>
   await PriceCatalog.findOneAndUpdate(
-    id,
+    { _id: id },
     { status: "inactive" },
     { new: true }
   );
@@ -35,6 +35,7 @@ const getCatalogActiveByRangeDate = async (start, end) =>
     $or: [
       { startDate: { $gte: start, $lte: end } },
       { endDate: { $gte: start, $lte: end } },
+      { startDate: { $lte: start }, endDate: { $gte: end } },
     ],
     status: "active",
   });

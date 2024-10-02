@@ -22,8 +22,12 @@ const categorySchema = mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-categorySchema.pre("findOneAndUpdate", function (next) {
-  this.getUpdate().updatedAt = new Date();
+categorySchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
+  const update = this.getUpdate();
+  if (update) {
+    update.updatedAt = new Date();
+    this.setUpdate(update); // Đảm bảo cập nhật lại giá trị
+  }
   next();
 });
 categorySchema.post("save", async function (doc) {

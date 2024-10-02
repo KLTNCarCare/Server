@@ -41,8 +41,12 @@ const productSchema = mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-productSchema.pre("findOneAndUpdate", function (next) {
-  this._update.updatedAt = new Date();
+productSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
+  const update = this.getUpdate();
+  if (update) {
+    update.updatedAt = new Date();
+    this.setUpdate(update); // Đảm bảo cập nhật lại giá trị
+  }
   next();
 });
 productSchema.post("save", async function (doc) {
