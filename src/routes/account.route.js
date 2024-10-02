@@ -1,5 +1,6 @@
 const router = require('express').Router();
-const {sendHello,createAccount} = require('../controllers/account.controller');
-router.get('/heart-beat', sendHello);
-router.post('/create-account',createAccount);
+const {createAccountEmp} = require('../controllers/account.controller');
+const auth = require('../middlewares/auth.middleware');
+
+router.post('/create-role-staff',auth(['admin']),createAccountEmp);
 module.exports = router;
