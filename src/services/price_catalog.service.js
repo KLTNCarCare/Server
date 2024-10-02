@@ -12,7 +12,11 @@ const updateEndDate = async (id, newDate) =>
   );
 
 const activeCatalog = async (id) =>
-  await PriceCatalog.findOneAndUpdate(id, { status: "active" }, { new: true });
+  await PriceCatalog.findOneAndUpdate(
+    { _id: id },
+    { status: "active" },
+    { new: true }
+  );
 const inactiveCatalog = async (id) =>
   await PriceCatalog.findOneAndUpdate(
     id,
