@@ -12,9 +12,10 @@ const inactiveCategoryById = async (id) =>
   await Category.findOneAndUpdate({ _id: id }, { status: "inactive" });
 const updateCategory = async (id, category) =>
   await Category.findOneAndUpdate({ _id: id }, category);
-
+const activeCategoryById = async (id) =>
+  await Category.findOneAndUpdate({ _id: id }, { status: "active" });
 const findAllCategory = async (page, limit) =>
-  await Category.find({ status: "active" })
+  await Category.find({ status: { $ne: "deleted" } })
     .skip((page - 1) * limit)
     .limit(limit);
 
@@ -30,4 +31,5 @@ module.exports = {
   findAllCategory,
   getTotalCategory,
   inactiveCategoryById,
+  activeCategoryById,
 };
