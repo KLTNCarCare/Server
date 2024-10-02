@@ -15,7 +15,7 @@ const activeCatalog = async (id) =>
   await PriceCatalog.findOneAndUpdate(id, { status: "active" }, { new: true });
 const inactiveCatalog = async (id) =>
   await PriceCatalog.findOneAndUpdate(
-    id,
+    { _id: id },
     { status: "inactive" },
     { new: true }
   );
