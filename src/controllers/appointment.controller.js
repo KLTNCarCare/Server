@@ -6,6 +6,8 @@ const {
   pushServiceToAppointment,
   pullServiceToAppointment,
   updateStatusAppoinment,
+  getTimePointAvailableBooking,
+  groupSlotTimePoint,
 } = require("../services/appointment.service");
 
 //get time available in day
@@ -30,51 +32,13 @@ const getTimeAvailable = async (req, res) => {
         return res.status(400).json({ message: "Bad request" });
       }
     }
-    const dateBook = new Date(req.body.dateBook);
-
-    dateBook.setUTCHours(0, 0, 0, 0);
-    const duration = Number(req.body.duration);
-    const d1 = new Date(dateBook);
-    const d2 = new Date(dateBook);
-    d2.setUTCDate(dateBook.getDate() + 1);
-    d2.setUTCHours(23, 59, 59, 999);
-    console.log("datebook", dateBook, d1, d2);
-    // danh sách lịch đặt của ngày yêu cầu và ngày tiếp theo
-    const existing_apps = await findAppointmentInRangeDate(d1, d2);
-    const booked_slots = [];
-    //lấy danh sách số lượng chỗ đặt của từng mốc thời gian của ngày yêu cầu
-    for (let i = start_work; i < end_work; i += interval) {
-      const current_time = dateBook.getTime() + i * 60 * 60 * 1000;
-      const slot = countAppointment(existing_apps, current_time);
-      booked_slots.push(slot);
-    }
-    const next_date = new Date(dateBook);
-    next_date.setDate(dateBook.getDate() + 1);
-    //lấy danh sách số lượng chỗ đặt của từng mốc thời gian của ngày kế tiếp ngày  yêu cầu
-    for (
-      let i = start_work;
-      i < start_work + duration - interval;
-      i += interval
-    ) {
-      const current_time = next_date.getTime() + i * 60 * 60 * 1000;
-      const slot = countAppointment(existing_apps, current_time);
-      booked_slots.push(slot);
-    }
-    //lấy danh sách những mốc thời gian cho phép đặt
-    const slots_available = [];
-    for (let i = start_work; i < end_work; i += interval) {
-      const start = i * 2 - start_work * 2;
-      const end = (i + duration) * 2 - start_work * 2;
-      const isAvailable = booked_slots
-        .slice(start, end)
-        .every((num) => num < max_slot);
-      if (isAvailable) {
-        slots_available.push(i);
-      }
-    }
+    const result = await getTimePointAvailableBooking(
+      data.dateBook,
+      Number(data.duration)
+    );
     return res.status(200).json({
-      date_book: dateBook,
-      booking_available: slots_available,
+      date_book: data.dateBook,
+      booking_available: result,
     });
   } catch (error) {
     console.log("Error in getTimeAvailable:", error);
@@ -97,36 +61,41 @@ const saveAppointment = async (req, res) => {
       start_time,
       end_time
     );
-    let isAvailable = true;
-    for (
-      let i = start_time.getTime();
-      i < end_time.getTime();
-      i += interval * 60 * 60 * 1000
-    ) {
-      const current_time = new Date(i);
-      if (
-        current_time.getHours() >= end_work ||
-        current_time.getHours() < start_work
-      ) {
-        continue;
-      }
-      const slot = existing_apps.filter(
-        (ele) =>
-          new Date(ele.startTime) <= current_time &&
-          new Date(ele.endTime) > current_time
-      ).length;
+    const slot_booking = await groupSlotTimePoint(
+      existing_apps,
+      start_time.getTime(),
+      end_time.getTime()
+    );
+    // let isAvailable = true;
+    // for (
+    //   let i = start_time.getTime();
+    //   i < end_time.getTime();
+    //   i += interval * 60 * 60 * 1000
+    // ) {
+    //   const current_time = new Date(i);
+    //   if (
+    //     current_time.getHours() >= end_work ||
+    //     current_time.getHours() < start_work
+    //   ) {
+    //     continue;
+    //   }
+    //   const slot = existing_apps.filter(
+    //     (ele) =>
+    //       new Date(ele.startTime) <= current_time &&
+    //       new Date(ele.endTime) > current_time
+    //   ).length;
 
-      if (slot >= max_slot) {
-        isAvailable = false;
-        break;
-      }
-    }
-    if (!isAvailable) {
+    //   if (slot >= max_slot) {
+    //     isAvailable = false;
+    //     break;
+    //   }
+    // }
+    slot_booking.map((item) => console.log(item));
+    if (slot_booking.some((num) => num >= Number(process.env.LIMIT_SLOT))) {
       return res.status(400).json({
         message: "Khung giờ chọn đã đầy.Vui lòng chọn khung giờ khác",
       });
     }
-
     const result = await createAppointment(req.body);
     return res.status(200).json(result);
   } catch (error) {
