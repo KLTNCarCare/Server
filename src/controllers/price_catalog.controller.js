@@ -15,6 +15,8 @@ const {
 } = require("../services/price_catalog.service");
 const createPriceCatalog = async (req, res) => {
   try {
+    console.log(req.body);
+
     const priceCatalog = req.body;
     const result = await createCatalog(priceCatalog);
     if (!result) {

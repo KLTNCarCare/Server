@@ -19,13 +19,6 @@ const findAppointmentInRangeDate = async (d1, d2) =>
         ],
       },
     },
-    // {
-    //   $project: {
-    //     _id: 0,
-    //     startTime: 1,
-    //     endTime: 1,
-    //   },
-    // },
     {
       $sort: {
         startTime: 1,
