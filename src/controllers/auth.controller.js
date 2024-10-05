@@ -2,7 +2,11 @@
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const { getAccountByUsernamePassword } = require("../services/account.service");
-const { getSecondLeftToken } = require("../services/auth.service");
+const {
+  getSecondLeftToken,
+  verifyOTP,
+  createOTP,
+} = require("../services/auth.service");
 const signIn = async (req, res) => {
   const { username, password } = req.body;
   const data = await getAccountByUsernamePassword(username, password);
@@ -66,8 +70,30 @@ const getTimeLeft = (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+const checkOTP = async (req, res) => {
+  try {
+    const { phoneNumber, otp } = req.body;
+    const result = await verifyOTP(phoneNumber, otp);
+    return res.status(result.code).json({ message: result.message });
+  } catch (error) {
+    console.log("Error in checkOTP", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+const sendOTP = async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+    await createOTP(phoneNumber);
+    return res.status(200).json();
+  } catch (error) {
+    console.log("Error in sendOTP", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 module.exports = {
   signIn,
   refreshToken,
   getTimeLeft,
+  checkOTP,
+  sendOTP,
 };
