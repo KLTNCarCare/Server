@@ -11,6 +11,8 @@ const {
   getPromotion,
   getTotalPage,
   getPromotionLineById,
+  pushPromotionDetail,
+  removePromotionDetail,
 } = require("../services/promotion.service");
 const { findById, findServiceById } = require("../services/service.service");
 
@@ -175,6 +177,33 @@ const getPromotionLineByParentId = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+const addPromtionDetail = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const data = req.body;
+    const result = await pushPromotionDetail(id, data);
+    if (result.EC === 400) {
+      return res.status(400).json({ message: "Bad request" });
+    }
+    return res.status(200).json(result.data);
+  } catch (error) {
+    console.log("Error in addPromotionDetail", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+const deletePromotionDetail = async (req, res) => {
+  try {
+    const { id, idDetail } = req.params;
+    const result = await removePromotionDetail(id, idDetail);
+    if (!result) {
+      return res.status(400).json({ message: "Bad request" });
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    console.log("Error in deletePromotionDetail ", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 module.exports = {
   savePromotion,
   removePromotion,
@@ -184,4 +213,6 @@ module.exports = {
   editPromotionLine,
   getAllPromotion,
   getPromotionLineByParentId,
+  addPromtionDetail,
+  deletePromotionDetail,
 };

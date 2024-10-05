@@ -1,6 +1,35 @@
 const mongoose = require("mongoose");
 const Promotion = require("./promotion.model");
 const { increaseLastId } = require("../services/lastID.service");
+const detailSchema = new mongoose.Schema({
+  itemId: {
+    type: String,
+    default: null,
+  },
+  itemGiftId: {
+    type: String,
+    default: null,
+  },
+  bill: {
+    type: Number,
+    min: 0,
+  },
+  discount: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100,
+  },
+  limitDiscount: {
+    type: Number,
+    default: 0,
+  },
+  status: {
+    type: String,
+    enum: ["active", "inactive"],
+    default: "active",
+  },
+});
 const lineSchema = new mongoose.Schema({
   lineId: {
     type: String,
@@ -30,23 +59,9 @@ const lineSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  itemId: {
-    type: String,
-    default: null,
-  },
-  itemGiftId: {
-    type: String,
-    default: null,
-  },
-  discount: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 100,
-  },
-  limitDiscount: {
-    type: Number,
-    default: 0,
+  detail: {
+    type: [detailSchema],
+    required: false,
   },
   status: {
     type: String,

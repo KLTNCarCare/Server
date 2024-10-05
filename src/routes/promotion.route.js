@@ -8,6 +8,8 @@ const {
   editPromotionLine,
   getAllPromotion,
   getPromotionLineByParentId,
+  addPromtionDetail,
+  deletePromotionDetail,
 } = require("../controllers/promotion.controller");
 const auth = require("../middlewares/auth.middleware");
 router.post("/create-promotion", auth(["admin"]), savePromotion);
@@ -21,5 +23,11 @@ router.get(
   "/get-line-by-parentId/:parentId",
   auth(["admin"]),
   getPromotionLineByParentId
+);
+router.put("/add-promotion-detail/:id", auth(["admin"]), addPromtionDetail);
+router.put(
+  "/delete-promotion-detail/:id/:idDetail",
+  auth(["admin"]),
+  deletePromotionDetail
 );
 module.exports = router;
