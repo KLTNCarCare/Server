@@ -61,7 +61,7 @@ const lineSchema = new mongoose.Schema({
   },
   detail: {
     type: [detailSchema],
-    required: true,
+    required: false,
   },
   status: {
     type: String,
