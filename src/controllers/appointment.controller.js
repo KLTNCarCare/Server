@@ -20,26 +20,24 @@ const max_slot = 6;
 //input YYYY-MM-dd, duration(number)
 const getTimeAvailable = async (req, res) => {
   try {
-    const data = req.body;
+    const day_timestamp = req.query.dateBook;
+    const duration = req.query.duration;
+    console.log(typeof day_timestamp, typeof duration);
     // kiểm tra đầu vào không null, ngày đặt phải là timestamp hoặc ISODate 8601, duration phải là số
     if (
-      !data.dateBook ||
-      !data.duration ||
-      !validator.isNumeric(data.duration)
+      !day_timestamp ||
+      !duration ||
+      !validator.isInt(day_timestamp) ||
+      !validator.isNumeric(duration)
     ) {
-      return res.status(400).json({ message: "Bad request" });
-    }
-    if (!validator.isISO8601(data.dateBook)) {
-      if (!validator.isInt(data.dateBook)) {
-        return res.status(400).json({ message: "Bad request" });
-      }
+      return res.status(400).json({ message: "Bad requestt" });
     }
     const result = await getTimePointAvailableBooking(
-      data.dateBook,
-      Number(data.duration)
+      Number(day_timestamp),
+      Number(duration)
     );
     return res.status(200).json({
-      date_book: data.dateBook,
+      date_book: new Date(Number(day_timestamp)),
       booking_available: result,
     });
   } catch (error) {
@@ -47,12 +45,6 @@ const getTimeAvailable = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
-const countAppointment = (array, value) => {
-  return array.filter(
-    (ele) => new Date(ele.startTime) <= value && new Date(ele.endTime) > value
-  ).length;
-};
-
 //create appointment
 const saveAppointment = async (req, res) => {
   try {
@@ -184,12 +176,10 @@ const completeAppointment = async (req, res) => {
 };
 const getAllSlotInDay = async (req, res) => {
   try {
-    const day = req.body.date;
-    if (!day) return res.status(400).json({ message: "Bad request" });
-    if (!validator.isISO8601(day))
-      if (!validator.isInt(day))
-        return res.status(400).json({ message: "Bad request" });
-    const result = await getAllSlotInDate(day);
+    const day_timestamp = req.query.date;
+    if (!day_timestamp || !validator.isInt(day_timestamp))
+      return res.status(400).json({ message: "Bad request" });
+    const result = await getAllSlotInDate(Number(day_timestamp));
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in getAllSlotInDay", error);
@@ -198,12 +188,10 @@ const getAllSlotInDay = async (req, res) => {
 };
 const getAppointmentInDay = async (req, res) => {
   try {
-    const day = req.body.date;
-    if (!day) return res.status(400).json({ message: "Bad request" });
-    if (!validator.isISO8601(day))
-      if (!validator.isInt(day))
-        return res.status(400).json({ message: "Bad request" });
-    const result = await getAppointmentInDate(day);
+    const day_timestamp = req.query.date;
+    if (!day_timestamp || !validator.isInt(day_timestamp))
+      return res.status(400).json({ message: "Bad request" });
+    const result = await getAppointmentInDate(Number(day_timestamp));
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in getAllSlotInDay", error);
