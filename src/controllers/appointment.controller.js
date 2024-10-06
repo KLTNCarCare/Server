@@ -10,6 +10,7 @@ const {
   groupSlotTimePoint,
   getAllSlotInDate,
   getAppointmentInDate,
+  getTimePointAvailableBooking_New,
 } = require("../services/appointment.service");
 
 //get time available in day
@@ -22,7 +23,6 @@ const getTimeAvailable = async (req, res) => {
   try {
     const day_timestamp = req.query.dateBook;
     const duration = req.query.duration;
-    console.log(typeof day_timestamp, typeof duration);
     // kiểm tra đầu vào không null, ngày đặt phải là timestamp hoặc ISODate 8601, duration phải là số
     if (
       !day_timestamp ||
@@ -32,7 +32,7 @@ const getTimeAvailable = async (req, res) => {
     ) {
       return res.status(400).json({ message: "Bad requestt" });
     }
-    const result = await getTimePointAvailableBooking(
+    const result = await getTimePointAvailableBooking_New(
       Number(day_timestamp),
       Number(duration)
     );
