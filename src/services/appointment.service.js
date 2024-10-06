@@ -110,9 +110,19 @@ const getAppointmentInDate = async (d) => {
   date_booking.setHours(0, 0, 0, 0);
   const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
   const t2 = date_booking.getTime() + end_work * 60 * 60 * 1000;
-  const result = await findAppointmentInRangeDate(new Date(t1), new Date(t2));
+  const result = await findAppointmentStartTimeInRangeDate(
+    new Date(t1),
+    new Date(t2)
+  );
   return result;
 };
+const findAppointmentStartTimeInRangeDate = async (t1, t2) =>
+  await Appointment.find({
+    startTime: {
+      $gte: t1,
+      $lt: t2,
+    },
+  });
 module.exports = {
   createAppointment,
   countAppointmentAtTime,
