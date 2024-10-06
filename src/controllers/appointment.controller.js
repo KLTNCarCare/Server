@@ -92,7 +92,6 @@ const saveAppointment = async (req, res) => {
     //     break;
     //   }
     // }
-    slot_booking.map((item) => console.log(item));
     if (slot_booking.some((num) => num >= Number(process.env.LIMIT_SLOT))) {
       return res.status(400).json({
         message: "Khung giờ chọn đã đầy.Vui lòng chọn khung giờ khác",
