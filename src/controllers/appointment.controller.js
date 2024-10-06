@@ -60,30 +60,6 @@ const saveAppointment = async (req, res) => {
       start_time.getTime(),
       end_time.getTime()
     );
-    // let isAvailable = true;
-    // for (
-    //   let i = start_time.getTime();
-    //   i < end_time.getTime();
-    //   i += interval * 60 * 60 * 1000
-    // ) {
-    //   const current_time = new Date(i);
-    //   if (
-    //     current_time.getHours() >= end_work ||
-    //     current_time.getHours() < start_work
-    //   ) {
-    //     continue;
-    //   }
-    //   const slot = existing_apps.filter(
-    //     (ele) =>
-    //       new Date(ele.startTime) <= current_time &&
-    //       new Date(ele.endTime) > current_time
-    //   ).length;
-
-    //   if (slot >= max_slot) {
-    //     isAvailable = false;
-    //     break;
-    //   }
-    // }
     if (slot_booking.some((num) => num >= Number(process.env.LIMIT_SLOT))) {
       return res.status(400).json({
         message: "Khung giờ chọn đã đầy.Vui lòng chọn khung giờ khác",

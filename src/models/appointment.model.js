@@ -79,6 +79,10 @@ const appointmentSchema = mongoose.Schema({
     ],
     default: "pending",
   },
+  invoiceCreated: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
