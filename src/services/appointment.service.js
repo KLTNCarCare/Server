@@ -161,6 +161,12 @@ const findAppointmentStartTimeInRangeDate = async (t1, t2) =>
       $lt: t2,
     },
   });
+const updateExpiresAppoinment = async (expireTime) => {
+  return await Appointment.updateMany(
+    { status: "pending", startTime: { $lte: expireTime } },
+    { status: "missed" }
+  );
+};
 module.exports = {
   createAppointment,
   countAppointmentAtTime,
@@ -174,4 +180,5 @@ module.exports = {
   getAppointmentInDate,
   getTimePointAvailableBooking_New,
   calEndtime,
+  updateExpiresAppoinment,
 };
