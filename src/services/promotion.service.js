@@ -152,7 +152,7 @@ const removePromotionDetail = async (idLine, idDetail) =>
     { new: true }
   );
 const getPromotionDetailForInvoice = async (time, listItemId, sub_total) => {
-  return await PromotionLine.aggregate([
+  const data = await PromotionLine.aggregate([
     {
       $match: {
         status: "active",
@@ -194,6 +194,7 @@ const getPromotionDetailForInvoice = async (time, listItemId, sub_total) => {
           },
         },
         lineId: "$_id",
+        type: "$type",
       },
     },
     {
@@ -202,6 +203,7 @@ const getPromotionDetailForInvoice = async (time, listItemId, sub_total) => {
     {
       $addFields: {
         "detail.lineId": "$lineId", // Thêm lineId vào từng phần tử của detail
+        "detail.type": "$type",
       },
     },
     {
@@ -210,6 +212,41 @@ const getPromotionDetailForInvoice = async (time, listItemId, sub_total) => {
       },
     },
   ]);
+  // Lấy ra danh sách các phần tử của discount-bill và discount-service
+  const discountBillItems = data.filter(
+    (item) => item.type === "discount-bill"
+  );
+  const discountServiceItems = data.filter(
+    (item) => item.type === "discount-service"
+  );
+
+  // Nếu danh sách discount-bill không rỗng, tìm phần tử có discount lớn nhất
+  const maxDiscountBill =
+    discountBillItems.length > 0
+      ? discountBillItems.reduce(
+          (max, item) => (item.discount > max.discount ? item : max),
+          { discount: 0 }
+        )
+      : null; // Nếu rỗng trả về null hoặc giá trị mặc định
+
+  // Nếu danh sách discount-service không rỗng, tìm phần tử có itemGiftId trùng nhau với discount lớn nhất
+  const discountServiceByGiftId =
+    discountServiceItems.length > 0
+      ? discountServiceItems.reduce((acc, item) => {
+          const existing = acc.find((el) => el.itemGiftId === item.itemGiftId);
+          if (!existing || item.discount > existing.discount) {
+            return [...acc, item];
+          }
+          return acc;
+        }, [])
+      : []; // Nếu rỗng trả về mảng trống hoặc giá trị mặc định
+
+  // Kết hợp kết quả, chỉ lấy những phần tử có giá trị
+  const result = [
+    ...discountServiceByGiftId,
+    ...(maxDiscountBill ? [maxDiscountBill] : []), // Chỉ thêm nếu maxDiscountBill không phải null
+  ];
+  return result;
 };
 
 const getPromotionLineById = async (id) => await PromotionLine.findById(id);
