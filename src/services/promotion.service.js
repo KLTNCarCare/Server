@@ -151,13 +151,14 @@ const removePromotionDetail = async (idLine, idDetail) =>
     },
     { new: true }
   );
-const getPromotionDetailForInvoice = async (time, listItemId, sub_total) => {
+const getProBill = async (time, sub_total) => {
   const data = await PromotionLine.aggregate([
     {
       $match: {
         status: "active",
         startDate: { $lte: time },
         endDate: { $gte: time },
+        type: "discount-bill",
       },
     },
     {
@@ -169,26 +170,63 @@ const getPromotionDetailForInvoice = async (time, listItemId, sub_total) => {
             cond: {
               $and: [
                 { $eq: ["$$detailItem.status", "active"] }, // Điều kiện status phải là active
-                {
-                  $switch: {
-                    branches: [
-                      {
-                        case: { $eq: ["$type", "discount-bill"] },
-                        then: { $lt: ["$$detailItem.bill", sub_total] }, // Nếu là discount-bill thì bill < sub_total
-                      },
-                      {
-                        case: { $eq: ["$type", "discount-service"] },
-                        then: {
-                          $or: [
-                            { $in: ["$$detailItem.itemId", listItemId] },
-                            { $in: ["$$detailItem.itemGiftId", listItemId] },
-                          ], // Nếu là discount-service thì itemId và itemGiftId phải nằm trong listItemId
-                        },
-                      },
-                    ],
-                    default: false, // Điều kiện mặc định nếu không thuộc hai loại trên
-                  },
-                },
+                { $lt: ["$$detailItem.bill", sub_total] }, // Điều kiện cho discount-bill: bill < sub_total
+              ],
+            },
+          },
+        },
+        lineId: "$_id",
+        type: "$type",
+      },
+    },
+    {
+      $unwind: "$detail", // Chuyển đổi mảng detail thành các tài liệu riêng lẻ
+    },
+    {
+      $addFields: {
+        "detail.lineId": "$lineId", // Thêm lineId vào từng phần tử của detail
+        "detail.type": "$type", // Thêm type vào detail để truy vấn dễ hơn
+      },
+    },
+    {
+      $replaceRoot: {
+        newRoot: "$detail", // Thay đổi root thành detail
+      },
+    },
+  ]);
+
+  const maxDiscountBill =
+    data.length > 0
+      ? data.reduce(
+          (max, item) => (item.discount > max.discount ? item : max),
+          { discount: 0 }
+        )
+      : null; // Nếu rỗng trả về null hoặc giá trị mặc định
+
+  return maxDiscountBill;
+};
+
+const getProService = async (time, listItemId) => {
+  const data = await PromotionLine.aggregate([
+    {
+      $match: {
+        status: "active",
+        startDate: { $lte: time },
+        endDate: { $gte: time },
+        type: "discount-service",
+      },
+    },
+    {
+      $project: {
+        detail: {
+          $filter: {
+            input: "$detail",
+            as: "detailItem",
+            cond: {
+              $and: [
+                { $eq: ["$$detailItem.status", "active"] },
+                { $in: ["$$detailItem.itemId", listItemId] },
+                { $in: ["$$detailItem.itemGiftId", listItemId] },
               ],
             },
           },
@@ -212,43 +250,19 @@ const getPromotionDetailForInvoice = async (time, listItemId, sub_total) => {
       },
     },
   ]);
-  // Lấy ra danh sách các phần tử của discount-bill và discount-service
-  const discountBillItems = data.filter(
-    (item) => item.type === "discount-bill"
-  );
-  const discountServiceItems = data.filter(
-    (item) => item.type === "discount-service"
-  );
 
-  // Nếu danh sách discount-bill không rỗng, tìm phần tử có discount lớn nhất
-  const maxDiscountBill =
-    discountBillItems.length > 0
-      ? discountBillItems.reduce(
-          (max, item) => (item.discount > max.discount ? item : max),
-          { discount: 0 }
-        )
-      : null; // Nếu rỗng trả về null hoặc giá trị mặc định
-
-  // Nếu danh sách discount-service không rỗng, tìm phần tử có itemGiftId trùng nhau với discount lớn nhất
   const discountServiceByGiftId =
-    discountServiceItems.length > 0
-      ? discountServiceItems.reduce((acc, item) => {
+    data.length > 0
+      ? data.reduce((acc, item) => {
           const existing = acc.find((el) => el.itemGiftId === item.itemGiftId);
           if (!existing || item.discount > existing.discount) {
             return [...acc, item];
           }
           return acc;
         }, [])
-      : []; // Nếu rỗng trả về mảng trống hoặc giá trị mặc định
-
-  // Kết hợp kết quả, chỉ lấy những phần tử có giá trị
-  const result = [
-    ...discountServiceByGiftId,
-    ...(maxDiscountBill ? [maxDiscountBill] : []), // Chỉ thêm nếu maxDiscountBill không phải null
-  ];
-  return result;
+      : [];
+  return discountServiceByGiftId;
 };
-
 const getPromotionLineById = async (id) => await PromotionLine.findById(id);
 module.exports = {
   createPromotion,
@@ -264,5 +278,6 @@ module.exports = {
   getTotalPage,
   pushPromotionDetail,
   removePromotionDetail,
-  getPromotionDetailForInvoice,
+  getProBill,
+  getProService,
 };

@@ -61,6 +61,48 @@ const getTotalPage = async (limit) => {
   });
   return Math.ceil(total / limit);
 };
+const getPriceByServices = async (time, services) => {
+  const result = await PriceCatalog.aggregate([
+    {
+      $match: {
+        startDate: { $lte: time },
+        endDate: { $gte: time },
+        status: "active",
+      },
+    },
+    {
+      $project: {
+        items: {
+          $filter: {
+            input: "$items",
+            as: "service",
+            cond: {
+              $in: ["$$service.itemId", services], // Dùng $$service để tham chiếu đến biến hiện tại
+            },
+          },
+        },
+      },
+    },
+    {
+      $unwind: {
+        path: "$items",
+        preserveNullAndEmptyArrays: true, // Giữ lại các tài liệu không có item
+      },
+    },
+    {
+      $match: {
+        items: { $ne: null }, // Lọc ra các mục không phải null
+      },
+    },
+    {
+      $replaceRoot: {
+        newRoot: "$items",
+      },
+    },
+  ]);
+  return result;
+};
+
 module.exports = {
   createCatalog,
   getCatalogById,
@@ -73,4 +115,5 @@ module.exports = {
   getActiveCurrentDate,
   getActiveCatalog,
   getTotalPage,
+  getPriceByServices,
 };

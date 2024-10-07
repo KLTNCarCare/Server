@@ -48,10 +48,6 @@ const serviceSchema = mongoose.Schema(
       min: 0,
       max: 100,
     },
-    total: {
-      type: Number,
-      required: true,
-    },
   },
   { _id: false }
 );
@@ -79,19 +75,6 @@ const invoiceSchema = mongoose.Schema({
     type: vehicleSchema,
     required: true,
   },
-  total_duration: {
-    type: Number,
-    min: 0,
-    required: true,
-  },
-  startTime: {
-    type: Date,
-    required: true,
-  },
-  endTime: {
-    type: Date,
-    required: true,
-  },
   notes: {
     type: String,
     default: null,
@@ -105,18 +88,12 @@ const invoiceSchema = mongoose.Schema({
     type: [serviceSchema],
     required: true,
   },
-  sub_total: {
-    type: Number,
-    min: 0,
-    required: true,
-  },
   discount: {
     type: Number,
     default: 0,
     min: 0,
     max: 100,
   },
-  final_total: { type: Number, min: 0, required: true },
   payment: {
     type: paymentSchema,
   },
