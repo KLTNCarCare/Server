@@ -1,3 +1,4 @@
+const { type } = require("express/lib/response");
 const mongoose = require("mongoose");
 
 const customerSchema = mongoose.Schema(
@@ -51,6 +52,11 @@ const appointmentSchema = mongoose.Schema({
   },
   vehicle: {
     type: vehicleSchema,
+    required: true,
+  },
+  total_duration: {
+    type: Number,
+    min: 0,
     required: true,
   },
   startTime: {

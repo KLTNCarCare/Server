@@ -89,22 +89,26 @@ const getTimePointAvailableBooking = async (date, duration) => {
   }
   return time_available;
 };
+// startTime is timestamp ,duration is number
+const calEndtime = (startTime, duration) => {
+  let endTime = startTime;
+  let count = 0;
+  while (count < duration) {
+    if (new Date(endTime).getHours() == end_work) {
+      endTime += (24 - (end_work - start_work) + interval) * 60 * 60 * 1000;
+    } else {
+      endTime += interval * 60 * 60 * 1000;
+    }
+    count += interval;
+  }
+  return endTime;
+};
 const getTimePointAvailableBooking_New = async (date, duration) => {
   const date_booking = new Date(date);
   date_booking.setHours(0, 0, 0, 0);
   const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
-  let t2 = date_booking.getTime() + end_work * 60 * 60 * 1000;
-
-  let count = 0;
-
-  while (count < duration - interval) {
-    if (new Date(t2).getHours() == end_work) {
-      t2 += (24 - (end_work - start_work) + interval) * 60 * 60 * 1000;
-    } else {
-      t2 += interval * 60 * 60 * 1000;
-    }
-    count += interval;
-  }
+  const start = date_booking.getTime() + end_work * 60 * 60 * 1000;
+  const t2 = calEndtime(start, duration - interval);
   const booking_exist = await findAppointmentInRangeDate(
     new Date(t1),
     new Date(t2)
@@ -169,4 +173,5 @@ module.exports = {
   getAllSlotInDate,
   getAppointmentInDate,
   getTimePointAvailableBooking_New,
+  calEndtime,
 };
