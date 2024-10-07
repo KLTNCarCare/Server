@@ -55,6 +55,21 @@ const serviceSchema = mongoose.Schema(
   },
   { _id: false }
 );
+serviceSchema.virtual("total").get(function () {
+  return this.price * (1 - this.discount / 100);
+});
+const paymentSchema = mongoose.Schema({
+  method: {
+    type: String,
+    enum: ["cast", "bank-transfer", "digital-wallet"],
+    default: "cast",
+  },
+  status: {
+    type: String,
+    enum: ["unpaid", "paid"],
+    default: "unpaid",
+  },
+});
 const invoiceSchema = mongoose.Schema({
   customer: {
     type: customerSchema,
@@ -90,14 +105,21 @@ const invoiceSchema = mongoose.Schema({
     type: [serviceSchema],
     required: true,
   },
-  total_price,
+  sub_total: {
+    type: Number,
+    min: 0,
+    required: true,
+  },
   discount: {
     type: Number,
     default: 0,
     min: 0,
     max: 100,
   },
-
+  final_total: { type: Number, min: 0, required: true },
+  payment: {
+    type: paymentSchema,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -107,6 +129,13 @@ const invoiceSchema = mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+});
+invoiceSchema.virtual("sub_total").get(function () {
+  return this.items.reduce((total, service) => total + service.total, 0);
+});
+
+invoiceSchema.virtual("final_total").get(function () {
+  return this.sub_total * (1 - this.discount / 100);
 });
 invoiceSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
   const update = this.getUpdate();
