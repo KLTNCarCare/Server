@@ -36,7 +36,6 @@ const serviceSchema = mongoose.Schema(
       type: String,
       required: true,
     },
-    price: { type: Number, required: true },
     status: {
       type: String,
       enum: ["pending", "in-progess", "completed", "canceled"],
