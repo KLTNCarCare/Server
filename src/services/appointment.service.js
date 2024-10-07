@@ -108,7 +108,6 @@ const createAppointment = async (data) => {
       };
     }
     const result = await Appointment.create(data);
-    cronAppoinmentExpires(result._id, result.startTime);
     await session.commitTransaction();
     return {
       code: 200,

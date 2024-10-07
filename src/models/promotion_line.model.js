@@ -1,10 +1,17 @@
 const mongoose = require("mongoose");
 const Promotion = require("./promotion.model");
-const { increaseLastId } = require("../services/lastID.service");
+const { increaseLastId, generateID } = require("../services/lastID.service");
 const detailSchema = new mongoose.Schema({
+  code: {
+    type: String,
+    required: true,
+  },
   itemId: {
     type: String,
     default: null,
+  },
+  description: {
+    type: String,
   },
   itemGiftId: {
     type: String,
