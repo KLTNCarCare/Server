@@ -46,36 +46,13 @@ const getTimeAvailable = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
-//create appointment
 const saveAppointment = async (req, res) => {
-  try {
-    const data = req.body;
-    //kiểm tra slot của khung giờ đặt
-    const start_time = new Date(data.startTime);
-    const total_duration = Number(data.total_duration);
-    const end_timestamp = calEndtime(start_time.getTime(), total_duration);
-    const end_time = new Date(end_timestamp);
-    data.endTime = end_time;
-    const existing_apps = await findAppointmentInRangeDate(
-      start_time,
-      end_time
-    );
-    const slot_booking = await groupSlotTimePoint(
-      existing_apps,
-      start_time.getTime(),
-      end_time.getTime()
-    );
-    if (slot_booking.some((num) => num >= Number(process.env.LIMIT_SLOT))) {
-      return res.status(400).json({
-        message: "Khung giờ chọn đã đầy.Vui lòng chọn khung giờ khác",
-      });
-    }
-    const result = await createAppointment(req.body);
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in saveAppointmet: ", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const data = req.body;
+  const result = await createAppointment(data);
+  return res.status(result.code).json({
+    message: result.message,
+    data: result.data,
+  });
 };
 // add service
 const addServiceToAppointment = async (req, res) => {

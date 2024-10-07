@@ -1,8 +1,20 @@
+const { default: mongoose } = require("mongoose");
 const Appointment = require("../models/appointment.model");
+const { cronAppoinmentExpires } = require("./cron_job.service");
 const start_work = Number(process.env.START_WORK);
 const end_work = Number(process.env.END_WORK);
 const interval = Number(process.env.INTERVAL);
 const limit_slot = Number(process.env.LIMIT_SLOT);
+const statusPriority = {
+  pending: 2,
+  confirmed: 1,
+  "in-progress": 3,
+  completed: 4,
+  rescheduled: 5,
+  missed: 6,
+  canceled: 7,
+};
+
 const countAppointmentAtTime = async (time) =>
   await Appointment.countDocuments({
     startTime: { $lte: time },
@@ -26,7 +38,95 @@ const findAppointmentInRangeDate = async (d1, d2) =>
       },
     },
   ]);
-const createAppointment = async (data) => await Appointment.create(data);
+const findAppointmentInRangeDatePriorityStatus = async (d1, d2) =>
+  await Appointment.aggregate([
+    {
+      // Đầu tiên, lọc các document theo khoảng thời gian
+      $match: {
+        $or: [
+          { startTime: { $gte: d1, $lt: d2 } },
+          { endTime: { $gt: d1, $lte: d2 } },
+          { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
+        ],
+      },
+    },
+    {
+      // Thêm trường sortPriority dựa trên status
+      $addFields: {
+        sortPriority: {
+          $switch: {
+            branches: Object.entries(statusPriority).map(
+              ([status, priority]) => ({
+                case: { $eq: ["$status", status] },
+                then: priority,
+              })
+            ),
+            default: 0,
+          },
+        },
+      },
+    },
+    {
+      // Sắp xếp theo thời gian và ưu tiên của status
+      $sort: {
+        sortPriority: 1, // Sắp xếp theo sortPriority trước
+        startTime: 1, // Sau đó sắp xếp theo startTime
+        endTime: 1, // Và endTime nếu cần
+      },
+    },
+    {
+      // Nếu không cần trường sortPriority trong kết quả cuối
+      $project: {
+        sortPriority: 0,
+      },
+    },
+  ]);
+
+const createAppointment = async (data) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const start_time = new Date(data.startTime);
+    const total_duration = Number(data.total_duration);
+    const end_timestamp = calEndtime(start_time.getTime(), total_duration);
+    const end_time = new Date(end_timestamp);
+    data.endTime = end_time;
+    const existing_apps = await findAppointmentInRangeDate(
+      start_time,
+      end_time
+    );
+    const slot_booking = await groupSlotTimePoint(
+      existing_apps,
+      start_time.getTime(),
+      end_time.getTime()
+    );
+    if (slot_booking.some((num) => num >= Number(process.env.LIMIT_SLOT))) {
+      return {
+        code: 400,
+        message: "Khung giờ chọn đã đầy.Vui lòng chọn khung giờ khác",
+        data: null,
+      };
+    }
+    const result = await Appointment.create(data);
+    cronAppoinmentExpires(result._id, result.startTime);
+    await session.commitTransaction();
+    return {
+      code: 200,
+      message: "Successfully",
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in saveAppointmet: ", error);
+    session.abortTransaction();
+    return {
+      code: 500,
+      message: "Internal server error",
+      data: null,
+    };
+  } finally {
+    session.endSession();
+  }
+};
 const updateStatusAppoinment = async (id, status) =>
   await Appointment.findOneAndUpdate({ _id: id }, { status }, { new: true });
 const pushServiceToAppointment = async (id, service) =>
@@ -148,7 +248,7 @@ const getAppointmentInDate = async (d) => {
   date_booking.setHours(0, 0, 0, 0);
   const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
   const t2 = date_booking.getTime() + end_work * 60 * 60 * 1000;
-  const result = await findAppointmentStartTimeInRangeDate(
+  const result = await findAppointmentInRangeDatePriorityStatus(
     new Date(t1),
     new Date(t2)
   );
@@ -161,9 +261,9 @@ const findAppointmentStartTimeInRangeDate = async (t1, t2) =>
       $lt: t2,
     },
   });
-const updateExpiresAppoinment = async (expireTime) => {
+const updateExpiresAppoinment = async (deadline) => {
   return await Appointment.updateMany(
-    { status: "pending", startTime: { $lte: expireTime } },
+    { status: "pending", startTime: { $lte: deadline } },
     { status: "missed" }
   );
 };
