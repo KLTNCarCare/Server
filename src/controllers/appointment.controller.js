@@ -11,6 +11,7 @@ const {
   getAllSlotInDate,
   getAppointmentInDate,
   getTimePointAvailableBooking_New,
+  calEndtime,
 } = require("../services/appointment.service");
 
 //get time available in day
@@ -48,9 +49,13 @@ const getTimeAvailable = async (req, res) => {
 //create appointment
 const saveAppointment = async (req, res) => {
   try {
+    const data = req.body;
     //kiểm tra slot của khung giờ đặt
-    const start_time = new Date(req.body.startTime);
-    const end_time = new Date(req.body.endTime);
+    const start_time = new Date(data.startTime);
+    const total_duration = Number(data.total_duration);
+    const end_timestamp = calEndtime(start_time.getTime(), total_duration);
+    const end_time = new Date(end_timestamp);
+    data.endTime = end_time;
     const existing_apps = await findAppointmentInRangeDate(
       start_time,
       end_time
