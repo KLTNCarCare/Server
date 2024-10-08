@@ -3,7 +3,10 @@ const app = express();
 const connection = require("./config/database");
 const router = require("./routes");
 const cors = require("cors");
-const { cronAppoinmentExpires } = require("./services/cron_job.service");
+const {
+  cronAppoinmentExpires,
+  cronJob,
+} = require("./services/cron_job.service");
 const startServer = async (port) => {
   //connect database
   await connection();
@@ -52,7 +55,7 @@ const startServer = async (port) => {
       },
     });
   });
-  cronAppoinmentExpires();
+  cronJob.start();
   //start server
   app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
