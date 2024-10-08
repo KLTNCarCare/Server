@@ -12,7 +12,11 @@ const updateEndDate = async (id, newDate) =>
   );
 
 const activeCatalog = async (id) =>
-  await PriceCatalog.findOneAndUpdate(id, { status: "active" }, { new: true });
+  await PriceCatalog.findOneAndUpdate(
+    { _id: id },
+    { status: "active" },
+    { new: true }
+  );
 const inactiveCatalog = async (id) =>
   await PriceCatalog.findOneAndUpdate(
     { _id: id },
@@ -103,6 +107,80 @@ const getPriceByServices = async (time, services) => {
   return result;
 };
 
+const getAllPriceCurrent = async () => {
+  try {
+    const now = new Date();
+    const data = await PriceCatalog.aggregate([
+      {
+        $match: {
+          status: "active",
+          startDate: { $lte: now },
+          endDate: { $gte: now },
+        },
+      },
+      {
+        $project: {
+          items: 1,
+          _id: 0,
+        },
+      },
+      {
+        $unwind: "$items",
+      },
+      {
+        $addFields: {
+          itemObjectId: { $toObjectId: "$items.itemId" },
+        },
+      },
+      {
+        $lookup: {
+          from: "services", // join with the service collection
+          localField: "itemObjectId", // field from PriceCatalog items
+          foreignField: "_id", // matching field from service
+          as: "serviceDetails",
+        },
+      },
+      {
+        $unwind: "$serviceDetails", // unwrap the service details
+      },
+      {
+        $addFields: {
+          categoryObjId: { $toObjectId: "$serviceDetails.categoryId" },
+        },
+      },
+      {
+        $lookup: {
+          from: "service_packages", // join with the service_package collection
+          localField: "categoryObjId", // field from service
+          foreignField: "_id", // matching field from service_package
+          as: "packageDetails",
+        },
+      },
+      {
+        $unwind: "$packageDetails", // unwrap the service package details
+      },
+      {
+        $replaceRoot: {
+          newRoot: {
+            itemId: "$items.itemId",
+            itemName: "$items.itemName",
+            categoryId: "$serviceDetails.categoryId",
+            categoryName: "$packageDetails.categoryName", // attaching the service package name
+          },
+        },
+      },
+    ]);
+    return {
+      code: 200,
+      message: "Successful",
+      data: data,
+    };
+  } catch (error) {
+    console.log(error);
+    return { code: 500, message: "Internal server error", data: null };
+  }
+};
+
 module.exports = {
   createCatalog,
   getCatalogById,
@@ -116,4 +194,5 @@ module.exports = {
   getActiveCatalog,
   getTotalPage,
   getPriceByServices,
+  getAllPriceCurrent,
 };
