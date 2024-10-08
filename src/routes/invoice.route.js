@@ -1,5 +1,9 @@
-const { saveInvoice } = require("../controllers/invoice.controller");
-
+const {
+  saveInvoice,
+  getAllInvoice,
+} = require("../controllers/invoice.controller");
+const auth = require("../middlewares/auth.middleware");
 const router = require("express").Router();
-router.post("/create", saveInvoice);
+router.post("/create", auth(["admin", "staff"]), saveInvoice);
+router.get("/get-all", auth(["admin", "staff"]), getAllInvoice);
 module.exports = router;
