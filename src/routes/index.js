@@ -10,6 +10,7 @@ const categoryRouter = require("./category.route");
 const serviceRouter = require("./service.route");
 const productRouter = require("./product.route");
 const appointmentRouter = require("./appointment.route");
+const invoiceRouter = require("./invoice.route");
 //delayMiddleware return response
 router.all("*", delayMiddleware);
 router.use("/account", accountRouter);
@@ -24,4 +25,5 @@ router.use("/category", categoryRouter);
 router.use("/service", serviceRouter);
 router.use("/product", productRouter);
 router.use("/appointment", appointmentRouter);
+router.use("/invoice", invoiceRouter);
 module.exports = router;

@@ -75,19 +75,9 @@ const editPromotion = async (req, res) => {
 };
 
 const savePromotionLine = async (req, res) => {
-  try {
-    const promotionLine = req.body;
-    console.log(promotionLine);
-
-    const result = await createPromotionLine(promotionLine);
-    if (!result) {
-      return res.status(500).json({ message: "Internal server error" });
-    }
-    return res.status(201).json(result);
-  } catch (error) {
-    console.log("Error in savePromotionLine", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const promotionLine = req.body;
+  const result = await createPromotionLine(promotionLine);
+  return res.status(result.code).json({ message: result.message });
 };
 const removePromotionLine = async (req, res) => {
   try {
@@ -178,18 +168,16 @@ const getPromotionLineByParentId = async (req, res) => {
   }
 };
 const addPromtionDetail = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const data = req.body;
-    const result = await pushPromotionDetail(id, data);
-    if (result.EC === 400) {
-      return res.status(400).json({ message: "Bad request" });
-    }
-    return res.status(200).json(result.data);
-  } catch (error) {
-    console.log("Error in addPromotionDetail", error);
-    return res.status(500).json({ message: "Internal server error" });
+  const id = req.params.id;
+  const data = req.body;
+  const result = await pushPromotionDetail(id, data);
+  if (result.EC === 400) {
+    return res.status(400).json({ message: "Bad request" });
   }
+  if (result.EC === 200) {
+    return res.status(200).json(result.data);
+  }
+  return res.status(500).json({ message: "Internal server error" });
 };
 const deletePromotionDetail = async (req, res) => {
   try {
