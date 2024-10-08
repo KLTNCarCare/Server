@@ -12,6 +12,7 @@ const {
   getActiveCatalog,
   getTotalPage,
   getCatalogActiveByRangeDate,
+  getAllPriceCurrent,
 } = require("../services/price_catalog.service");
 const createPriceCatalog = async (req, res) => {
   try {
@@ -206,6 +207,13 @@ const getActive = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+const getPriceCurrent = async (req, res) => {
+  const result = await getAllPriceCurrent();
+  return res
+    .status(result.code)
+    .json({ message: result.message, data: result.data });
+};
+
 module.exports = {
   createPriceCatalog,
   updateEndDatePriceCatalog,
@@ -215,4 +223,5 @@ module.exports = {
   getAll,
   getCurrent,
   getActive,
+  getPriceCurrent,
 };
