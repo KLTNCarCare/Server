@@ -259,7 +259,8 @@ const updateExpiresAppoinment = async (deadline) =>
     { $set: { status: "missed" } }
   );
 
-const getAppointmentById = async (id) => await Appointment.findOne({ _id: id });
+const getAppointmentById = async (id) =>
+  await Appointment.findOne({ _id: id }).lean();
 module.exports = {
   createAppointment,
   countAppointmentAtTime,

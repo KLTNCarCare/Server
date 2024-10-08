@@ -25,6 +25,20 @@ const vehicleSchema = mongoose.Schema(
   },
   { _id: false }
 );
+const discountSchema = mongoose.Schema(
+  {
+    per: {
+      type: Number,
+      default: 0,
+      max: 100,
+    },
+    value_max: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: false }
+);
 const serviceSchema = mongoose.Schema(
   {
     typeId: {
@@ -49,10 +63,13 @@ const serviceSchema = mongoose.Schema(
       max: 100,
     },
   },
-  { _id: false }
+  { _id: false, toObject: { virtuals: true }, toJSON: { virtuals: true } }
 );
 serviceSchema.virtual("total").get(function () {
-  return this.price * (1 - this.discount / 100);
+  const total = this.price * (1 - this.discount / 100);
+  console.log(total);
+
+  return total;
 });
 const paymentSchema = mongoose.Schema({
   method: {
@@ -66,53 +83,73 @@ const paymentSchema = mongoose.Schema({
     default: "unpaid",
   },
 });
-const invoiceSchema = mongoose.Schema({
-  customer: {
-    type: customerSchema,
-    required: true,
+const invoiceSchema = mongoose.Schema(
+  {
+    appointmentId: {
+      type: String,
+      default: null,
+    },
+    customer: {
+      type: customerSchema,
+      required: true,
+    },
+    vehicle: {
+      type: vehicleSchema,
+      required: true,
+    },
+    notes: {
+      type: String,
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: ["unpaid", "paid"],
+      default: "unpaid",
+    },
+    items: {
+      type: [serviceSchema],
+      required: true,
+    },
+    discount: {
+      type: discountSchema,
+      default: {
+        per: 0,
+        value_max: 0,
+      },
+    },
+    payment: {
+      type: paymentSchema,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+      immutable: true,
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
-  vehicle: {
-    type: vehicleSchema,
-    required: true,
-  },
-  notes: {
-    type: String,
-    default: null,
-  },
-  status: {
-    type: String,
-    enum: ["unpaid", "paid"],
-    default: "unpaid",
-  },
-  items: {
-    type: [serviceSchema],
-    required: true,
-  },
-  discount: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 100,
-  },
-  payment: {
-    type: paymentSchema,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    immutable: true,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  {
+    toObject: { virtuals: true },
+    toJSON: { virtuals: true },
+  }
+);
 invoiceSchema.virtual("sub_total").get(function () {
-  return this.items.reduce((total, service) => total + service.total, 0);
+  return this.items.reduce(
+    (total, service) => total + service.price * (1 - service.discount / 100),
+    0
+  );
 });
 
 invoiceSchema.virtual("final_total").get(function () {
-  return this.sub_total * (1 - this.discount / 100);
+  const value_max = this.discount.value_max;
+  const sub_total = this.sub_total;
+  const discountValue = (sub_total * this.discount.per) / 100;
+
+  return discountValue > value_max
+    ? sub_total - value_max
+    : sub_total - discountValue;
 });
 invoiceSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
   const update = this.getUpdate();
