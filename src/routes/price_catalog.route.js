@@ -8,6 +8,7 @@ const {
   getAll,
   getCurrent,
   getActive,
+  getPriceCurrent,
 } = require("../controllers/price_catalog.controller");
 const auth = require("../middlewares/auth.middleware");
 
@@ -23,4 +24,5 @@ router.put(
 router.get("/get-all", auth(["admin"]), getAll);
 router.get("/get-current", auth(["admin"]), getCurrent);
 router.get("/get-active", auth(["admin"]), getActive);
+router.get("/get-all-price-current", auth(["admin", "staff"]), getPriceCurrent);
 module.exports = router;
