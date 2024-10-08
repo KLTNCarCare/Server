@@ -1,3 +1,4 @@
+const { updateExpiresAppoinment } = require("../services/appointment.service");
 const {
   createInvoiceFromAppointmentId,
 } = require("../services/invoice.service");
@@ -12,7 +13,6 @@ const saveInvoice = async (req, res) => {
   const id = req.body.appointmentId;
 
   const data = await createInvoiceFromAppointmentId(id);
-
   return res.status(200).json(data);
 };
 module.exports = { saveInvoice };

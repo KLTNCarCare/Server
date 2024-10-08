@@ -6,8 +6,8 @@ const end_work = Number(process.env.END_WORK);
 const interval = Number(process.env.INTERVAL);
 const limit_slot = Number(process.env.LIMIT_SLOT);
 const statusPriority = {
-  pending: 2,
   confirmed: 1,
+  pending: 2,
   "in-progress": 3,
   completed: 4,
   rescheduled: 5,
@@ -253,19 +253,12 @@ const getAppointmentInDate = async (d) => {
   );
   return result;
 };
-const findAppointmentStartTimeInRangeDate = async (t1, t2) =>
-  await Appointment.find({
-    startTime: {
-      $gte: t1,
-      $lt: t2,
-    },
-  });
-const updateExpiresAppoinment = async (deadline) => {
-  return await Appointment.updateMany(
+const updateExpiresAppoinment = async (deadline) =>
+  await Appointment.updateMany(
     { status: "pending", startTime: { $lte: deadline } },
-    { status: "missed" }
+    { $set: { status: "missed" } }
   );
-};
+
 const getAppointmentById = async (id) => await Appointment.findOne({ _id: id });
 module.exports = {
   createAppointment,
