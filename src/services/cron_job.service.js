@@ -1,6 +1,5 @@
 const cron = require("node-cron");
 const { updateExpiresAppoinment } = require("./appointment.service");
-const Appointment = require("../models/appointment.model");
 
 const cronJob = cron.schedule(
   "15,45 7-16 * * *",
@@ -8,10 +7,7 @@ const cronJob = cron.schedule(
     try {
       const now = new Date();
       const expireTime = new Date(now.getTime() - 14.95 * 60 * 1000);
-      const result = await Appointment.updateMany(
-        { status: "pending", startTime: { $lte: expireTime } },
-        { $set: { status: "missed" } }
-      );
+      const result = await updateExpiresAppoinment(expireTime);
       console.log(`Update ${result.modifiedCount} appointment at ${now}`);
     } catch (error) {
       console.log(error);

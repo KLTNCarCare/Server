@@ -1,6 +1,6 @@
 const { default: mongoose } = require("mongoose");
 const Appointment = require("../models/appointment.model");
-const { cronAppoinmentExpires } = require("./cron_job.service");
+const { findOneAndUpdate } = require("../models/promotion_line.model");
 const start_work = Number(process.env.START_WORK);
 const end_work = Number(process.env.END_WORK);
 const interval = Number(process.env.INTERVAL);
@@ -253,12 +253,21 @@ const getAppointmentInDate = async (d) => {
   );
   return result;
 };
+
 const updateExpiresAppoinment = async (deadline) =>
   await Appointment.updateMany(
     { status: "pending", startTime: { $lte: deadline } },
     { $set: { status: "missed" } }
   );
-
+const updateAppointmentCreatedInvoice = async (id) =>
+  Appointment.findOneAndUpdate(
+    { _id: id },
+    {
+      $set: {
+        invoiceCreated: true,
+      },
+    }
+  );
 const getAppointmentById = async (id) =>
   await Appointment.findOne({ _id: id }).lean();
 module.exports = {
@@ -276,4 +285,5 @@ module.exports = {
   calEndtime,
   updateExpiresAppoinment,
   getAppointmentById,
+  updateAppointmentCreatedInvoice,
 };
