@@ -134,6 +134,76 @@ const createInvoiceFromAppointmentId = async (appId) => {
     session.endSession();
   }
 };
+const updateInvoiceStatusToPaid = async (id) => {
+  try {
+    if (!id) {
+      return { code: 400, message: "Bad request", data: null };
+    }
+    const result = await Invoice.findOneAndUpdate(
+      { _id: id },
+      { status: "paid" },
+      { new: true }
+    );
+    if (!result) {
+      return {
+        code: 400,
+        message: "Unsuccessful",
+        data: result,
+      };
+    }
+    return {
+      code: 200,
+      message: "Successful",
+      data: result,
+    };
+  } catch (error) {
+    console.log(error);
+    return { code: 500, message: "Internal server error", data: null };
+  }
+};
+const updateInvoiceTypeToRefund = async (id) => {
+  try {
+    if (!id) {
+      return { code: 400, message: "Bad request", data: null };
+    }
+    const result = await Invoice.findOneAndUpdate(
+      { _id: id },
+      { type: "refund" },
+      { new: true }
+    );
+    if (!result) {
+      return {
+        code: 400,
+        message: "Unsuccessful",
+        data: result,
+      };
+    }
+    return {
+      code: 200,
+      message: "Successful",
+      data: result,
+    };
+  } catch (error) {
+    console.log(error);
+    return { code: 500, message: "Internal server error", data: null };
+  }
+};
+const findInvoiceByAppointmentId = async (appointmentId) => {
+  try {
+    if (!appointmentId) {
+      return { code: 400, message: "Bad request", data: null };
+    }
+    const result = await Invoice.findOne({ appointmentId: appointmentId });
+    return {
+      code: 200,
+      message: "Successful",
+      data: result,
+    };
+  } catch (error) {
+    console.log(error);
+    return { code: 500, message: "Internal server error", data: null };
+  }
+};
 const findInvoiceById = async (id) => await Invoice.find({ _id: id });
 const findAllInvoice = async (page, limit) => {
   try {
@@ -176,4 +246,10 @@ const findAllInvoice = async (page, limit) => {
   }
 };
 
-module.exports = { createInvoiceFromAppointmentId, findAllInvoice };
+module.exports = {
+  createInvoiceFromAppointmentId,
+  findAllInvoice,
+  findInvoiceByAppointmentId,
+  updateInvoiceStatusToPaid,
+  updateInvoiceTypeToRefund,
+};
