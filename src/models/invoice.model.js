@@ -84,6 +84,11 @@ const paymentSchema = mongoose.Schema({
 });
 const invoiceSchema = mongoose.Schema(
   {
+    invoiceId: {
+      type: String,
+      unique: true,
+      required: true,
+    },
     appointmentId: {
       type: String,
       default: null,

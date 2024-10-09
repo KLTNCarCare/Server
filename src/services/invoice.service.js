@@ -8,6 +8,7 @@ const {
 } = require("./appointment.service");
 const Appointment = require("../models/appointment.model");
 const { createPromotionResult } = require("./promotion_result.service");
+const { generateInvoiceID } = require("./lastID.service");
 
 const createInvoiceFromAppointmentId = async (appId) => {
   const session = await mongoose.startSession();
@@ -24,13 +25,13 @@ const createInvoiceFromAppointmentId = async (appId) => {
       };
     }
     // Kiểm tra lịch hẹn đã tạo hoá đơn hay chưa
-    if (app.invoiceCreated != null && app.invoiceCreated == true) {
-      return {
-        code: 400,
-        message: "Lịch hẹn này đã được tạo hoá đơn",
-        data: null,
-      };
-    }
+    // if (app.invoiceCreated != null && app.invoiceCreated == true) {
+    //   return {
+    //     code: 400,
+    //     message: "Lịch hẹn này đã được tạo hoá đơn",
+    //     data: null,
+    //   };
+    // }
     // lấy danh sách _id của dịch vụ
     const items = app.items.map((item) => item.serviceId);
 
@@ -92,9 +93,10 @@ const createInvoiceFromAppointmentId = async (appId) => {
     }
     // tạo object hoá đơn
     const promotion_code = promotion_result.map((item) => item.code);
-    promotion_code;
+    const invoiceId = await generateInvoiceID();
 
     const data = {
+      invoiceId: invoiceId,
       appointmentId: appId,
       customer: app.customer,
       vehicle: app.vehicle,
