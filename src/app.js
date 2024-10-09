@@ -6,6 +6,8 @@ const cors = require("cors");
 const {
   cronAppoinmentExpires,
   cronJob,
+  cronJobExpiresAppointment,
+  cronJobResetIdInvoice,
 } = require("./services/cron_job.service");
 const startServer = async (port) => {
   //connect database
@@ -55,7 +57,8 @@ const startServer = async (port) => {
       },
     });
   });
-  cronJob.start();
+  cronJobExpiresAppointment.start();
+  cronJobResetIdInvoice.start();
   //start server
   app.listen(port, () => {
     console.log(`Server is running on port ${port}`);

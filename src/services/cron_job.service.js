@@ -1,7 +1,8 @@
 const cron = require("node-cron");
 const { updateExpiresAppoinment } = require("./appointment.service");
+const { resetInvoiceId } = require("./lastID.service");
 
-const cronJob = cron.schedule(
+const cronJobExpiresAppointment = cron.schedule(
   "15,45 7-16 * * *",
   async () => {
     try {
@@ -18,4 +19,19 @@ const cronJob = cron.schedule(
     timezone: "Asia/Ho_Chi_Minh",
   }
 );
-module.exports = { cronJob };
+const cronJobResetIdInvoice = cron.schedule(
+  " 0 0 * * *",
+  async () => {
+    try {
+      await resetInvoiceId();
+      console.log("Thiết lập lại bộ đếm hoá đơn trong ngày thành công!");
+    } catch (error) {
+      console.log(error);
+    }
+  },
+  {
+    scheduled: true,
+    timezone: "Asia/Ho_Chi_Minh",
+  }
+);
+module.exports = { cronJobExpiresAppointment, cronJobResetIdInvoice };

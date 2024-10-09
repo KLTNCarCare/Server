@@ -4,6 +4,7 @@ const {
   createInvoiceFromAppointmentId,
   findAllInvoice,
 } = require("../services/invoice.service");
+const { generateInvoiceID } = require("../services/lastID.service");
 const { getPriceByServices } = require("../services/price_catalog.service");
 const {
   getPromotionDetailForInvoice,
