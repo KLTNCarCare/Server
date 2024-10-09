@@ -24,13 +24,13 @@ const createInvoiceFromAppointmentId = async (appId) => {
       };
     }
     // Kiểm tra lịch hẹn đã tạo hoá đơn hay chưa
-    // if (app.invoiceCreated != null && app.invoiceCreated == true) {
-    //   return {
-    //     code: 400,
-    //     message: "Lịch hẹn này đã được tạo hoá đơn",
-    //     data: null,
-    //   };
-    // }
+    if (app.invoiceCreated != null && app.invoiceCreated == true) {
+      return {
+        code: 400,
+        message: "Lịch hẹn này đã được tạo hoá đơn",
+        data: null,
+      };
+    }
     // lấy danh sách _id của dịch vụ
     const items = app.items.map((item) => item.serviceId);
 
