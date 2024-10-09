@@ -204,7 +204,7 @@ const findInvoiceByAppointmentId = async (appointmentId) => {
     return { code: 500, message: "Internal server error", data: null };
   }
 };
-const findInvoiceById = async (id) => await Invoice.find({ _id: id });
+const findInvoiceById = async (id) => await Invoice.findOne({ _id: id });
 const findAllInvoice = async (page, limit) => {
   try {
     const result = await Invoice.aggregate([
