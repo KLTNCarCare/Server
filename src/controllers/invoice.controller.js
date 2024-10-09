@@ -3,6 +3,9 @@ const { updateExpiresAppoinment } = require("../services/appointment.service");
 const {
   createInvoiceFromAppointmentId,
   findAllInvoice,
+  findInvoiceByAppointmentId,
+  updateInvoiceStatusToPaid,
+  updateInvoiceTypeToRefund,
 } = require("../services/invoice.service");
 const { generateInvoiceID } = require("../services/lastID.service");
 const { getPriceByServices } = require("../services/price_catalog.service");
@@ -26,4 +29,25 @@ const getAllInvoice = async (req, res) => {
 
   return res.status(result.code).json(result.data);
 };
-module.exports = { saveInvoice, getAllInvoice };
+const getInvoiceByAppointmentId = async (req, res) => {
+  const id = req.params.appointmentId;
+  const result = await findInvoiceByAppointmentId(id);
+  return res.status(result.code).json(result);
+};
+const payInvoice = async (req, res) => {
+  const id = req.params.id;
+  const result = await updateInvoiceStatusToPaid(id);
+  return res.status(result.code).json(result);
+};
+const refundInvoice = async (req, res) => {
+  const id = req.params.id;
+  const result = await updateInvoiceTypeToRefund(id);
+  return res.status(result.code).json(result);
+};
+module.exports = {
+  saveInvoice,
+  getAllInvoice,
+  getInvoiceByAppointmentId,
+  payInvoice,
+  refundInvoice,
+};

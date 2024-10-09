@@ -105,6 +105,11 @@ const invoiceSchema = mongoose.Schema(
       type: String,
       default: null,
     },
+    type: {
+      type: String,
+      enum: ["normal", "refund"],
+      default: "normal",
+    },
     status: {
       type: String,
       enum: ["unpaid", "paid"],
