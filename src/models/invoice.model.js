@@ -67,7 +67,6 @@ const serviceSchema = mongoose.Schema(
 );
 serviceSchema.virtual("total").get(function () {
   const total = this.price * (1 - this.discount / 100);
-  console.log(total);
 
   return total;
 });
@@ -116,6 +115,10 @@ const invoiceSchema = mongoose.Schema(
         per: 0,
         value_max: 0,
       },
+    },
+    promotion_code: {
+      type: [String],
+      default: [],
     },
     payment: {
       type: paymentSchema,
