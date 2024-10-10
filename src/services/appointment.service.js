@@ -1,7 +1,9 @@
-const { default: mongoose } = require("mongoose");
+const { default: mongoose, trusted } = require("mongoose");
 const Appointment = require("../models/appointment.model");
 const { findOneAndUpdate } = require("../models/promotion_line.model");
 const { find } = require("../models/promotion.model");
+const connection = require("./sockjs_manager");
+const { messageType } = require("../utils/constants");
 const start_work = Number(process.env.START_WORK);
 const end_work = Number(process.env.END_WORK);
 const interval = Number(process.env.INTERVAL);
@@ -287,15 +289,23 @@ const updateExpiresAppoinment = async (deadline) => {
   );
   return await Appointment.find({ _id: { $in: ids } });
 };
-const updateAppointmentCreatedInvoice = async (id) =>
-  Appointment.findOneAndUpdate(
+const updateAppointmentCreatedInvoice = async (id) => {
+  const result = await Appointment.findOneAndUpdate(
     { _id: id },
     {
       $set: {
         invoiceCreated: true,
       },
-    }
+    },
+    { new: true }
   );
+  console.log(result);
+
+  if (result) {
+    connection.sendMessageAllStaff(messageType.created_invoice_app, result);
+  }
+  return result;
+};
 const getAppointmentById = async (id) =>
   await Appointment.findOne({ _id: id }).lean();
 module.exports = {
