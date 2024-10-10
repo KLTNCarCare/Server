@@ -4,8 +4,7 @@ const { resetInvoiceId } = require("./lastID.service");
 const connection = require("./sockjs_manager");
 const { messageType } = require("../utils/constants");
 const cronJobExpiresAppointment = cron.schedule(
-  // "15,45 7-16 * * *",
-  "30 * * * * *",
+  "15,45 7-16 * * *",
   async () => {
     try {
       const now = new Date();
