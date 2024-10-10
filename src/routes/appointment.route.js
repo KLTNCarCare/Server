@@ -9,6 +9,7 @@ const {
   completeAppointment,
   getAllSlotInDay,
   getAppointmentInDay,
+  cancelAppointment,
 } = require("../controllers/appointment.controller");
 const auth = require("../middlewares/auth.middleware");
 router.post("/create", auth(["admin", "staff", "customer"]), saveAppointment);
@@ -37,7 +38,9 @@ router.put(
   auth(["admin", "staff"]),
   deleteServiceToAppointment
 );
+
 router.put("/in-progress/:id", auth(["admin", "staff"]), inProgressAppointment);
 router.put("/confirmed/:id", auth(["admin", "staff"]), confirmAppointment);
 router.put("/completed/:id", auth(["admin", "staff"]), completeAppointment);
+router.put("/canceled/:id", auth(["admin", "staff"]), cancelAppointment);
 module.exports = router;

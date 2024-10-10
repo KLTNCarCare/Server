@@ -1,21 +1,19 @@
 const express = require("express");
-const app = express();
 const connection = require("./config/database");
 const router = require("./routes");
 const cors = require("cors");
 const {
-  cronAppoinmentExpires,
-  cronJob,
   cronJobExpiresAppointment,
   cronJobResetIdInvoice,
 } = require("./services/cron_job.service");
+const { app, server } = require("./config/socket");
 const startServer = async (port) => {
   //connect database
   await connection();
 
   // option cors
   const corsOptions = {
-    origin: "http://localhost:3000", // Thay thế bằng nguồn gốc của bạn
+    origin: ["http://localhost:3000", "http://localhost:8080"], // Thay thế bằng nguồn gốc của bạn
     credentials: true, // Cho phép gửi cookie và các thông tin xác thực khác
   };
 
@@ -60,7 +58,7 @@ const startServer = async (port) => {
   cronJobExpiresAppointment.start();
   cronJobResetIdInvoice.start();
   //start server
-  app.listen(port, () => {
+  server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
   });
 };

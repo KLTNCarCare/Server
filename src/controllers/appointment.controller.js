@@ -13,7 +13,7 @@ const {
   getTimePointAvailableBooking_New,
   calEndtime,
 } = require("../services/appointment.service");
-
+const connection = require("../services/sockjs_manager");
 //get time available in day
 const start_work = 7; // 7:00 A.M
 const end_work = 17; // 5:00 P.M
@@ -49,6 +49,9 @@ const getTimeAvailable = async (req, res) => {
 const saveAppointment = async (req, res) => {
   const data = req.body;
   const result = await createAppointment(data);
+  if (result.code == 200) {
+    connection.sendMessageAllStaff("SAVE-APPOINTMENT", result.data);
+  }
   return res.status(result.code).json({
     message: result.message,
     data: result.data,
@@ -95,6 +98,7 @@ const inProgressAppointment = async (req, res) => {
     if (!result) {
       return res.status(400).json({ message: "Update status failure" });
     }
+    connection.sendMessageAllStaff("IN-PROGRESS-APPOINTMENT", result);
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in inProgressAppointment", error);
@@ -110,6 +114,7 @@ const confirmAppointment = async (req, res) => {
     if (!result) {
       return res.status(400).json({ message: "Update status failure" });
     }
+    connection.sendMessageAllStaff("CONFIRMED-APPOINTMENT", result);
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in inProgressAppointment", error);
@@ -125,9 +130,25 @@ const completeAppointment = async (req, res) => {
     if (!result) {
       return res.status(400).json({ message: "Update status failure" });
     }
+    connection.sendMessageAllStaff("COMPLETED-APPOINTMENT", result);
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in inProgressAppointment", error);
+
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+const cancelAppointment = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await updateStatusAppoinment(id, "canceled");
+    if (!result) {
+      return res.status(400).json({ message: "Update status failure" });
+    }
+    connection.sendMessageAllStaff("CANCELED-APPOINTMENT", result);
+    return res.status(200).json(result);
+  } catch (error) {
+    console.log("Error in cancelAppointment", error);
 
     return res.status(500).json({ message: "Internal server error" });
   }
@@ -164,6 +185,7 @@ module.exports = {
   inProgressAppointment,
   confirmAppointment,
   completeAppointment,
+  cancelAppointment,
   getAllSlotInDay,
   getAppointmentInDay,
 };

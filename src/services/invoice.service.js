@@ -38,14 +38,25 @@ const createInvoiceFromAppointmentId = async (appId) => {
     // lấy giá của dịch vụ theo thời gian lịch đã đặt
     const time_promotion = new Date(app.startTime);
     const list_price = await getPriceByServices(time_promotion, items);
-    console.log(list_price);
+    //kiểm tra nếu 1 vụ dịch có hơn 1 giá
 
+    if (list_price.length > app.items.length) {
+      console.log("----------------------WARNING----------------------------");
+
+      console.log("Có dịch vụ có nhiều hơn 1 giá");
+      console.log("---------------------------------------------------------");
+    }
     //thêm giá vào từng dịch vụ
     app.items.forEach((item) => {
       const price = list_price.find((price) => price.itemId == item.serviceId);
       if (!price) {
         //Xuất lỗi khi có dịch vụ không lấy được giá
-        throw new Error("Không tìm thấy giá của dịch vụ");
+        throw new Error(
+          "Không tìm thấy giá của dịch vụ: " +
+            item.serviceName +
+            ",_id= " +
+            item.serviceId
+        );
       }
       item.price = price.price;
     });
@@ -128,7 +139,7 @@ const createInvoiceFromAppointmentId = async (appId) => {
 
     return {
       code: 500,
-      message: "Internal server error",
+      message: error.message,
       data: null,
     };
   } finally {
