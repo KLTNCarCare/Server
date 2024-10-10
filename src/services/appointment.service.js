@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose");
 const Appointment = require("../models/appointment.model");
 const { findOneAndUpdate } = require("../models/promotion_line.model");
+const { find } = require("../models/promotion.model");
 const start_work = Number(process.env.START_WORK);
 const end_work = Number(process.env.END_WORK);
 const interval = Number(process.env.INTERVAL);
@@ -47,7 +48,7 @@ const findAppointmentStatusNotCanceledInRangeDate = async (d1, d2) =>
           { endtTime: { $gt: d1, $lte: d2 } },
           { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
         ],
-        status: { $ne: "missed" },
+        status: { $ne: "canceled" },
       },
     },
     {
@@ -110,7 +111,7 @@ const createAppointment = async (data) => {
     const end_timestamp = calEndtime(start_time.getTime(), total_duration);
     const end_time = new Date(end_timestamp);
     data.endTime = end_time;
-    const existing_apps = await findAppointmentInRangeDate(
+    const existing_apps = await findAppointmentStatusNotCanceledInRangeDate(
       start_time,
       end_time
     );
@@ -279,11 +280,12 @@ const updateExpiresAppoinment = async (deadline) => {
     startTime: { $lte: deadline },
   });
   const ids = expires.map((ele) => ele._id);
-  log(expires_id);
+  console.log(ids);
   await Appointment.updateMany(
     { _id: { $in: ids }, status: "pending" },
     { $set: { status: "missed" } }
   );
+  return await Appointment.find({ _id: { $in: ids } });
 };
 const updateAppointmentCreatedInvoice = async (id) =>
   Appointment.findOneAndUpdate(

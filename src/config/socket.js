@@ -12,9 +12,7 @@ sockjs_server.installHandlers(server, { prefix: "/sockjs/staff" });
 // Xử lý kết nối SockJS
 sockjs_server.on("connection", (conn) => {
   conn.write("Kết nối với server sockjs thành công!");
-  console.log({
-    conn,
-  });
+  console.log("A Connecting with Id =", conn.id);
 
   // lưu id client kết nối
   connect.addConnection(conn.id, conn);
@@ -27,7 +25,7 @@ sockjs_server.on("connection", (conn) => {
   //client đóng kết nối
   conn.on("close", () => {
     connect.removeConnection(conn.id);
-    console.log("Client disconnected");
+    console.log("A disconnecting id = ", conn.id);
   });
 
   //Ngắt kết nối client

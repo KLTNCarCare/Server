@@ -1,15 +1,19 @@
 const cron = require("node-cron");
 const { updateExpiresAppoinment } = require("./appointment.service");
 const { resetInvoiceId } = require("./lastID.service");
-
+const connection = require("./sockjs_manager");
 const cronJobExpiresAppointment = cron.schedule(
-  "15,45 7-16 * * *",
+  // "15,45 7-16 * * *",
+  "30 * * * * *",
   async () => {
     try {
       const now = new Date();
       const expireTime = new Date(now.getTime() - 14.95 * 60 * 1000);
       const result = await updateExpiresAppoinment(expireTime);
-      console.log(`Update ${result.modifiedCount} appointment at ${now}`);
+      if (result.length > -1) {
+        connection.sendMessageAllStaff("MISSED-APPOINTMENT", result);
+      }
+      console.log(`Update ${result.length} appointment at ${now}`);
     } catch (error) {
       console.log(error);
     }
