@@ -38,14 +38,15 @@ const createInvoiceFromAppointmentId = async (appId) => {
     // lấy giá của dịch vụ theo thời gian lịch đã đặt
     const time_promotion = new Date(app.startTime);
     const list_price = await getPriceByServices(time_promotion, items);
+    console.log(list_price);
 
-    //Xuất lỗi khi có dịch vụ không lấy được giá
-    if (list_price.length != items.length) {
-      throw new Error("Không tìm thấy giá của dịch vụ");
-    }
     //thêm giá vào từng dịch vụ
     app.items.forEach((item) => {
       const price = list_price.find((price) => price.itemId == item.serviceId);
+      if (!price) {
+        //Xuất lỗi khi có dịch vụ không lấy được giá
+        throw new Error("Không tìm thấy giá của dịch vụ");
+      }
       item.price = price.price;
     });
     // áp dụng loại khuyến mãi dịch vụ
@@ -123,7 +124,7 @@ const createInvoiceFromAppointmentId = async (appId) => {
     };
   } catch (error) {
     session.abortTransaction();
-    error;
+    console.log(error);
 
     return {
       code: 500,
@@ -237,7 +238,8 @@ const findAllInvoice = async (page, limit) => {
       },
     };
   } catch (error) {
-    error;
+    console.log(error);
+
     return {
       code: 500,
       message: "Internal server error",
