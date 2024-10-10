@@ -38,6 +38,25 @@ const findAppointmentInRangeDate = async (d1, d2) =>
       },
     },
   ]);
+const findAppointmentStatusNotCanceledInRangeDate = async (d1, d2) =>
+  await Appointment.aggregate([
+    {
+      $match: {
+        $or: [
+          { startTime: { $gte: d1, $lt: d2 } },
+          { endtTime: { $gt: d1, $lte: d2 } },
+          { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
+        ],
+        status: { $ne: "missed" },
+      },
+    },
+    {
+      $sort: {
+        startTime: 1,
+        endTime: 1,
+      },
+    },
+  ]);
 const findAppointmentInRangeDatePriorityStatus = async (d1, d2) =>
   await Appointment.aggregate([
     {
@@ -208,7 +227,7 @@ const getTimePointAvailableBooking_New = async (date, duration) => {
   const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
   const start = date_booking.getTime() + end_work * 60 * 60 * 1000;
   const t2 = calEndtime(start, duration - interval);
-  const booking_exist = await findAppointmentInRangeDate(
+  const booking_exist = await findAppointmentStatusNotCanceledInRangeDate(
     new Date(t1),
     new Date(t2)
   );
@@ -231,7 +250,7 @@ const getAllSlotInDate = async (d) => {
   date_booking.setHours(0, 0, 0, 0);
   const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
   const t2 = date_booking.getTime() + end_work * 60 * 60 * 1000;
-  const booking_exist = await findAppointmentInRangeDate(
+  const booking_exist = await findAppointmentStatusNotCanceledInRangeDate(
     new Date(t1),
     new Date(t2)
   );
@@ -254,11 +273,18 @@ const getAppointmentInDate = async (d) => {
   return result;
 };
 
-const updateExpiresAppoinment = async (deadline) =>
+const updateExpiresAppoinment = async (deadline) => {
+  const expires = await Appointment.find({
+    status: "pending",
+    startTime: { $lte: deadline },
+  });
+  const ids = expires.map((ele) => ele._id);
+  log(expires_id);
   await Appointment.updateMany(
-    { status: "pending", startTime: { $lte: deadline } },
+    { _id: { $in: ids }, status: "pending" },
     { $set: { status: "missed" } }
   );
+};
 const updateAppointmentCreatedInvoice = async (id) =>
   Appointment.findOneAndUpdate(
     { _id: id },
