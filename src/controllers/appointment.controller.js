@@ -14,6 +14,7 @@ const {
   calEndtime,
 } = require("../services/appointment.service");
 const connection = require("../services/sockjs_manager");
+const { messageType } = require("../utils/constants");
 //get time available in day
 const start_work = 7; // 7:00 A.M
 const end_work = 17; // 5:00 P.M
@@ -50,7 +51,7 @@ const saveAppointment = async (req, res) => {
   const data = req.body;
   const result = await createAppointment(data);
   if (result.code == 200) {
-    connection.sendMessageAllStaff("SAVE-APPOINTMENT", result.data);
+    connection.sendMessageAllStaff(messageType.save_app, result.data);
   }
   return res.status(result.code).json({
     message: result.message,
@@ -98,7 +99,7 @@ const inProgressAppointment = async (req, res) => {
     if (!result) {
       return res.status(400).json({ message: "Update status failure" });
     }
-    connection.sendMessageAllStaff("IN-PROGRESS-APPOINTMENT", result);
+    connection.sendMessageAllStaff(messageType.in_progress_app, result);
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in inProgressAppointment", error);
@@ -114,7 +115,7 @@ const confirmAppointment = async (req, res) => {
     if (!result) {
       return res.status(400).json({ message: "Update status failure" });
     }
-    connection.sendMessageAllStaff("CONFIRMED-APPOINTMENT", result);
+    connection.sendMessageAllStaff(messageType.confirm_app, result);
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in inProgressAppointment", error);
@@ -130,7 +131,7 @@ const completeAppointment = async (req, res) => {
     if (!result) {
       return res.status(400).json({ message: "Update status failure" });
     }
-    connection.sendMessageAllStaff("COMPLETED-APPOINTMENT", result);
+    connection.sendMessageAllStaff(messageType.complete_app, result);
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in inProgressAppointment", error);
@@ -145,7 +146,7 @@ const cancelAppointment = async (req, res) => {
     if (!result) {
       return res.status(400).json({ message: "Update status failure" });
     }
-    connection.sendMessageAllStaff("CANCELED-APPOINTMENT", result);
+    connection.sendMessageAllStaff(messageType.cancel_app, result);
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in cancelAppointment", error);
