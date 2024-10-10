@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose");
 const Appointment = require("../models/appointment.model");
 const { findOneAndUpdate } = require("../models/promotion_line.model");
+const { find } = require("../models/promotion.model");
 const start_work = Number(process.env.START_WORK);
 const end_work = Number(process.env.END_WORK);
 const interval = Number(process.env.INTERVAL);
@@ -29,6 +30,25 @@ const findAppointmentInRangeDate = async (d1, d2) =>
           { endtTime: { $gt: d1, $lte: d2 } },
           { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
         ],
+      },
+    },
+    {
+      $sort: {
+        startTime: 1,
+        endTime: 1,
+      },
+    },
+  ]);
+const findAppointmentStatusNotCanceledInRangeDate = async (d1, d2) =>
+  await Appointment.aggregate([
+    {
+      $match: {
+        $or: [
+          { startTime: { $gte: d1, $lt: d2 } },
+          { endtTime: { $gt: d1, $lte: d2 } },
+          { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
+        ],
+        status: { $ne: "canceled" },
       },
     },
     {
@@ -91,7 +111,7 @@ const createAppointment = async (data) => {
     const end_timestamp = calEndtime(start_time.getTime(), total_duration);
     const end_time = new Date(end_timestamp);
     data.endTime = end_time;
-    const existing_apps = await findAppointmentInRangeDate(
+    const existing_apps = await findAppointmentStatusNotCanceledInRangeDate(
       start_time,
       end_time
     );
@@ -208,7 +228,7 @@ const getTimePointAvailableBooking_New = async (date, duration) => {
   const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
   const start = date_booking.getTime() + end_work * 60 * 60 * 1000;
   const t2 = calEndtime(start, duration - interval);
-  const booking_exist = await findAppointmentInRangeDate(
+  const booking_exist = await findAppointmentStatusNotCanceledInRangeDate(
     new Date(t1),
     new Date(t2)
   );
@@ -231,7 +251,7 @@ const getAllSlotInDate = async (d) => {
   date_booking.setHours(0, 0, 0, 0);
   const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
   const t2 = date_booking.getTime() + end_work * 60 * 60 * 1000;
-  const booking_exist = await findAppointmentInRangeDate(
+  const booking_exist = await findAppointmentStatusNotCanceledInRangeDate(
     new Date(t1),
     new Date(t2)
   );
@@ -254,11 +274,19 @@ const getAppointmentInDate = async (d) => {
   return result;
 };
 
-const updateExpiresAppoinment = async (deadline) =>
+const updateExpiresAppoinment = async (deadline) => {
+  const expires = await Appointment.find({
+    status: "pending",
+    startTime: { $lte: deadline },
+  });
+  const ids = expires.map((ele) => ele._id);
+  console.log(ids);
   await Appointment.updateMany(
-    { status: "pending", startTime: { $lte: deadline } },
+    { _id: { $in: ids }, status: "pending" },
     { $set: { status: "missed" } }
   );
+  return await Appointment.find({ _id: { $in: ids } });
+};
 const updateAppointmentCreatedInvoice = async (id) =>
   Appointment.findOneAndUpdate(
     { _id: id },
