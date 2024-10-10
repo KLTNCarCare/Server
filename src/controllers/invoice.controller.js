@@ -1,5 +1,4 @@
 const Vehicle = require("../models/vehicle.model");
-const { updateExpiresAppoinment } = require("../services/appointment.service");
 const {
   createInvoiceFromAppointmentId,
   findAllInvoice,
@@ -7,14 +6,8 @@ const {
   updateInvoiceStatusToPaid,
   updateInvoiceTypeToRefund,
 } = require("../services/invoice.service");
-const { generateInvoiceID } = require("../services/lastID.service");
-const { getPriceByServices } = require("../services/price_catalog.service");
-const {
-  getPromotionDetailForInvoice,
-  getProBill,
-  getProService,
-} = require("../services/promotion.service");
-
+const connection = require("../services/sockjs_manager");
+const { messageType } = require("../utils/constants");
 const saveInvoice = async (req, res) => {
   const id = req.params.appointmentId;
 
@@ -37,6 +30,9 @@ const getInvoiceByAppointmentId = async (req, res) => {
 const payInvoice = async (req, res) => {
   const id = req.params.id;
   const result = await updateInvoiceStatusToPaid(id);
+  if (result.code == 200) {
+    connection.sendMessageAllStaff(messageType.pay_invoice, result.data);
+  }
   return res.status(result.code).json(result);
 };
 const refundInvoice = async (req, res) => {
