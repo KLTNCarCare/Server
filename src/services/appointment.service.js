@@ -112,6 +112,17 @@ const createAppointment = async (data) => {
     const total_duration = Number(data.total_duration);
     const end_timestamp = calEndtime(start_time.getTime(), total_duration);
     const end_time = new Date(end_timestamp);
+    // thêm endtime cho data
+    //Kiểm tra thời gian đặt lịch hẹn
+    const hour_start = start_time.getHours();
+    const min_start = start_time.getMinutes();
+    if (
+      hour_start < start_work ||
+      hour_start >= end_work ||
+      (min_start != 0 && min_start != 30)
+    ) {
+      return { code: 400, message: "Giờ đặt sai định dạng", data: null };
+    }
     data.endTime = end_time;
     const existing_apps = await findAppointmentStatusNotCanceledInRangeDate(
       start_time,
@@ -175,11 +186,12 @@ const groupSlotTimePoint = async (list_booking, start, end) => {
       new Date(time_point).getHours() + new Date(time_point).getMinutes() / 60;
     // bỏ qua khung giờ [start_work:end_work)
     if (hour_current < start_work || hour_current >= end_work) continue;
+
     //đếm slot
     const slot_time_point = list_booking.filter(
       (ele) =>
-        time_point >= new Date(ele.startTime.getTime()) &&
-        time_point < new Date(ele.endTime).getTime()
+        new Date(ele.startTime) <= new Date(time_point) &&
+        new Date(ele.endTime) > new Date(time_point)
     ).length;
     result.push(slot_time_point);
   }
@@ -250,14 +262,18 @@ const getTimePointAvailableBooking_New = async (date, duration) => {
 };
 const getAllSlotInDate = async (d) => {
   const date_booking = new Date(d);
+
   date_booking.setHours(0, 0, 0, 0);
   const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
   const t2 = date_booking.getTime() + end_work * 60 * 60 * 1000;
+
   const booking_exist = await findAppointmentStatusNotCanceledInRangeDate(
     new Date(t1),
     new Date(t2)
   );
+
   const slot_list = await groupSlotTimePoint(booking_exist, t1, t2);
+
   const result = slot_list.map((slot, index) => ({
     time_point: (index + 14) / 2,
     slot_current: slot,
@@ -299,8 +315,6 @@ const updateAppointmentCreatedInvoice = async (id) => {
     },
     { new: true }
   );
-  console.log(result);
-
   if (result) {
     connection.sendMessageAllStaff(messageType.created_invoice_app, result);
   }

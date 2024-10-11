@@ -50,10 +50,20 @@ const updateEndDatePriceCatalog = async (req, res) => {
     }
     // check date range
     const startDate = new Date(catalog.startDate);
+    const oldEndDate = new Date(catalog.endDate);
     const newEndDate = new Date(newDate);
+    const now = new Date();
     if (newEndDate <= startDate) {
       return res.status(400).json({ message: "Invalid date range" });
     }
+    if (newEndDate > oldEndDate) {
+      return res
+        .status(400)
+        .json({
+          message: "Chỉ có thể sửa ngày kết thúc mới nhỏ hơn ngày kết thúc cũ",
+        });
+    }
+
     // update end date
     const result = await updateEndDate(id, newDate);
     if (!result) {
@@ -76,15 +86,15 @@ const activePriceCatalog = async (req, res) => {
       return res.status(404).json({ message: "Price catalog not found" });
     }
     const items_active = catalog.items.map((item) => item.itemId);
+
     //get  list catalog active by date
     const ls = await getCatalogActiveByRangeDate(
       new Date(catalog.startDate),
       new Date(catalog.endDate)
     );
-
     //check item exist in another catalog
     if (ls.length > 0) {
-      for (const catalog of ls) {
+      for (let catalog of ls) {
         const check = catalog.items.some((item) =>
           items_active.includes(item.itemId)
         );
@@ -100,7 +110,6 @@ const activePriceCatalog = async (req, res) => {
       return res.status(500).json({ message: "Internal server error" });
     }
     return res.status(200).json(result);
-    return res.status(200).json(ls);
   } catch (error) {
     console.log("Error in activePriceCatalog", error);
     return res.status(500).json({ message: "Internal server error" });
