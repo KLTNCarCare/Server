@@ -190,8 +190,8 @@ const groupSlotTimePoint = async (list_booking, start, end) => {
     //đếm slot
     const slot_time_point = list_booking.filter(
       (ele) =>
-        new Date(ele.startTime) <= new Date(time_point) &&
-        new Date(ele.endTime) > new Date(time_point)
+        new Date(ele.startTime).getTime() <= time_point &&
+        new Date(ele.endTime).getTime() > time_point
     ).length;
     result.push(slot_time_point);
   }
