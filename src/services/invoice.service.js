@@ -219,33 +219,18 @@ const findInvoiceByAppointmentId = async (appointmentId) => {
 const findInvoiceById = async (id) => await Invoice.findOne({ _id: id });
 const findAllInvoice = async (page, limit) => {
   try {
-    const result = await Invoice.aggregate([
-      { $match: {} },
-      {
-        $sort: {
-          createdAt: -1,
-        },
-      },
-      {
-        $facet: {
-          totalCount: [{ $count: "count" }],
-          data: [{ $skip: (page - 1) * limit }, { $limit: limit }],
-        },
-      },
-      {
-        $project: {
-          totalCount: { $arrayElemAt: ["$totalCount.count", 0] },
-          data: 1,
-        },
-      },
-    ]);
+    const result = await Invoice.find()
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+    const totalCount = await Invoice.countDocuments();
     return {
       code: 200,
       message: "Successful",
       data: {
-        totalPage: Math.ceil(result[0].totalCount / limit),
-        totalCount: result[0].totalCount,
-        data: result[0].data,
+        data: result,
+        totalPage: Math.ceil(totalCount / limit),
+        totalCount: totalCount,
       },
     };
   } catch (error) {
