@@ -1,4 +1,3 @@
-const { type } = require("express/lib/response");
 const mongoose = require("mongoose");
 
 const customerSchema = mongoose.Schema(
@@ -25,6 +24,21 @@ const vehicleSchema = mongoose.Schema(
   },
   { _id: false }
 );
+
+const discountSchema = mongoose.Schema(
+  {
+    per: {
+      type: Number,
+      default: 0,
+      max: 100,
+    },
+    value_max: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: false }
+);
 const serviceSchema = mongoose.Schema(
   {
     typeId: {
@@ -37,15 +51,69 @@ const serviceSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    price: {
+      type: Number,
+      min: 0,
+      required: true,
+    },
+    discount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
     status: {
       type: String,
       enum: ["pending", "in-progess", "completed", "canceled"],
       default: "pending",
     },
   },
+  { _id: false, toObject: { virtuals: true }, toJSON: { virtuals: true } }
+);
+serviceSchema.virtual("total").get(function () {
+  const total = this.price * (1 - this.discount / 100);
+
+  return total;
+});
+const paymentSchema = mongoose.Schema({
+  method: {
+    type: String,
+    enum: ["cast", "bank-transfer", "digital-wallet"],
+    default: "cast",
+  },
+  status: {
+    type: String,
+    enum: ["unpaid", "paid"],
+    default: "unpaid",
+  },
+});
+const PromotionSchema = mongoose.Schema(
+  {
+    promotion_line: {
+      type: String,
+      required: true,
+    },
+    code: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    value: {
+      type: Number,
+      min: 0,
+      required: true,
+    },
+  },
   { _id: false }
 );
 const appointmentSchema = mongoose.Schema({
+  appointmentId: {
+    type: String,
+    required: true,
+  },
   customer: {
     type: customerSchema,
     required: true,
@@ -84,6 +152,20 @@ const appointmentSchema = mongoose.Schema({
     ],
     default: "pending",
   },
+  discount: {
+    type: discountSchema,
+    default: {
+      per: 0,
+      value_max: 0,
+    },
+  },
+  promotion: {
+    type: [PromotionSchema],
+    default: [],
+  },
+  payment: {
+    type: paymentSchema,
+  },
   invoiceCreated: {
     type: Boolean,
     default: false,
@@ -101,6 +183,22 @@ const appointmentSchema = mongoose.Schema({
     type: [serviceSchema],
     required: true,
   },
+});
+appointmentSchema.virtual("sub_total").get(function () {
+  return this.items.reduce(
+    (total, service) => total + service.price * (1 - service.discount / 100),
+    0
+  );
+});
+
+appointmentSchema.virtual("final_total").get(function () {
+  const value_max = this.discount.value_max;
+  const sub_total = this.sub_total;
+  const discountValue = (sub_total * this.discount.per) / 100;
+
+  return discountValue > value_max
+    ? sub_total - value_max
+    : sub_total - discountValue;
 });
 appointmentSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
   const update = this.getUpdate();

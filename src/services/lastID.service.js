@@ -27,13 +27,33 @@ const generateInvoiceID = async () => {
   }
   return "HD_" + y + m + d + "_" + lastId.lastId;
 };
-const resetInvoiceId = async () =>
-  await LastId.findOneAndUpdate({ modelCode: "HD" }, { lastId: 0 });
+const generateAppointmentID = async () => {
+  let lastId = await LastId.findOne({ modelCode: "LH" });
+  if (!lastId) {
+    lastId = await LastId.create({ modelCode: "LH", lastId: 0 });
+  }
+  lastId.lastId += 1;
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  const d = now.getDate() < 10 ? "0" + now.getDate() : now.getDate();
+  await increaseLastId("LD");
+  if (lastId.lastId < 10) {
+    return "LH_" + y + m + d + "_0" + lastId.lastId;
+  }
+  return "LH_" + y + m + d + "_" + lastId.lastId;
+};
+const resetInvoiceAndAppointmentId = async () =>
+  await LastId.findOneAndUpdate(
+    { modelCode: { $in: ["HD", "LH"] } },
+    { lastId: 0 }
+  );
 const increaseLastId = async (modelCode) =>
   await LastId.findOneAndUpdate({ modelCode }, { $inc: { lastId: 1 } });
 module.exports = {
   generateID,
   increaseLastId,
   generateInvoiceID,
-  resetInvoiceId,
+  resetInvoiceAndAppointmentId,
+  generateAppointmentID,
 };

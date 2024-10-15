@@ -39,6 +39,28 @@ const discountSchema = mongoose.Schema(
   },
   { _id: false }
 );
+const PromotionSchema = mongoose.Schema(
+  {
+    promotion_line: {
+      type: String,
+      required: true,
+    },
+    code: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    value: {
+      type: Number,
+      min: 0,
+      required: true,
+    },
+  },
+  { _id: false }
+);
 const serviceSchema = mongoose.Schema(
   {
     typeId: {
@@ -70,18 +92,6 @@ serviceSchema.virtual("total").get(function () {
 
   return total;
 });
-const paymentSchema = mongoose.Schema({
-  method: {
-    type: String,
-    enum: ["cast", "bank-transfer", "digital-wallet"],
-    default: "cast",
-  },
-  status: {
-    type: String,
-    enum: ["unpaid", "paid"],
-    default: "unpaid",
-  },
-});
 const invoiceSchema = mongoose.Schema(
   {
     invoiceId: {
@@ -110,11 +120,6 @@ const invoiceSchema = mongoose.Schema(
       enum: ["normal", "refund"],
       default: "normal",
     },
-    status: {
-      type: String,
-      enum: ["unpaid", "paid"],
-      default: "unpaid",
-    },
     items: {
       type: [serviceSchema],
       required: true,
@@ -126,12 +131,14 @@ const invoiceSchema = mongoose.Schema(
         value_max: 0,
       },
     },
-    promotion_code: {
-      type: [String],
+    promotion: {
+      type: [PromotionSchema],
       default: [],
     },
-    payment: {
-      type: paymentSchema,
+    payment_method: {
+      type: String,
+      enum: ["cast", "transfer"],
+      required: true,
     },
     createdAt: {
       type: Date,

@@ -27,7 +27,7 @@ const cronJobResetIdInvoice = cron.schedule(
   " 0 0 * * *",
   async () => {
     try {
-      await resetInvoiceId();
+      await resetInvoiceAndAppointmentId();
       console.log("Thiết lập lại bộ đếm hoá đơn trong ngày thành công!");
     } catch (error) {
       console.log(error);

@@ -2,6 +2,8 @@ const { default: mongoose } = require("mongoose");
 const Promotion = require("../models/promotion.model");
 const PromotionLine = require("../models/promotion_line.model");
 const { generateID, increaseLastId } = require("./lastID.service");
+const { formatCurrency } = require("../utils/convert");
+const { findServiceById } = require("./service.service");
 
 const createPromotion = async (promotion) => {
   promotion.promotionId = await generateID("CTKM");
@@ -50,6 +52,10 @@ const createPromotionLine = async (data) => {
     for (let i = 0; i < data.detail.length; i++) {
       data.detail[i].code = await generateID("COD");
       await increaseLastId("COD");
+      data.detail[i].description = await addDescriptionPromotionDetail(
+        data.detail[i],
+        data.type
+      );
     }
     await PromotionLine.create(data);
     session.commitTransaction();
@@ -82,7 +88,7 @@ const deletePromotionLine = async (id) =>
   );
 
 const getPromotionLineByParent = async (parentId) =>
-  await PromotionLine.find({ parentId, status: "active" }).lean();
+  await PromotionLine.find({ parentId: parentId, status: "active" }).lean();
 const getTotalPage = async (limit) => {
   const totalPromotion = await Promotion.countDocuments({ status: "active" });
   return Math.ceil(totalPromotion / limit);
@@ -263,6 +269,39 @@ const getProService = async (time, listItemId) => {
       : [];
   return discountServiceByGiftId;
 };
+const addDescriptionPromotionDetail = async (
+  promotionDetail,
+  promotionType
+) => {
+  let str;
+  if (promotionType == "discount-bill") {
+    const bill = formatCurrency(promotionDetail.bill);
+    const limitDiscount = formatCurrency(promotionDetail.limitDiscount);
+    str = `Giảm ${promotionDetail.discount}% đối với hoá đơn từ ${bill} trở lên, giảm tối đa ${limitDiscount}`;
+  } else {
+    if (promotionDetail.itemId == promotionDetail.itemGiftId) {
+      const service = await findServiceById(promotionDetail.itemId);
+      if (!service) {
+        throw new Error("Dont get service to itemId in promotion detail");
+      }
+      str = `Giảm ${promotionDetail.discount}% cho ${service.serviceName}`;
+    } else {
+      const service = await findServiceById(promotionDetail.itemId);
+      const serviceGift = await findServiceById(promotionDetail.itemGiftId);
+      if (!service || !serviceGift) {
+        throw new Error(
+          "Dont get service to itemId or itemGiftId in promotio detail"
+        );
+      }
+      if (promotionDetail.discount == 100) {
+        str = `Miễn phí ${serviceGift.serviceName} khi ${service.serviceName}`;
+      } else {
+        str = `Giảm ${promotionDetail.discount}% ${serviceGift.serviceName} khi ${service.serviceName}`;
+      }
+    }
+  }
+  return str;
+};
 const getPromotionLineById = async (id) => await PromotionLine.findById(id);
 module.exports = {
   createPromotion,
@@ -280,4 +319,5 @@ module.exports = {
   removePromotionDetail,
   getProBill,
   getProService,
+  addDescriptionPromotionDetail,
 };

@@ -12,6 +12,7 @@ const {
   getAppointmentInDate,
   getTimePointAvailableBooking_New,
   calEndtime,
+  createAppointmentOnSite,
 } = require("../services/appointment.service");
 const connection = require("../services/sockjs_manager");
 const { messageType } = require("../utils/constants");
@@ -32,7 +33,7 @@ const getTimeAvailable = async (req, res) => {
       !validator.isInt(day_timestamp) ||
       !validator.isNumeric(duration)
     ) {
-      return res.status(400).json({ message: "Bad requestt" });
+      return res.status(400).json({ message: "Bad request" });
     }
     const result = await getTimePointAvailableBooking_New(
       Number(day_timestamp),
@@ -58,6 +59,17 @@ const saveAppointment = async (req, res) => {
     data: result.data,
   });
 };
+const saveAppointmentOnSite = async (req, res) => {
+  const data = req.body;
+  const result = await createAppointmentOnSite(data);
+  if (result.code == 200) {
+    connection.sendMessageAllStaff(messageType.save_app, result.data);
+  }
+  return res.status(result.code).json({
+    message: result.message,
+    data: result.data,
+  });
+};
 // add service
 const addServiceToAppointment = async (req, res) => {
   try {
@@ -65,7 +77,7 @@ const addServiceToAppointment = async (req, res) => {
     const service = req.body;
     const result = await pushServiceToAppointment(id, service);
     if (!result) {
-      return res.status(500).json({ message: "add service failure" });
+      return res.status(500).json({ message: "Thêm thất bại" });
     }
     return res.status(200).json(result);
   } catch (error) {
@@ -82,7 +94,7 @@ const deleteServiceToAppointment = async (req, res) => {
 
     if (result.modifiedCount === 0) {
       return res.status(500).json({
-        message: "Delete failure!Only can delete service is pending!",
+        message: "Xoá thất bại! Chỉ có thể xoá khi lịch hẹn đang chờ xác nhận",
       });
     }
     return res.status(200).json(result);
@@ -97,7 +109,7 @@ const inProgressAppointment = async (req, res) => {
     const id = req.params.id;
     const result = await updateStatusAppoinment(id, "in-progress");
     if (!result) {
-      return res.status(400).json({ message: "Update status failure" });
+      return res.status(400).json({ message: "Cập nhật thất bại" });
     }
     connection.sendMessageAllStaff(messageType.in_progress_app, result);
     return res.status(200).json(result);
@@ -113,7 +125,7 @@ const confirmAppointment = async (req, res) => {
     const id = req.params.id;
     const result = await updateStatusAppoinment(id, "confirmed");
     if (!result) {
-      return res.status(400).json({ message: "Update status failure" });
+      return res.status(400).json({ message: "Cập nhật thất bại" });
     }
     connection.sendMessageAllStaff(messageType.confirm_app, result);
     return res.status(200).json(result);
@@ -129,7 +141,7 @@ const completeAppointment = async (req, res) => {
     const id = req.params.id;
     const result = await updateStatusAppoinment(id, "completed");
     if (!result) {
-      return res.status(400).json({ message: "Update status failure" });
+      return res.status(400).json({ message: "Cập nhật thất bại" });
     }
     connection.sendMessageAllStaff(messageType.complete_app, result);
     return res.status(200).json(result);
@@ -144,7 +156,7 @@ const cancelAppointment = async (req, res) => {
     const id = req.params.id;
     const result = await updateStatusAppoinment(id, "canceled");
     if (!result) {
-      return res.status(400).json({ message: "Update status failure" });
+      return res.status(400).json({ message: "Cập nhật thất bại" });
     }
     connection.sendMessageAllStaff(messageType.cancel_app, result);
     return res.status(200).json(result);
@@ -180,6 +192,7 @@ const getAppointmentInDay = async (req, res) => {
 };
 module.exports = {
   saveAppointment,
+  saveAppointmentOnSite,
   getTimeAvailable,
   deleteServiceToAppointment,
   addServiceToAppointment,

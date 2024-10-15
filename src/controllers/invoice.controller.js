@@ -10,8 +10,8 @@ const connection = require("../services/sockjs_manager");
 const { messageType } = require("../utils/constants");
 const saveInvoice = async (req, res) => {
   const id = req.params.appointmentId;
-
-  const data = await createInvoiceFromAppointmentId(id);
+  const paymentMethod = req.body.paymentMethod;
+  const data = await createInvoiceFromAppointmentId(id, paymentMethod);
   return res.status(200).json(data);
 };
 const getAllInvoice = async (req, res) => {
@@ -19,8 +19,6 @@ const getAllInvoice = async (req, res) => {
   const limit = Number(req.query.limit) || 10;
   const result = await findAllInvoice(page, limit);
   result.data.data = result.data.data.map((item) => item.toObject());
-  console.log(result.data);
-
   return res.status(result.code).json(result.data);
 };
 const getInvoiceByAppointmentId = async (req, res) => {
