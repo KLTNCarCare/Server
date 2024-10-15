@@ -1,9 +1,10 @@
-const { default: mongoose, trusted } = require("mongoose");
+const mongoose = require("mongoose");
 const Appointment = require("../models/appointment.model");
-const { findOneAndUpdate } = require("../models/promotion_line.model");
-const { find } = require("../models/promotion.model");
 const connection = require("./sockjs_manager");
 const { messageType } = require("../utils/constants");
+const { generateAppointmentID } = require("./lastID.service");
+const { getProBill, getProService } = require("./promotion.service");
+const { getStringClockToDate } = require("../utils/convert");
 const start_work = Number(process.env.START_WORK);
 const end_work = Number(process.env.END_WORK);
 const interval = Number(process.env.INTERVAL);
@@ -51,6 +52,25 @@ const findAppointmentStatusNotCanceledInRangeDate = async (d1, d2) =>
           { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
         ],
         status: { $ne: "canceled" },
+      },
+    },
+    {
+      $sort: {
+        startTime: 1,
+        endTime: 1,
+      },
+    },
+  ]);
+const findAppointmentStatusNotCanceledCompletedInRangeDate = async (d1, d2) =>
+  await Appointment.aggregate([
+    {
+      $match: {
+        $or: [
+          { startTime: { $gte: d1, $lt: d2 } },
+          { endtTime: { $gt: d1, $lte: d2 } },
+          { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
+        ],
+        status: { $nin: ["canceled", "confirmed"] },
       },
     },
     {
@@ -149,6 +169,117 @@ const createAppointment = async (data) => {
     };
   } catch (error) {
     console.log("Error in saveAppointmet: ", error);
+    session.abortTransaction();
+    return {
+      code: 500,
+      message: "Internal server error",
+      data: null,
+    };
+  } finally {
+    session.endSession();
+  }
+};
+const createAppointmentOnSite = async (appointment) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const start_time = new Date(appointment.startTime);
+    const total_duration = Number(appointment.total_duration);
+    const end_timestamp = calEndtime(start_time.getTime(), total_duration);
+    const end_time = new Date(end_timestamp);
+    appointment.endTime = end_time;
+    const existing_apps =
+      await findAppointmentStatusNotCanceledCompletedInRangeDate(
+        start_time,
+        end_time
+      );
+    const slot_booking = await groupSlotTimePoint(
+      existing_apps,
+      start_time.getTime(),
+      end_time.getTime()
+    );
+    for (const [index, value] of slot_booking.entries()) {
+      if (value < 6) {
+        continue;
+      }
+      const time_full = new Date(
+        start_time.getTime() + index * interval * 60 * 1000
+      );
+      const min_full = time_full.getMinutes() < 30 ? 0 : 30;
+      time_full.setMinutes(min_full);
+      return {
+        code: 400,
+        message: `Đã đầy lịch hẹn tại khung giờ ${getStringClockToDate(
+          time_full
+        )}.\nThời gian còn lại chỉ phù hợp cho dịch vụ từ dưới ${
+          (index + 1) * interval
+        }h`,
+        data: null,
+      };
+    }
+    const time_promotion = new Date(appointment.startTime);
+    const items = appointment.items.map((item) => item.serviceId);
+    // áp dụng loại khuyến mãi dịch vụ
+    const promotion_result = [];
+    const list_pro_service = await getProService(time_promotion, items);
+    if (list_pro_service.length > 0) {
+      appointment.items.forEach((item) => {
+        const pro = list_pro_service.find(
+          (pro) => pro.itemId == item.serviceId
+        );
+        if (pro) {
+          item.discount = pro.discount;
+          promotion_result.push({
+            promotion_line: pro.lineId,
+            code: pro.code,
+            description: pro.description,
+            value: (item.price * pro.discount) / 100,
+          });
+        } else {
+          item.discount = 0;
+        }
+      });
+    }
+    //áp dụng loại khuyến mãi hoá đơn
+    const sub_total = appointment.items.reduce(
+      (total, item) => (total += (item.price * item.discount) / 100),
+      0
+    );
+    const pro_bill = await getProBill(time_promotion, sub_total);
+    pro_bill;
+
+    if (pro_bill) {
+      appointment.discount = {
+        per: pro_bill.discount,
+        value_max: pro_bill.limitDiscount,
+      };
+      promotion_result.push({
+        promotion_line: pro_bill.lineId,
+        code: pro_bill.code,
+        description: pro_bill.description,
+        value:
+          (sub_total * pro_bill.discount) / 100 > pro_bill.limitDiscount
+            ? pro_bill.limitDiscount
+            : (sub_total * pro_bill.discount) / 100,
+      });
+    }
+    console.log(pro_bill, list_pro_service);
+
+    // tạo object hoá đơn
+    appointment.promotion = promotion_result;
+    appointment.appointmentId = await generateAppointmentID();
+    console.log(appointment);
+
+    const appointment_result = await Appointment.create(appointment);
+    await session.commitTransaction();
+    const data_response = await Appointment.findById(appointment_result._id);
+    return {
+      code: 200,
+      message: "Successfully",
+      data: data_response,
+    };
+  } catch (error) {
+    console.log("Error in saveAppointmetOnSite: ", error);
     session.abortTransaction();
     return {
       code: 500,
@@ -324,6 +455,7 @@ const getAppointmentById = async (id) =>
   await Appointment.findOne({ _id: id }).lean();
 module.exports = {
   createAppointment,
+  createAppointmentOnSite,
   countAppointmentAtTime,
   findAppointmentInRangeDate,
   updateStatusAppoinment,

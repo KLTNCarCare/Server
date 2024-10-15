@@ -10,9 +10,11 @@ const {
   getAllSlotInDay,
   getAppointmentInDay,
   cancelAppointment,
+  saveAppointmentOnSite,
 } = require("../controllers/appointment.controller");
 const auth = require("../middlewares/auth.middleware");
 router.post("/create", auth(["admin", "staff", "customer"]), saveAppointment);
+router.post("/create-on-site", auth(["admin", "staff"]), saveAppointmentOnSite);
 router.get(
   "/get-available-time",
   auth(["admin", "staff", "customer"]),

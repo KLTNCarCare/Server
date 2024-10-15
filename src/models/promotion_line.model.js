@@ -1,42 +1,46 @@
 const mongoose = require("mongoose");
 const Promotion = require("./promotion.model");
-const { increaseLastId, generateID } = require("../services/lastID.service");
-const detailSchema = new mongoose.Schema({
-  code: {
-    type: String,
-    required: true,
+const { increaseLastId } = require("../services/lastID.service");
+const detailSchema = new mongoose.Schema(
+  {
+    code: {
+      type: String,
+      required: true,
+    },
+    itemId: {
+      type: String,
+      default: null,
+    },
+    description: {
+      type: String,
+      required: false,
+    },
+    itemGiftId: {
+      type: String,
+      default: null,
+    },
+    bill: {
+      type: Number,
+      min: 0,
+    },
+    discount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    limitDiscount: {
+      type: Number,
+      default: 0,
+    },
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
   },
-  itemId: {
-    type: String,
-    default: null,
-  },
-  description: {
-    type: String,
-  },
-  itemGiftId: {
-    type: String,
-    default: null,
-  },
-  bill: {
-    type: Number,
-    min: 0,
-  },
-  discount: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 100,
-  },
-  limitDiscount: {
-    type: Number,
-    default: 0,
-  },
-  status: {
-    type: String,
-    enum: ["active", "inactive"],
-    default: "active",
-  },
-});
+  { _id: false }
+);
 const lineSchema = new mongoose.Schema({
   lineId: {
     type: String,
@@ -101,6 +105,7 @@ lineSchema.pre("save", async function (next) {
         )
       );
     }
+    next();
   } catch (error) {
     next(error);
   }
