@@ -165,7 +165,9 @@ const getAllPriceCurrent = async () => {
             itemId: "$items.itemId",
             itemName: "$items.itemName",
             categoryId: "$serviceDetails.categoryId",
-            categoryName: "$packageDetails.categoryName", // attaching the service package name
+            categoryName: "$packageDetails.categoryName",
+            price: "$items.price",
+            duration: "$serviceDetails.duration", // attaching the service package name
           },
         },
       },
