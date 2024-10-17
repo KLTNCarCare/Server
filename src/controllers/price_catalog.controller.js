@@ -215,17 +215,12 @@ const getActive = async (req, res) => {
   }
 };
 const getPriceCurrent = async (req, res) => {
-  try {
-    const searchText = req.query.searchText || "";
-    const result = await getAllPriceCurrent(searchText);
-    return res
-      .status(result.code)
-      .json({ message: result.message, data: result.data });
-  } catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const textSearch = req.query.searchText || "";
+  const result = await getAllPriceCurrent(textSearch);
+  return res
+    .status(result.code)
+    .json({ message: result.message, data: result.data });
 };
-
 module.exports = {
   createPriceCatalog,
   updateEndDatePriceCatalog,
