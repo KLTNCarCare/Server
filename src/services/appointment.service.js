@@ -51,7 +51,7 @@ const findAppointmentStatusNotCanceledInRangeDate = async (d1, d2) =>
           { endtTime: { $gt: d1, $lte: d2 } },
           { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
         ],
-        status: { $ne: "canceled" },
+        status: { $ne: ["canceled", "missed"] },
       },
     },
     {
@@ -70,7 +70,7 @@ const findAppointmentStatusNotCanceledCompletedInRangeDate = async (d1, d2) =>
           { endtTime: { $gt: d1, $lte: d2 } },
           { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
         ],
-        status: { $nin: ["canceled", "confirmed"] },
+        status: { $nin: ["canceled", "confirmed", "missed"] },
       },
     },
     {

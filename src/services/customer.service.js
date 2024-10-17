@@ -31,7 +31,7 @@ const createCustomer = async (cust) => {
 };
 const findCustById = async (id) => await Customer.findById(id);
 const findCustByCustId = async (custId) =>
-  await Customer.findOne({ custId: id });
+  await Customer.findOne({ custId: custId });
 const findCustByPhone = async (phone) =>
   await Customer.findOne({ phone: phone });
 const pushVehicle = async (id, vehicle) =>
