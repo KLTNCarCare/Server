@@ -57,11 +57,9 @@ const updateEndDatePriceCatalog = async (req, res) => {
       return res.status(400).json({ message: "Invalid date range" });
     }
     if (newEndDate > oldEndDate) {
-      return res
-        .status(400)
-        .json({
-          message: "Chỉ có thể sửa ngày kết thúc mới nhỏ hơn ngày kết thúc cũ",
-        });
+      return res.status(400).json({
+        message: "Chỉ có thể sửa ngày kết thúc mới nhỏ hơn ngày kết thúc cũ",
+      });
     }
 
     // update end date
@@ -217,12 +215,12 @@ const getActive = async (req, res) => {
   }
 };
 const getPriceCurrent = async (req, res) => {
-  const result = await getAllPriceCurrent();
+  const textSearch = req.query.searchText || "";
+  const result = await getAllPriceCurrent(textSearch);
   return res
     .status(result.code)
     .json({ message: result.message, data: result.data });
 };
-
 module.exports = {
   createPriceCatalog,
   updateEndDatePriceCatalog,

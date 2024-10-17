@@ -107,10 +107,10 @@ const getPriceByServices = async (time, services) => {
   return result;
 };
 
-const getAllPriceCurrent = async () => {
+const getAllPriceCurrent = async (textSearch) => {
   try {
     const now = new Date();
-    const data = await PriceCatalog.aggregate([
+    const pipline = [
       {
         $match: {
           status: "active",
@@ -171,7 +171,17 @@ const getAllPriceCurrent = async () => {
           },
         },
       },
-    ]);
+    ];
+    if (textSearch != "") {
+      pipline.push({
+        $match: {
+          itemName: {
+            $regex: RegExp(textSearch, "iu"),
+          },
+        },
+      });
+    }
+    const data = await PriceCatalog.aggregate(pipline);
     return {
       code: 200,
       message: "Successful",

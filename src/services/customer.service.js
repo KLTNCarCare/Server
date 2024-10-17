@@ -32,8 +32,12 @@ const createCustomer = async (cust) => {
 const findCustById = async (id) => await Customer.findById(id);
 const findCustByCustId = async (custId) =>
   await Customer.findOne({ custId: custId });
-const findCustByPhone = async (phone) =>
-  await Customer.findOne({ phone: phone });
+const findCustByPhone = async (phone, limit) =>
+  await Customer.find({
+    phone: {
+      $regex: RegExp("^" + phone, "i"),
+    },
+  }).limit(limit);
 const pushVehicle = async (id, vehicle) =>
   await Customer.findOneAndUpdate(
     { _id: id, "vehicles.licensePlate": { $ne: vehicle.licensePlate } },
