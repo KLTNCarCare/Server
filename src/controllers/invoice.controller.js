@@ -1,4 +1,3 @@
-const Vehicle = require("../models/vehicle.model");
 const {
   createInvoiceFromAppointmentId,
   findAllInvoice,

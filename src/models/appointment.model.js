@@ -1,5 +1,9 @@
 const mongoose = require("mongoose");
-
+const {
+  findCustByPhone,
+  pushVehicle,
+  createCustomer,
+} = require("../services/customer.service");
 const customerSchema = mongoose.Schema(
   {
     phone: {
@@ -207,6 +211,23 @@ appointmentSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
     this.setUpdate(update); // Đảm bảo cập nhật lại giá trị
   }
   next();
+});
+appointmentSchema.post("save", async function (doc) {
+  try {
+    const result = await findCustByPhone(doc.customer.phone);
+    if (result) {
+      await pushVehicle(result._id, doc.vehicle);
+    } else {
+      const customer = {
+        phone: doc.customer.phone,
+        name: doc.customer.name,
+        vehicles: [doc.vehicle],
+      };
+      await createCustomer(customer);
+    }
+  } catch (error) {
+    console.log("Error occurred during post save hook", error);
+  }
 });
 const Appointment = mongoose.model("Appointment", appointmentSchema);
 module.exports = Appointment;

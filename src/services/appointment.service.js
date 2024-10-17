@@ -51,7 +51,7 @@ const findAppointmentStatusNotCanceledInRangeDate = async (d1, d2) =>
           { endtTime: { $gt: d1, $lte: d2 } },
           { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
         ],
-        status: { $ne: "canceled" },
+        status: { $ne: ["canceled", "missed"] },
       },
     },
     {
@@ -70,7 +70,7 @@ const findAppointmentStatusNotCanceledCompletedInRangeDate = async (d1, d2) =>
           { endtTime: { $gt: d1, $lte: d2 } },
           { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
         ],
-        status: { $nin: ["canceled", "confirmed"] },
+        status: { $nin: ["canceled", "confirmed", "missed"] },
       },
     },
     {
@@ -246,7 +246,6 @@ const createAppointmentOnSite = async (appointment) => {
       0
     );
     const pro_bill = await getProBill(time_promotion, sub_total);
-    pro_bill;
 
     if (pro_bill) {
       appointment.discount = {
@@ -263,13 +262,9 @@ const createAppointmentOnSite = async (appointment) => {
             : (sub_total * pro_bill.discount) / 100,
       });
     }
-    console.log(pro_bill, list_pro_service);
-
     // tạo object hoá đơn
     appointment.promotion = promotion_result;
     appointment.appointmentId = await generateAppointmentID();
-    console.log(appointment);
-
     const appointment_result = await Appointment.create(appointment);
     await session.commitTransaction();
     const data_response = await Appointment.findById(appointment_result._id);
