@@ -220,7 +220,7 @@ const createAppointmentOnSite = async (appointment) => {
         code: 400,
         message: `Đã đầy lịch hẹn tại khung giờ ${getStringClockToDate(
           time_full
-        )}.\nThời gian còn lại chỉ phù hợp cho dịch vụ từ dưới ${
+        )}.Thời gian còn lại chỉ phù hợp cho dịch vụ từ dưới ${
           (index + 1) * interval
         }h`,
         data: null,
@@ -294,8 +294,22 @@ const createAppointmentOnSite = async (appointment) => {
     session.endSession();
   }
 };
-const updateStatusAppoinment = async (id, status) =>
-  await Appointment.findOneAndUpdate({ _id: id }, { status }, { new: true });
+const updateStatusAppoinment = async (id, status) => {
+  let updateFields = { status };
+
+  switch (status) {
+    case "in-progress":
+      updateFields.startActual = new Date();
+      break;
+    case "completed":
+      updateFields.endActual = new Date();
+      break;
+  }
+
+  return await Appointment.findOneAndUpdate({ _id: id }, updateFields, {
+    new: true,
+  });
+};
 const pushServiceToAppointment = async (id, service) =>
   await Appointment.findOneAndUpdate(
     { _id: id },
