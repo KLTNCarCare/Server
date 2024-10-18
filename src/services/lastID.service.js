@@ -37,7 +37,7 @@ const generateAppointmentID = async () => {
   const y = now.getFullYear();
   const m = now.getMonth() + 1;
   const d = now.getDate() < 10 ? "0" + now.getDate() : now.getDate();
-  await increaseLastId("LD");
+  await increaseLastId("LH");
   if (lastId.lastId < 10) {
     return "LH_" + y + m + d + "_0" + lastId.lastId;
   }
