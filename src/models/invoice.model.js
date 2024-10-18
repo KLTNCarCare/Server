@@ -137,7 +137,7 @@ const invoiceSchema = mongoose.Schema(
     },
     payment_method: {
       type: String,
-      enum: ["cast", "transfer"],
+      enum: ["cash", "transfer"],
       required: true,
     },
     createdAt: {
