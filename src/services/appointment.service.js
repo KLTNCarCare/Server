@@ -294,8 +294,22 @@ const createAppointmentOnSite = async (appointment) => {
     session.endSession();
   }
 };
-const updateStatusAppoinment = async (id, status) =>
-  await Appointment.findOneAndUpdate({ _id: id }, { status }, { new: true });
+const updateStatusAppoinment = async (id, status) => {
+  let updateFields = { status };
+
+  switch (status) {
+    case "in-progress":
+      updateFields.startActual = new Date();
+      break;
+    case "completed":
+      updateFields.endActual = new Date();
+      break;
+  }
+
+  return await Appointment.findOneAndUpdate({ _id: id }, updateFields, {
+    new: true,
+  });
+};
 const pushServiceToAppointment = async (id, service) =>
   await Appointment.findOneAndUpdate(
     { _id: id },
