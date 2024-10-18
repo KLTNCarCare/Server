@@ -117,6 +117,7 @@ const appointmentSchema = mongoose.Schema({
   appointmentId: {
     type: String,
     required: true,
+    unique: true,
   },
   customer: {
     type: customerSchema,

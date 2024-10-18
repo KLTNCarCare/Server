@@ -69,6 +69,7 @@ const findAppointmentStatusNotCanceledCompletedInRangeDate = async (d1, d2) =>
           { startTime: { $gte: d1, $lt: d2 } },
           { endTime: { $gt: d1, $lte: d2 } },
           { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
+          { status: "in-progress" },
         ],
         status: { $nin: ["canceled", "confirmed", "missed"] },
       },
@@ -196,7 +197,11 @@ const createAppointmentOnSite = async (appointment) => {
         start_time,
         end_time
       );
-    console.log(existing_apps);
+    existing_apps.forEach((item) => {
+      if ((item.status = "in-progress")) {
+        item.startTime = item.startActual;
+      }
+    });
     const slot_booking = await groupSlotTimePoint(
       existing_apps,
       start_time.getTime(),
@@ -207,7 +212,7 @@ const createAppointmentOnSite = async (appointment) => {
         continue;
       }
       const time_full = new Date(
-        start_time.getTime() + index * interval * 60 * 1000
+        start_time.getTime() + index * interval * 60 * 60 * 1000
       );
       const min_full = time_full.getMinutes() < 30 ? 0 : 30;
       time_full.setMinutes(min_full);
