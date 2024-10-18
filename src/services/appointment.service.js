@@ -220,7 +220,7 @@ const createAppointmentOnSite = async (appointment) => {
         code: 400,
         message: `Đã đầy lịch hẹn tại khung giờ ${getStringClockToDate(
           time_full
-        )}.\nThời gian còn lại chỉ phù hợp cho dịch vụ từ dưới ${
+        )}.Thời gian còn lại chỉ phù hợp cho dịch vụ từ dưới ${
           (index + 1) * interval
         }h`,
         data: null,
