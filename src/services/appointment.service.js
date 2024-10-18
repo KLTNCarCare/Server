@@ -48,10 +48,10 @@ const findAppointmentStatusNotCanceledInRangeDate = async (d1, d2) =>
       $match: {
         $or: [
           { startTime: { $gte: d1, $lt: d2 } },
-          { endtTime: { $gt: d1, $lte: d2 } },
+          { endTime: { $gt: d1, $lte: d2 } },
           { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
         ],
-        status: { $ne: ["canceled", "missed"] },
+        status: { $nin: ["canceled", "missed"] },
       },
     },
     {
@@ -67,7 +67,7 @@ const findAppointmentStatusNotCanceledCompletedInRangeDate = async (d1, d2) =>
       $match: {
         $or: [
           { startTime: { $gte: d1, $lt: d2 } },
-          { endtTime: { $gt: d1, $lte: d2 } },
+          { endTime: { $gt: d1, $lte: d2 } },
           { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
         ],
         status: { $nin: ["canceled", "confirmed", "missed"] },
@@ -188,11 +188,15 @@ const createAppointmentOnSite = async (appointment) => {
     const end_timestamp = calEndtime(start_time.getTime(), total_duration);
     const end_time = new Date(end_timestamp);
     appointment.endTime = end_time;
+    appointment.startActual = start_time;
+    appointment.endActual = end_time;
+    appointment.status = "in-progress";
     const existing_apps =
       await findAppointmentStatusNotCanceledCompletedInRangeDate(
         start_time,
         end_time
       );
+    console.log(existing_apps);
     const slot_booking = await groupSlotTimePoint(
       existing_apps,
       start_time.getTime(),

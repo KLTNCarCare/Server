@@ -139,6 +139,14 @@ const appointmentSchema = mongoose.Schema({
     type: Date,
     required: true,
   },
+  startActual: {
+    type: Date,
+    required: true,
+  },
+  endActual: {
+    type: Date,
+    required: true,
+  },
   notes: {
     type: String,
     default: null,
