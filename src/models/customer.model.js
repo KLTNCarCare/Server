@@ -46,7 +46,7 @@ const customerSchema = mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["active", "inactive"],
+    enum: ["active", "inactive,deleted"],
     default: "active",
   },
   createdAt: { type: Date, default: Date.now, immutable: true },

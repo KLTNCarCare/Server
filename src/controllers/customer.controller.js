@@ -1,4 +1,9 @@
-const { findCustByPhone } = require("../services/customer.service");
+const {
+  findCustByPhone,
+  findAllCustomer,
+  updateCustomer,
+  deleteCustomer,
+} = require("../services/customer.service");
 
 const getCustomerByTextPhone = async (req, res) => {
   try {
@@ -11,6 +16,26 @@ const getCustomerByTextPhone = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+const getAllCustomer = async (req, res) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const result = await findAllCustomer(page, limit);
+  return res.status(result.code).json(result);
+};
+const editCustomer = async (req, res) => {
+  const newCust = req.body;
+  const id = req.params.id;
+  const result = await updateCustomer(id, newCust);
+  return res.status(result.code).json(result);
+};
+const removeCustomer = async (req, res) => {
+  const id = req.params.id;
+  const result = await deleteCustomer(id);
+  return res.status(result.code).json(result);
+};
 module.exports = {
   getCustomerByTextPhone,
+  getAllCustomer,
+  editCustomer,
+  removeCustomer,
 };
