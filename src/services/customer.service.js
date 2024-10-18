@@ -2,6 +2,7 @@ const { default: mongoose } = require("mongoose");
 
 const { generateID, increaseLastId } = require("./lastID.service");
 const Customer = require("../models/customer.model");
+const { find } = require("../models/promotion.model");
 
 const createCustomer = async (cust) => {
   const session = await mongoose.startSession();
@@ -57,6 +58,30 @@ const pullVehicle = async (id, licensePlate) =>
       },
     }
   );
+const findAllCustomer = async (page, limit) => {
+  try {
+    const count = await Customer.countDocuments({ status: { $ne: "deleted" } });
+    const data = await Customer.find({ status: { $ne: "deleted" } })
+      .skip((page - 1) * limit)
+      .limit(limit);
+    return {
+      code: 200,
+      message: "Success",
+      data: {
+        totalPage: Math.ceil(count / limit),
+        totalCount: count,
+        data: data,
+      },
+    };
+  } catch (error) {
+    console.log("Error in find all customer", error);
+    return {
+      code: 200,
+      message: "Internal server error",
+      data: null,
+    };
+  }
+};
 module.exports = {
   createCustomer,
   findCustByCustId,
@@ -64,4 +89,5 @@ module.exports = {
   findCustByPhone,
   pushVehicle,
   pullVehicle,
+  findAllCustomer,
 };

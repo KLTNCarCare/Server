@@ -76,7 +76,7 @@ const lineSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["active", "inactive"],
+    enum: ["active", "inactive", "deteled"],
     default: "active",
   },
   createdAt: {
