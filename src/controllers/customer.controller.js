@@ -1,6 +1,7 @@
 const {
   findCustByPhone,
   findAllCustomer,
+  updateCustomer,
 } = require("../services/customer.service");
 
 const getCustomerByTextPhone = async (req, res) => {
@@ -20,7 +21,14 @@ const getAllCustomer = async (req, res) => {
   const result = await findAllCustomer(page, limit);
   return res.status(result.code).json(result);
 };
+const editCustomer = async (req, res) => {
+  const newCust = req.body;
+  const id = req.params.id;
+  const result = await updateCustomer(id, newCust);
+  return res.status(result.code).json(result);
+};
 module.exports = {
   getCustomerByTextPhone,
   getAllCustomer,
+  editCustomer,
 };

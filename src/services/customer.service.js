@@ -82,6 +82,25 @@ const findAllCustomer = async (page, limit) => {
     };
   }
 };
+const updateCustomer = async (id, custUpdate) => {
+  try {
+    const result = await Customer.findOneAndUpdate({ _id: id }, custUpdate, {
+      new: true,
+    });
+    return {
+      code: 200,
+      message: "Succesful",
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in updateCustomer", error);
+    return {
+      code: 500,
+      message: "Internal server error",
+      data: null,
+    };
+  }
+};
 module.exports = {
   createCustomer,
   findCustByCustId,
@@ -90,4 +109,5 @@ module.exports = {
   pushVehicle,
   pullVehicle,
   findAllCustomer,
+  updateCustomer,
 };
