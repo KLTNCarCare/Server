@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const { increaseLastId } = require("../services/lastID.service");
 const itemSchema = mongoose.Schema(
   {
     itemId: {
@@ -44,7 +43,10 @@ const priceCatalogSchema = mongoose.Schema({
     enum: ["active", "inactive", "deleted"],
     default: "inactive",
   },
-  items: [itemSchema],
+  items: {
+    type: [itemSchema],
+    default: [],
+  },
   createdAt: { type: Date, default: Date.now, immutable: true },
   updatedAt: { type: Date, default: Date.now },
 });
@@ -59,18 +61,18 @@ priceCatalogSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
 });
 // check range start date and end date
 priceCatalogSchema.pre("save", function (next) {
+  this.startDate.setHours(0, 0, 0, 0);
+  this.endDate.setHours(23, 59, 59, 0);
   if (this.startDate >= this.endDate || Date.now() >= this.startDate) {
-    return next(new Error("Invalid date range"));
+    return next(
+      new Error(
+        `Invalid: startDate = ${
+          this.startDate
+        }< now = ${Date.now()} < endDate = ${this.endDate}`
+      )
+    );
   }
   next();
-});
-// inscrease Last id
-priceCatalogSchema.post("save", async (doc) => {
-  try {
-    await increaseLastId("BG");
-  } catch (error) {
-    console.log("Error in increase last id", error);
-  }
 });
 const PriceCatalog = mongoose.model("PriceCatalog", priceCatalogSchema);
 module.exports = PriceCatalog;

@@ -71,7 +71,7 @@ const findAppointmentStatusNotCanceledCompletedInRangeDate = async (d1, d2) =>
           { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
           { status: "in-progress" },
         ],
-        status: { $nin: ["canceled", "confirmed", "missed"] },
+        status: { $nin: ["canceled", "completed", "missed"] },
       },
     },
     {

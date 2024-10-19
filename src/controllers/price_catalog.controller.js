@@ -13,23 +13,19 @@ const {
   getTotalPage,
   getCatalogActiveByRangeDate,
   getAllPriceCurrent,
+  updatePriceCatalog,
 } = require("../services/price_catalog.service");
 const createPriceCatalog = async (req, res) => {
-  try {
-    console.log(req.body);
-
-    const priceCatalog = req.body;
-    const result = await createCatalog(priceCatalog);
-    if (!result) {
-      return res.status(500).json({ message: "Internal server error" });
-    }
-    return res.status(201).json(result);
-  } catch (error) {
-    console.log("Error in createPriceCatalog", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const priceCatalog = req.body;
+  const result = await createCatalog(priceCatalog);
+  return res.status(result.code).json(result);
 };
-
+const editPriceCatalog = async (req, res) => {
+  const id = req.params.id;
+  const data = req.body;
+  const result = await updatePriceCatalog(id, data);
+  return res.status(result.code).json(result);
+};
 const updateEndDatePriceCatalog = async (req, res) => {
   try {
     const id = req.params.id;
@@ -223,6 +219,7 @@ const getPriceCurrent = async (req, res) => {
 };
 module.exports = {
   createPriceCatalog,
+  editPriceCatalog,
   updateEndDatePriceCatalog,
   activePriceCatalog,
   inactivePriceCatalog,

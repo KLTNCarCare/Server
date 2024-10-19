@@ -1,8 +1,71 @@
+const { default: mongoose } = require("mongoose");
 const PriceCatalog = require("../models/priceCatalog.model");
-const { generateID } = require("../services/lastID.service");
+const { generateID, increaseLastId } = require("../services/lastID.service");
 const createCatalog = async (priceCatalog) => {
-  priceCatalog.priceId = await generateID("BG");
-  return await PriceCatalog.create(priceCatalog);
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    priceCatalog.priceId = await generateID("BG");
+    await increaseLastId("BG");
+    const result = await PriceCatalog.create(priceCatalog);
+    session.commitTransaction();
+    return {
+      code: 200,
+      message: "Thành công",
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in  create price catalog", error);
+    session.abortTransaction();
+    return {
+      code: 500,
+      message: "Internal server error",
+      data: null,
+    };
+  } finally {
+    session.endSession();
+  }
+};
+const updatePriceCatalog = async (id, newPriceCatalog) => {
+  try {
+    const obj = await PriceCatalog.findById(id).lean();
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy bảng giá để cập nhật",
+        data: null,
+      };
+    }
+    if (obj.status == "active") {
+      return {
+        code: 400,
+        message: "Không thể cập nhật bảng giá đang hoạt động",
+        data: null,
+      };
+    }
+    console.log(obj);
+
+    const data = new PriceCatalog({
+      ...obj,
+      ...newPriceCatalog,
+    });
+    await data.validate();
+    const result = await PriceCatalog.findOneAndUpdate({ _id: id }, data, {
+      new: true,
+    });
+    return {
+      code: 200,
+      message: "Thành công",
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in update price catalog", error);
+    return {
+      code: 500,
+      message: "Internal server error",
+      data: null,
+    };
+  }
 };
 const updateEndDate = async (id, newDate) =>
   await PriceCatalog.findOneAndUpdate(
@@ -10,26 +73,72 @@ const updateEndDate = async (id, newDate) =>
     { endDate: newDate },
     { new: true }
   );
-
-const activeCatalog = async (id) =>
-  await PriceCatalog.findOneAndUpdate(
-    { _id: id },
-    { status: "active" },
-    { new: true }
-  );
+const activeCatalog = async (id) => {
+  try {
+    const result = await PriceCatalog.findOneAndUpdate(
+      { _id: id },
+      { status: "active" },
+      { new: true }
+    );
+    return {
+      code: 200,
+      message: "Thành công",
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in active price catalog", error);
+    return {
+      code: 500,
+      message: "Internal server error",
+      data: null,
+    };
+  }
+};
 const inactiveCatalog = async (id) =>
   await PriceCatalog.findOneAndUpdate(
     { _id: id },
     { status: "inactive" },
     { new: true }
   );
-const deleteCatalog = async (id) =>
-  await PriceCatalog.findOneAndUpdate(
-    { _id: id },
-    { status: "deleted" },
-    { new: true }
-  );
-
+const deleteCatalog = async (id) => {
+  try {
+    const obj = await PriceCatalog.findById(id);
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy bảng giá để xoá",
+        data: null,
+      };
+    }
+    const startDate = new Date(obj.startDate);
+    const endDate = new Date(obj.endDate);
+    const now = new Date();
+    if (startDate < now && now < endDate && obj.status == "active") {
+      return {
+        code: 200,
+        message: "Không thể xoá bảng giá đang được áp dụng",
+        data: null,
+      };
+    }
+    const result = await PriceCatalog.findOneAndUpdate(
+      { _id: id },
+      { status: "deleted" },
+      { new: true }
+    );
+    return {
+      code: 200,
+      message: "Thành công",
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in delete price catalog", error);
+    return {
+      code: 500,
+      message: "Internal server error",
+      data: null,
+    };
+  }
+};
 const getCatalogActiveByRangeDate = async (start, end) =>
   await PriceCatalog.find({
     $or: [
@@ -197,6 +306,7 @@ module.exports = {
   createCatalog,
   getCatalogById,
   updateEndDate,
+  updatePriceCatalog,
   getCatalogActiveByRangeDate,
   activeCatalog,
   deleteCatalog,
