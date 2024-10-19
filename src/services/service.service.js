@@ -116,29 +116,20 @@ const findServicesByListId = async (list) =>
   await Service.find({ _id: { $in: list } });
 const findAllService = async (categoryId) =>
   await Service.find({ categoryId, status: { $ne: "deleted" } });
-const findAllServiceToPick = async () => {
+const findAllServiceToPick = async (textSearch) => {
   const now = new Date();
   const pipeline = [
     {
-      $match:
-        /**
-         * query: The query in MQL.
-         */
-        {
-          status: "active",
-        },
+      $match: {
+        status: "active",
+      },
     },
     {
-      $addFields:
-        /**
-         * newField: The new field name.
-         * expression: The new field expression.
-         */
-        {
-          packObj: {
-            $toObjectId: "$categoryId",
-          },
+      $addFields: {
+        packObj: {
+          $toObjectId: "$categoryId",
         },
+      },
     },
     {
       $lookup: {
@@ -217,17 +208,22 @@ const findAllServiceToPick = async () => {
       },
     },
     {
-      $match:
-        /**
-         * query: The query in MQL.
-         */
-        {
-          price: {
-            $ne: null,
-          },
+      $match: {
+        price: {
+          $ne: null,
         },
+      },
     },
   ];
+  if (textSearch != "") {
+    pipeline.push({
+      $match: {
+        itemName: {
+          $regex: RegExp(textSearch, "iu"),
+        },
+      },
+    });
+  }
   const result = await Service.aggregate(pipeline);
   return { code: 200, message: "Thành công", data: result };
 };
