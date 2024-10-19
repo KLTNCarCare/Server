@@ -85,24 +85,13 @@ const activeService = async (id) => {
 };
 const updateService = async (id, service) => {
   try {
-    const oldService = await Service.findById(id);
-    if (!oldService) {
-      if (!result) {
-        return {
-          code: 400,
-          message: "Không tìm thấy dịch vụ để cập nhật",
-          data: null,
-        };
-      }
-    }
-    if (oldService.status == "active") {
-      if (!result) {
-        return {
-          code: 400,
-          message: "Không thể cập nhật khi trạng thái đang là hoạt động",
-          data: null,
-        };
-      }
+    const obj = await Service.findById(id);
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy dịch vụ để cập nhật",
+        data: null,
+      };
     }
     const result = await Service.findOneAndUpdate({ _id: id }, service, {
       new: true,
@@ -113,7 +102,7 @@ const updateService = async (id, service) => {
       data: result,
     };
   } catch (error) {
-    console.log("Error in delete service", error);
+    console.log("Error in update service", error);
     return { code: 500, message: "Internal server error", data: null };
   }
 };
