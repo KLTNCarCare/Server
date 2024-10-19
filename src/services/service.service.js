@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose");
 const Service = require("../models/service.model");
 const { generateID, increaseLastId } = require("./lastID.service");
+const res = require("express/lib/response");
 
 const createService = async (service) => {
   const session = await mongoose.startSession();
@@ -115,6 +116,121 @@ const findServicesByListId = async (list) =>
   await Service.find({ _id: { $in: list } });
 const findAllService = async (categoryId) =>
   await Service.find({ categoryId, status: { $ne: "deleted" } });
+const findAllServiceToPick = async () => {
+  const now = new Date();
+  const pipeline = [
+    {
+      $match:
+        /**
+         * query: The query in MQL.
+         */
+        {
+          status: "active",
+        },
+    },
+    {
+      $addFields:
+        /**
+         * newField: The new field name.
+         * expression: The new field expression.
+         */
+        {
+          packObj: {
+            $toObjectId: "$categoryId",
+          },
+        },
+    },
+    {
+      $lookup: {
+        from: "service_packages",
+        localField: "packObj",
+        foreignField: "_id",
+        as: "service_package",
+      },
+    },
+    {
+      $unwind: {
+        path: "$service_package",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "pricecatalogs",
+        let: {
+          itemId: "$_id",
+          day: {
+            $toDate: now,
+          },
+        },
+        pipeline: [
+          {
+            $match: {
+              status: "active",
+              startDate: { $lte: now },
+              endDate: { $gte: now },
+            },
+          },
+          {
+            $unwind: "$items",
+          },
+          {
+            $addFields: {
+              objId: {
+                $toObjectId: "$items.itemId",
+              },
+            },
+          },
+          {
+            $match: {
+              $expr: {
+                $eq: ["$objId", "$$itemId"],
+              },
+            },
+          },
+          {
+            $project: {
+              price: "$items.price",
+              _id: 0,
+            },
+          },
+        ],
+        as: "price",
+      },
+    },
+    {
+      $unwind: {
+        path: "$price",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $replaceRoot: {
+        newRoot: {
+          itemId: "$_id",
+          itemName: "$serviceName",
+          categoryId: "$service_package._id",
+          categoryName: "$service_package.categoryName",
+          duration: "$duration",
+          price: "$price.price",
+        },
+      },
+    },
+    {
+      $match:
+        /**
+         * query: The query in MQL.
+         */
+        {
+          price: {
+            $ne: null,
+          },
+        },
+    },
+  ];
+  const result = await Service.aggregate(pipeline);
+  return { code: 200, message: "Thành công", data: result };
+};
 module.exports = {
   createService,
   deleteService,
@@ -125,4 +241,5 @@ module.exports = {
   activeService,
   findServiceById,
   findServicesByListId,
+  findAllServiceToPick,
 };
