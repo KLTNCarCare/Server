@@ -53,18 +53,14 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
         data: null,
       };
     }
-    console.log(obj);
-
     const data = new PriceCatalog({
       ...obj,
       ...newPriceCatalog,
     });
-
     const startDate = new Date(data.startDate);
     const endDate = new Date(data.endDate);
     const now = new Date();
     endDate.setHours(23, 59, 59, 0);
-    console.log(startDate, endDate);
     if (endDate < now || endDate < startDate) {
       return {
         code: 400,
@@ -109,6 +105,34 @@ const updateEndDate = async (id, newDate) =>
   );
 const activeCatalog = async (id) => {
   try {
+    const obj = await PriceCatalog.findById(id);
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Thất bại! Không tìm thấy bảng giá",
+        data: null,
+      };
+    }
+    const serviceIds = obj.items.map((item) => item.itemId);
+    const listObj = await getCatalogActiveByRangeDate(
+      new Date(obj.startDate),
+      new Date(obj.endDate)
+    );
+    //check item exist in another catalog
+    if (listObj.length > 0) {
+      for (let catalog of listObj) {
+        const check = catalog.items.some((item) =>
+          serviceIds.includes(item.itemId)
+        );
+        if (check) {
+          return {
+            code: 400,
+            message: "Xung đột với bảng giá " + catalog.priceId,
+            data: null,
+          };
+        }
+      }
+    }
     const result = await PriceCatalog.findOneAndUpdate(
       { _id: id },
       { status: "active" },
@@ -128,12 +152,31 @@ const activeCatalog = async (id) => {
     };
   }
 };
-const inactiveCatalog = async (id) =>
-  await PriceCatalog.findOneAndUpdate(
-    { _id: id },
-    { status: "inactive" },
-    { new: true }
-  );
+const inactiveCatalog = async (id) => {
+  try {
+    const ojb = await PriceCatalog.findById(id);
+    if (!ojb) {
+      return {
+        code: 400,
+        message: "Thất bại! Không tìm thấy bảng giá",
+        data: null,
+      };
+    }
+    const result = await PriceCatalog.findOneAndUpdate(
+      { _id: id },
+      { status: "inactive" },
+      { new: true }
+    );
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in inactive price catalog", error);
+    return {
+      code: 500,
+      message: "Internal server error",
+      data: null,
+    };
+  }
+};
 const deleteCatalog = async (id) => {
   try {
     const obj = await PriceCatalog.findById(id);
@@ -150,7 +193,8 @@ const deleteCatalog = async (id) => {
     if (startDate < now && now < endDate && obj.status == "active") {
       return {
         code: 200,
-        message: "Không thể xoá bảng giá đang được áp dụng",
+        message:
+          "Bảng giá đang được sử dụng không thể xoá.Nếu bạn vẫn muốn xoá hãy ngưng hoạt động nó trước",
         data: null,
       };
     }
@@ -335,7 +379,23 @@ const getAllPriceCurrent = async (textSearch) => {
     return { code: 500, message: "Internal server error", data: null };
   }
 };
-
+const updateItemNamePriceCatalog = async (itemId, itemName) =>
+  PriceCatalog.updateMany(
+    {
+      status: {
+        $ne: "deleted",
+      },
+      "items.itemId": itemId,
+    },
+    {
+      $set: {
+        "items.$[elem].itemName": itemName,
+      },
+    },
+    {
+      arrayFilters: [{ "elem.itemId": itemId }],
+    }
+  );
 module.exports = {
   createCatalog,
   getCatalogById,
@@ -351,4 +411,5 @@ module.exports = {
   getTotalPage,
   getPriceByServices,
   getAllPriceCurrent,
+  updateItemNamePriceCatalog,
 };

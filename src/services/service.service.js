@@ -2,6 +2,7 @@ const { default: mongoose } = require("mongoose");
 const Service = require("../models/service.model");
 const { generateID, increaseLastId } = require("./lastID.service");
 const res = require("express/lib/response");
+const { updateItemNamePriceCatalog } = require("./price_catalog.service");
 
 const createService = async (service) => {
   const session = await mongoose.startSession();
@@ -85,6 +86,8 @@ const activeService = async (id) => {
   }
 };
 const updateService = async (id, service) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const obj = await Service.findById(id);
     if (!obj) {
@@ -93,6 +96,10 @@ const updateService = async (id, service) => {
         message: "Không tìm thấy dịch vụ để cập nhật",
         data: null,
       };
+    }
+    if (service.serviceName && service.serviceName != obj.serviceName) {
+      console.log(typeof obj._id);
+      await updateItemNamePriceCatalog(String(obj._id), service.serviceName);
     }
     const result = await Service.findOneAndUpdate({ _id: id }, service, {
       new: true,
