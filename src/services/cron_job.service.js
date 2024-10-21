@@ -1,8 +1,9 @@
 const cron = require("node-cron");
 const { updateExpiresAppoinment } = require("./appointment.service");
-const { resetInvoiceId } = require("./lastID.service");
+const { resetInvoiceAndAppointmentId } = require("./lastID.service");
 const connection = require("./sockjs_manager");
 const { messageType } = require("../utils/constants");
+const { refreshStatusPriceCatalog } = require("./price_catalog.service");
 const cronJobExpiresAppointment = cron.schedule(
   "15,45 7-16 * * *",
   async () => {
@@ -38,4 +39,19 @@ const cronJobResetIdInvoice = cron.schedule(
     timezone: "Asia/Ho_Chi_Minh",
   }
 );
-module.exports = { cronJobExpiresAppointment, cronJobResetIdInvoice };
+const cronRefreshPriceCatalog = cron.schedule(
+  "0 0 * * *",
+  async () => {
+    await refreshStatusPriceCatalog();
+    console.log("Cập nhật trạng thái các bảng giá");
+  },
+  {
+    scheduled: true,
+    timezone: "Asia/Ho_Chi_Minh",
+  }
+);
+module.exports = {
+  cronJobExpiresAppointment,
+  cronJobResetIdInvoice,
+  cronRefreshPriceCatalog,
+};

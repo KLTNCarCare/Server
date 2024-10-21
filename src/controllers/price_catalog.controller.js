@@ -69,113 +69,21 @@ const updateEndDatePriceCatalog = async (req, res) => {
     log("Error in updateEndDate", error);
   }
 };
-
 const activePriceCatalog = async (req, res) => {
-  try {
-    const id = req.params.id;
-    if (!id) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-    const catalog = await getCatalogById(id);
-    if (!catalog) {
-      return res.status(404).json({ message: "Price catalog not found" });
-    }
-    const items_active = catalog.items.map((item) => item.itemId);
-
-    //get  list catalog active by date
-    const ls = await getCatalogActiveByRangeDate(
-      new Date(catalog.startDate),
-      new Date(catalog.endDate)
-    );
-    //check item exist in another catalog
-    if (ls.length > 0) {
-      for (let catalog of ls) {
-        const check = catalog.items.some((item) =>
-          items_active.includes(item.itemId)
-        );
-        if (check) {
-          return res.status(400).json({
-            message: "Have Item is already in catalog: " + catalog.priceId,
-          });
-        }
-      }
-    }
-    const result = await activeCatalog(id);
-    if (!result) {
-      return res.status(500).json({ message: "Internal server error" });
-    }
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in activePriceCatalog", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const id = req.params.id;
+  const result = await activeCatalog(id);
+  return res.status(result.code).json(result);
 };
-
 const inactivePriceCatalog = async (req, res) => {
   const id = req.params.id;
-  //check value id
-  if (!id) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
-  //find catalog by id
-  const catalog = await getCatalogById(id);
-  if (!catalog) {
-    return res.status(404).json({ message: "Price catalog not found" });
-  }
-  //check catalog is used
-  const startDate = new Date(catalog.startDate);
-  const endDate = new Date(catalog.endDate);
-  if (
-    catalog.status === "active" &&
-    startDate <= Date.now() &&
-    endDate >= Date.now()
-  ) {
-    return res
-      .status(400)
-      .json({ message: "Don't inactive price catalog is used!" });
-  }
-  //inactive price catalog
   const result = await inactiveCatalog(id);
-  if (!result) {
-    return res.status(500).json({ message: "Internal server error" });
-  }
-  return res.status(200).json(result);
+  return res.status(result.code).json(result);
 };
 
 const delelePriceCatalog = async (req, res) => {
-  try {
-    const id = req.params.id;
-    // check null values
-    if (!id) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-    // check price catalog id
-    const catalog = await getCatalogById(id);
-    if (!catalog) {
-      return res.status(404).json({ message: "Price catalog not found" });
-    }
-    // check price catalog is used
-    const startDate = new Date(catalog.startDate);
-    const endDate = new Date(catalog.endDate);
-    if (
-      catalog.status === "active" &&
-      startDate <= Date.now() &&
-      endDate >= Date.now()
-    ) {
-      return res
-        .status(400)
-        .json({ message: "Don't delete price catalog is used!" });
-    }
-    // delete price catalog
-    const result = await deleteCatalog(id);
-    if (!result) {
-      return res.status(500).json({ message: "Internal server error" });
-    }
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in deletePriceCatalog", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const id = req.params.id;
+  const result = await deleteCatalog(id);
+  return res.status(result.code).json(result);
 };
 const getAll = async (req, res) => {
   try {

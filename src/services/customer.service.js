@@ -58,12 +58,19 @@ const pullVehicle = async (id, licensePlate) =>
       },
     }
   );
-const findAllCustomer = async (page, limit) => {
+const findAllCustomer = async (page, limit, k, v, sort, asc) => {
   try {
-    const count = await Customer.countDocuments({ status: { $ne: "deleted" } });
-    const data = await Customer.find({ status: { $ne: "deleted" } })
+    const filter = { status: { $ne: "deleted" } };
+    const sort = {};
+    if (k && v) {
+      filter[k] = v;
+    }
+    console.log(filter, sort);
+    const count = await Customer.countDocuments(filter);
+    const data = await Customer.find(filter)
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
+      .sort(sort);
     return {
       code: 200,
       message: "Success",

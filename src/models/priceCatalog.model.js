@@ -32,7 +32,6 @@ const priceCatalogSchema = mongoose.Schema({
   startDate: {
     type: Date,
     required: true,
-    immutable: true,
   },
   endDate: {
     type: Date,
@@ -40,7 +39,7 @@ const priceCatalogSchema = mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["active", "inactive", "deleted"],
+    enum: ["active", "inactive", "deleted", "expires"],
     default: "inactive",
   },
   items: {
