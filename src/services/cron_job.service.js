@@ -1,6 +1,6 @@
 const cron = require("node-cron");
 const { updateExpiresAppoinment } = require("./appointment.service");
-const { resetInvoiceId } = require("./lastID.service");
+const { resetInvoiceAndAppointmentId } = require("./lastID.service");
 const connection = require("./sockjs_manager");
 const { messageType } = require("../utils/constants");
 const cronJobExpiresAppointment = cron.schedule(
