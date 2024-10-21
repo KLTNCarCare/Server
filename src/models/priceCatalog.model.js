@@ -46,6 +46,13 @@ const priceCatalogSchema = mongoose.Schema({
   items: {
     type: [itemSchema],
     default: [],
+    validate: {
+      validator: function (items) {
+        const itemIds = items.map((item) => item.itemId);
+        return itemIds.length === new Set(itemIds).size;
+      },
+      message: "Dịch vụ trong một bảng giá phải là duy nhất",
+    },
   },
   createdAt: { type: Date, default: Date.now, immutable: true },
   updatedAt: { type: Date, default: Date.now },
