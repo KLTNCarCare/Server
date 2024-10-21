@@ -98,12 +98,15 @@ const updateService = async (id, service) => {
       };
     }
     if (service.serviceName && service.serviceName != obj.serviceName) {
-      console.log(typeof obj._id);
       await updateItemNamePriceCatalog(String(obj._id), service.serviceName);
     }
-    const result = await Service.findOneAndUpdate({ _id: id }, service, {
-      new: true,
-    });
+    const result = await Service.findOneAndUpdate(
+      { _id: id },
+      { $set: service },
+      {
+        new: true,
+      }
+    );
     return {
       code: 200,
       message: "Thành công",

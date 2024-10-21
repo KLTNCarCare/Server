@@ -1,13 +1,36 @@
 const { default: mongoose } = require("mongoose");
 const PriceCatalog = require("../models/priceCatalog.model");
 const { generateID, increaseLastId } = require("../services/lastID.service");
-const createCatalog = async (priceCatalog) => {
+const createCatalog = async (data) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    priceCatalog.priceId = await generateID("BG");
+    data.priceId = await generateID("BG");
     await increaseLastId("BG");
-    const result = await PriceCatalog.create(priceCatalog);
+    const priceCatalog = new PriceCatalog(data);
+    await priceCatalog.validate();
+
+    const serviceIds = priceCatalog.items.map((item) => item.itemId);
+    const listObj = await getCatalogByRangeDate(
+      new Date(priceCatalog.startDate),
+      new Date(priceCatalog.endDate)
+    );
+    //check item exist in another catalog
+    if (listObj.length > 0) {
+      for (let catalog of listObj) {
+        const check = catalog.items.some((item) =>
+          serviceIds.includes(item.itemId)
+        );
+        if (check) {
+          return {
+            code: 400,
+            message: "Xung đột với bảng giá " + catalog.priceId,
+            data: null,
+          };
+        }
+      }
+    }
+    const result = await PriceCatalog.create(data);
     session.commitTransaction();
     return {
       code: 200,
@@ -37,7 +60,6 @@ const createCatalog = async (priceCatalog) => {
 };
 const updatePriceCatalog = async (id, newPriceCatalog) => {
   try {
-    delete newPriceCatalog.startDate;
     const obj = await PriceCatalog.findById(id).lean();
     if (!obj) {
       return {
@@ -57,11 +79,11 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
       ...obj,
       ...newPriceCatalog,
     });
-    const startDate = new Date(data.startDate);
-    const endDate = new Date(data.endDate);
+    data.startDate = new Date(data.startDate).setHours(0, 0, 0, 0);
+    data.endDate = new Date(data.endDate).setHours(23, 59, 59, 0);
     const now = new Date();
-    endDate.setHours(23, 59, 59, 0);
-    if (endDate < now || endDate < startDate) {
+
+    if (data.endDate < now || data.endDate < data.startDate) {
       return {
         code: 400,
         message:
@@ -70,6 +92,27 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
       };
     }
     await data.validate();
+
+    const serviceIds = data.items.map((item) => item.itemId);
+    const listObj = await getCatalogByRangeDate(
+      new Date(data.startDate),
+      new Date(data.endDate)
+    );
+    //check item exist in another catalog
+    if (listObj.length > 0) {
+      for (let catalog of listObj) {
+        const check = catalog.items.some((item) =>
+          serviceIds.includes(item.itemId)
+        );
+        if (check) {
+          return {
+            code: 400,
+            message: "Xung đột với bảng giá " + catalog.priceId,
+            data: null,
+          };
+        }
+      }
+    }
     const result = await PriceCatalog.findOneAndUpdate({ _id: id }, data, {
       new: true,
     });
@@ -225,6 +268,15 @@ const getCatalogActiveByRangeDate = async (start, end) =>
       { startDate: { $lte: start }, endDate: { $gte: end } },
     ],
     status: "active",
+  });
+const getCatalogByRangeDate = async (start, end) =>
+  await PriceCatalog.find({
+    $or: [
+      { startDate: { $gte: start, $lte: end } },
+      { endDate: { $gte: start, $lte: end } },
+      { startDate: { $lte: start }, endDate: { $gte: end } },
+    ],
+    status: { $nin: ["deleted", "expires"] },
   });
 const getCatalogById = async (id) => await PriceCatalog.findById(id);
 // get catalog with active status and current date
@@ -396,6 +448,22 @@ const updateItemNamePriceCatalog = async (itemId, itemName) =>
       arrayFilters: [{ "elem.itemId": itemId }],
     }
   );
+const refreshStatusPriceCatalog = async () => {
+  try {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    await PriceCatalog.updateMany(
+      { startDate: { $eq: now } },
+      { status: "active" }
+    );
+    await PriceCatalog.updateMany(
+      { endDate: { $lte: now } },
+      { status: "expires" }
+    );
+  } catch (error) {
+    console.log("Error in refreshStatusPriceCatalog");
+  }
+};
 module.exports = {
   createCatalog,
   getCatalogById,
@@ -412,4 +480,5 @@ module.exports = {
   getPriceByServices,
   getAllPriceCurrent,
   updateItemNamePriceCatalog,
+  refreshStatusPriceCatalog,
 };
