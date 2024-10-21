@@ -17,6 +17,15 @@ const createCatalog = async (priceCatalog) => {
   } catch (error) {
     console.log("Error in  create price catalog", error);
     session.abortTransaction();
+    if (
+      (error.name = "ValidatorError" && error.errors && error.errors["items"])
+    ) {
+      return {
+        code: 400,
+        message: error.errors["items"].message,
+        data: null,
+      };
+    }
     return {
       code: 500,
       message: "Internal server error",
@@ -28,6 +37,7 @@ const createCatalog = async (priceCatalog) => {
 };
 const updatePriceCatalog = async (id, newPriceCatalog) => {
   try {
+    delete newPriceCatalog.startDate;
     const obj = await PriceCatalog.findById(id).lean();
     if (!obj) {
       return {
@@ -49,6 +59,20 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
       ...obj,
       ...newPriceCatalog,
     });
+
+    const startDate = new Date(data.startDate);
+    const endDate = new Date(data.endDate);
+    const now = new Date();
+    endDate.setHours(23, 59, 59, 0);
+    console.log(startDate, endDate);
+    if (endDate < now || endDate < startDate) {
+      return {
+        code: 400,
+        message:
+          "Không được phép sửa ngày kết thúc nhỏ hơn ngày hiện tại hoặc nhỏ hơn ngày bắt đầu",
+        data: null,
+      };
+    }
     await data.validate();
     const result = await PriceCatalog.findOneAndUpdate({ _id: id }, data, {
       new: true,
@@ -60,6 +84,16 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
     };
   } catch (error) {
     console.log("Error in update price catalog", error);
+    if (
+      (error.name = "ValidatorError" && error.errors && error.errors["items"])
+    ) {
+      return {
+        code: 400,
+        message: error.errors["items"].message,
+        data: null,
+      };
+    }
+
     return {
       code: 500,
       message: "Internal server error",
@@ -219,7 +253,7 @@ const getPriceByServices = async (time, services) => {
 const getAllPriceCurrent = async (textSearch) => {
   try {
     const now = new Date();
-    const pipline = [
+    const pipeline = [
       {
         $match: {
           status: "active",
@@ -282,7 +316,7 @@ const getAllPriceCurrent = async (textSearch) => {
       },
     ];
     if (textSearch != "") {
-      pipline.push({
+      pipeline.push({
         $match: {
           itemName: {
             $regex: RegExp(textSearch, "iu"),
@@ -290,7 +324,7 @@ const getAllPriceCurrent = async (textSearch) => {
         },
       });
     }
-    const data = await PriceCatalog.aggregate(pipline);
+    const data = await PriceCatalog.aggregate(pipeline);
     return {
       code: 200,
       message: "Successful",

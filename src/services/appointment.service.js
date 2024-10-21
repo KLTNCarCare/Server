@@ -171,6 +171,15 @@ const createAppointment = async (data) => {
   } catch (error) {
     console.log("Error in saveAppointmet: ", error);
     session.abortTransaction();
+    if (
+      (error.name = "ValidatorError" && error.errors && error.errors["items"])
+    ) {
+      return {
+        code: 400,
+        message: error.errors["items"].message,
+        data: null,
+      };
+    }
     return {
       code: 500,
       message: "Internal server error",
@@ -285,6 +294,15 @@ const createAppointmentOnSite = async (appointment) => {
   } catch (error) {
     console.log("Error in saveAppointmetOnSite: ", error);
     session.abortTransaction();
+    if (
+      (error.name = "ValidatorError" && error.errors && error.errors["items"])
+    ) {
+      return {
+        code: 400,
+        message: error.errors["items"].message,
+        data: null,
+      };
+    }
     return {
       code: 500,
       message: "Internal server error",

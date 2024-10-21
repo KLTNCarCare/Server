@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose");
 const Service = require("../models/service.model");
 const { generateID, increaseLastId } = require("./lastID.service");
+const res = require("express/lib/response");
 
 const createService = async (service) => {
   const session = await mongoose.startSession();
@@ -85,24 +86,13 @@ const activeService = async (id) => {
 };
 const updateService = async (id, service) => {
   try {
-    const oldService = await Service.findById(id);
-    if (!oldService) {
-      if (!result) {
-        return {
-          code: 400,
-          message: "Không tìm thấy dịch vụ để cập nhật",
-          data: null,
-        };
-      }
-    }
-    if (oldService.status == "active") {
-      if (!result) {
-        return {
-          code: 400,
-          message: "Không thể cập nhật khi trạng thái đang là hoạt động",
-          data: null,
-        };
-      }
+    const obj = await Service.findById(id);
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy dịch vụ để cập nhật",
+        data: null,
+      };
     }
     const result = await Service.findOneAndUpdate({ _id: id }, service, {
       new: true,
@@ -113,7 +103,7 @@ const updateService = async (id, service) => {
       data: result,
     };
   } catch (error) {
-    console.log("Error in delete service", error);
+    console.log("Error in update service", error);
     return { code: 500, message: "Internal server error", data: null };
   }
 };
@@ -126,6 +116,117 @@ const findServicesByListId = async (list) =>
   await Service.find({ _id: { $in: list } });
 const findAllService = async (categoryId) =>
   await Service.find({ categoryId, status: { $ne: "deleted" } });
+const findAllServiceToPick = async (textSearch) => {
+  const now = new Date();
+  const pipeline = [
+    {
+      $match: {
+        status: "active",
+      },
+    },
+    {
+      $addFields: {
+        packObj: {
+          $toObjectId: "$categoryId",
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "service_packages",
+        localField: "packObj",
+        foreignField: "_id",
+        as: "service_package",
+      },
+    },
+    {
+      $unwind: {
+        path: "$service_package",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "pricecatalogs",
+        let: {
+          itemId: "$_id",
+          day: {
+            $toDate: now,
+          },
+        },
+        pipeline: [
+          {
+            $match: {
+              status: "active",
+              startDate: { $lte: now },
+              endDate: { $gte: now },
+            },
+          },
+          {
+            $unwind: "$items",
+          },
+          {
+            $addFields: {
+              objId: {
+                $toObjectId: "$items.itemId",
+              },
+            },
+          },
+          {
+            $match: {
+              $expr: {
+                $eq: ["$objId", "$$itemId"],
+              },
+            },
+          },
+          {
+            $project: {
+              price: "$items.price",
+              _id: 0,
+            },
+          },
+        ],
+        as: "price",
+      },
+    },
+    {
+      $unwind: {
+        path: "$price",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $replaceRoot: {
+        newRoot: {
+          itemId: "$_id",
+          itemName: "$serviceName",
+          categoryId: "$service_package._id",
+          categoryName: "$service_package.categoryName",
+          duration: "$duration",
+          price: "$price.price",
+        },
+      },
+    },
+    {
+      $match: {
+        price: {
+          $ne: null,
+        },
+      },
+    },
+  ];
+  if (textSearch != "") {
+    pipeline.push({
+      $match: {
+        itemName: {
+          $regex: RegExp(textSearch, "iu"),
+        },
+      },
+    });
+  }
+  const result = await Service.aggregate(pipeline);
+  return { code: 200, message: "Thành công", data: result };
+};
 module.exports = {
   createService,
   deleteService,
@@ -136,4 +237,5 @@ module.exports = {
   activeService,
   findServiceById,
   findServicesByListId,
+  findAllServiceToPick,
 };

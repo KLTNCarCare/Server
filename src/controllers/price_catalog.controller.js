@@ -15,6 +15,7 @@ const {
   getAllPriceCurrent,
   updatePriceCatalog,
 } = require("../services/price_catalog.service");
+const { findAllServiceToPick } = require("../services/service.service");
 const createPriceCatalog = async (req, res) => {
   const priceCatalog = req.body;
   const result = await createCatalog(priceCatalog);
@@ -212,10 +213,9 @@ const getActive = async (req, res) => {
 };
 const getPriceCurrent = async (req, res) => {
   const textSearch = req.query.searchText || "";
-  const result = await getAllPriceCurrent(textSearch);
-  return res
-    .status(result.code)
-    .json({ message: result.message, data: result.data });
+  // const result = await getAllPriceCurrent(textSearch);
+  const result = await findAllServiceToPick();
+  return res.status(result.code).json(result);
 };
 module.exports = {
   createPriceCatalog,

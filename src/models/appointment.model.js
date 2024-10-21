@@ -195,6 +195,13 @@ const appointmentSchema = mongoose.Schema({
   items: {
     type: [serviceSchema],
     required: true,
+    validate: {
+      validator: function (items) {
+        const itemIds = items.map((item) => item.serviceId);
+        return itemIds.length === new Set(itemIds).size;
+      },
+      message: "Dịch vụ trong một đơn hàng phải là duy nhất",
+    },
   },
 });
 appointmentSchema.virtual("sub_total").get(function () {
