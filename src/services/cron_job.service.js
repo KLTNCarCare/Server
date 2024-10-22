@@ -40,10 +40,10 @@ const cronJobResetIdInvoice = cron.schedule(
   }
 );
 const cronRefreshPriceCatalog = cron.schedule(
-  "0 0 * * *",
+  " 0 0 * * *",
   async () => {
     await refreshStatusPriceCatalog();
-    console.log("Cập nhật trạng thái các bảng giá");
+    console.log(`Cập nhật trạng thái các bảng giá ngày:${new Date()} `);
   },
   {
     scheduled: true,

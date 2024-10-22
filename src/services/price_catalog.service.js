@@ -285,11 +285,13 @@ const deleteCatalog = async (id) => {
     const startDate = new Date(obj.startDate);
     const endDate = new Date(obj.endDate);
     const now = new Date();
-    if (startDate < now && now < endDate && obj.status == "active") {
+    if (
+      (startDate < now && now < endDate && obj.status == "active") ||
+      obj.status == "expires"
+    ) {
       return {
-        code: 200,
-        message:
-          "Bảng giá đang được sử dụng không thể xoá.Nếu bạn vẫn muốn xoá hãy ngưng hoạt động nó trước",
+        code: 400,
+        message: "Chỉ được phép xoá bảng giá trong tương lai.",
         data: null,
       };
     }
@@ -505,7 +507,12 @@ const refreshStatusPriceCatalog = async () => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     await PriceCatalog.updateMany(
-      { startDate: { $eq: now } },
+      {
+        $or: [
+          { startDate: { $eq: now } },
+          { startDate: { $lte: now }, endDate: { $gt: now } },
+        ],
+      },
       { status: "active" }
     );
     await PriceCatalog.updateMany(
