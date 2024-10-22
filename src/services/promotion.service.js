@@ -490,6 +490,22 @@ const addDescriptionPromotionDetail = async (
   }
   return str;
 };
+const refreshStatusPromotionLine = async () => {
+  try {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    await PromotionLine.updateMany(
+      { startDate: { $eq: now } },
+      { status: "active" }
+    );
+    await PromotionLine.updateMany(
+      { endDate: { $lte: now } },
+      { status: "expires" }
+    );
+  } catch (error) {
+    console.log("Error in refreshStatusPrmotionLine");
+  }
+};
 const getPromotionLineById = async (id) => await PromotionLine.findById(id);
 module.exports = {
   createPromotion,
@@ -509,4 +525,5 @@ module.exports = {
   getProService,
   addDescriptionPromotionDetail,
   updateEndDatePromotionLine,
+  refreshStatusPromotionLine,
 };
