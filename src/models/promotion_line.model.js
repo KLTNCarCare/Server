@@ -154,12 +154,5 @@ lineSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
   next();
 });
 // inscrease Last id
-lineSchema.post("save", async (doc) => {
-  try {
-    await increaseLastId("CTKMCT");
-  } catch (error) {
-    console.log("Error in increase last id", error);
-  }
-});
 const PromotionLine = mongoose.model("Promotion_line", lineSchema);
 module.exports = PromotionLine;

@@ -13,6 +13,7 @@ const {
   getPromotionLineById,
   pushPromotionDetail,
   removePromotionDetail,
+  updateEndDatePromotionLine,
 } = require("../services/promotion.service");
 const { findById, findServiceById } = require("../services/service.service");
 
@@ -155,6 +156,12 @@ const deletePromotionDetail = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+const editEndDatePromotionLine = async (req, res) => {
+  const id = req.params.id;
+  const endDate = req.body.endDate;
+  const result = await updateEndDatePromotionLine(id, endDate);
+  return res.status(result.code).json(result);
+};
 module.exports = {
   savePromotion,
   removePromotion,
@@ -166,4 +173,5 @@ module.exports = {
   getPromotionLineByParentId,
   addPromtionDetail,
   deletePromotionDetail,
+  editEndDatePromotionLine,
 };
