@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { validate } = require("./promotion.model");
 const itemSchema = mongoose.Schema(
   {
     itemId: {
@@ -36,6 +37,12 @@ const priceCatalogSchema = mongoose.Schema({
   endDate: {
     type: Date,
     required: true,
+    validator: {
+      validate: function (item) {
+        return this.startDate < endDate;
+      },
+      message: "Ngày kết thúc không hợp lệ",
+    },
   },
   status: {
     type: String,

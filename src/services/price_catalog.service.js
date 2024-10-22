@@ -286,11 +286,13 @@ const deleteCatalog = async (id) => {
     const startDate = new Date(obj.startDate);
     const endDate = new Date(obj.endDate);
     const now = new Date();
-    if (startDate < now && now < endDate && obj.status == "active") {
+    if (
+      (startDate < now && now < endDate && obj.status == "active") ||
+      obj.status == "expires"
+    ) {
       return {
-        code: 200,
-        message:
-          "Bảng giá đang được sử dụng không thể xoá.Nếu bạn vẫn muốn xoá hãy ngưng hoạt động nó trước",
+        code: 400,
+        message: "Không thể xoá bảng giá đang hoạt động và bảng giá đã hết hạn",
         data: null,
       };
     }
@@ -360,7 +362,8 @@ const getActiveCatalog = async (page, limit) =>
 const getAllCatalog = async (page, limit) =>
   await PriceCatalog.find({ status: { $ne: "deleted" } })
     .skip((page - 1) * limit)
-    .limit(limit);
+    .limit(limit)
+    .sort({ status: 1 });
 const getTotalPage = async (limit) => {
   const total = await PriceCatalog.countDocuments({
     status: { $ne: "deleted" },
