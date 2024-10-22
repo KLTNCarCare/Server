@@ -81,7 +81,7 @@ const updatePromotionLine = async (id, promotionLine) => {
     const obj = await PromotionLine.findById(id);
     if (!obj) {
       return {
-        code: 200,
+        code: 400,
         message: "Không tìm thấy dòng khuyễn mãi",
         data: null,
       };
