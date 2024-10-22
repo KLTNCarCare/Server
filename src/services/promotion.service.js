@@ -5,39 +5,74 @@ const { generateID, increaseLastId } = require("./lastID.service");
 const { formatCurrency } = require("../utils/convert");
 const validator = require("validator");
 const createPromotion = async (promotion) => {
-  promotion.promotionId = await generateID("CTKM");
-  return await Promotion.create(promotion);
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    promotion.promotionId = await generateID("CTKM");
+    await increaseLastId("CTKM");
+    promotion.startDate = new Date(promotion.startDate).setHours(0, 0, 0, 0);
+    promotion.endDate = new Date(promotion.endDate).setHours(23, 59, 59, 0);
+    result = await Promotion.create(promotion);
+    session.commitTransaction();
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    session.abortTransaction();
+    console.log("Error in create promotion", error);
+    return { code: 500, message: "Internal server error", data: null };
+  } finally {
+    session.endSession();
+  }
 };
 
 const updatePromotion = async (id, promotion) => {
-  const result = await Promotion.findOneAndUpdate({ _id: id }, promotion, {
-    new: true,
-  });
-  await PromotionLine.updateMany(
-    { parentId: id, startDate: { $lt: promotion.startDate } },
-    { $set: { startDate: promotion.startDate } },
-    { new: true }
-  );
-  await PromotionLine.updateMany(
-    { parentId: id, endDate: { $gt: promotion.endDate } },
-    { $set: { endDate: promotion.endDate } },
-    { new: true }
-  );
-  return result;
+  try {
+    const obj = await Promotion.findById(id);
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy chương trình khuyến mãi",
+        data: null,
+      };
+    }
+    lines = await getPromotionLineByParent(id);
+    if (lines.length > 0) {
+      delete promotion.startDate;
+      delete promotion.endDate;
+    }
+    const result = await Promotion.findOneAndUpdate(
+      { _id: id },
+      { $set: promotion },
+      { new: true }
+    );
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Errror in update promotion", error);
+    return { code: 500, message: "Internal server error", data: null };
+  }
 };
 const deletePromotion = async (id) => {
-  await PromotionLine.updateMany(
-    { parentId: id },
-    { status: "inactive" },
-    { new: true }
-  );
-  return await Promotion.findOneAndUpdate(
-    { _id: id },
-    { status: "inactive" },
-    { new: true }
-  );
+  try {
+    const obj = await Promotion.findById(id);
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy chương trình khuyến mãi",
+        data: null,
+      };
+    }
+    lines = await getPromotionLineByParent(id);
+    if (lines.length > 0) {
+      return {
+        code: 400,
+        message: "Chỉ có thể xoá chương trình khuyến mãi rỗng",
+        data: null,
+      };
+    }
+  } catch (error) {
+    console.log("Errror in update promotion", error);
+    return { code: 500, message: "Internal server error", data: null };
+  }
 };
-
 const getPromotion = async (id) => await Promotion.findById(id);
 const getPromotions = async (page, limit) =>
   await Promotion.find({ status: "active" })
@@ -57,6 +92,8 @@ const createPromotionLine = async (data) => {
         data.type
       );
     }
+    data.startDate = new Date(data.startDate).setHours(0, 0, 0, 0);
+    data.endDate = new Date(data.endDate).setHours(23, 59, 59, 0);
     const result = await PromotionLine.create(data);
     session.commitTransaction();
     return {

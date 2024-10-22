@@ -18,61 +18,20 @@ const {
 const { findById, findServiceById } = require("../services/service.service");
 
 const savePromotion = async (req, res) => {
-  try {
-    const promotion = req.body;
-    const result = await createPromotion(promotion);
-    if (!result) {
-      return res.status(500).json({ message: "Internal server error" });
-    }
-    return res.status(201).json(result);
-  } catch (error) {
-    console.log("Error in savePromotion", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const data = req.body;
+  const result = await createPromotion(data);
+  return res.status(result.code).json(result);
 };
 const removePromotion = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await deletePromotion(id);
-    if (!result) {
-      return res.status(404).json({ message: "Promotion not found" });
-    }
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in removePromotion", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const id = req.params.id;
+  const result = await deletePromotion(id);
+  return res.status(result.code).json(result);
 };
 const editPromotion = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const promotion = await getPromotion(id);
-    if (!promotion) {
-      return res.status(404).json({ message: "Promotion not found" });
-    }
-    const infoChange = {
-      promotionName: req.body.promotionName || promotion.promotionName,
-      description: req.body.description || promotion.description,
-      startDate: req.body.startDate || promotion.startDate,
-      endDate: req.body.endDate || promotion.endDate,
-    };
-    const startDate = new Date(infoChange.startDate);
-    const endDate = new Date(infoChange.endDate);
-    //check date range
-    if (startDate >= endDate || Date.now() >= startDate) {
-      return res
-        .status(400)
-        .json({ message: "Valid range : Date now <  startDate < endDate" });
-    }
-    const result = await updatePromotion(id, infoChange);
-    if (!result) {
-      return res.status(500).json({ message: "Internal server error" });
-    }
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in editPromotion", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const id = req.params.id;
+  const data = req.body;
+  const result = await updatePromotion(id, data);
+  return res.status(result.code).json(result);
 };
 
 const savePromotionLine = async (req, res) => {
