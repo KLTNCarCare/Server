@@ -96,9 +96,10 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
     await data.validate();
 
     const serviceIds = data.items.map((item) => item.itemId);
-    const listObj = await getCatalogByRangeDate(
+    const listObj = await getCatalogByRangeDateOtherId(
       new Date(data.startDate),
-      new Date(data.endDate)
+      new Date(data.endDate),
+      obj._id
     );
     //check item exist in another catalog
     if (listObj.length > 0) {
@@ -285,13 +286,11 @@ const deleteCatalog = async (id) => {
     const startDate = new Date(obj.startDate);
     const endDate = new Date(obj.endDate);
     const now = new Date();
-    if (
-      (startDate < now && now < endDate && obj.status == "active") ||
-      obj.status == "expires"
-    ) {
+    if (startDate < now && now < endDate && obj.status == "active") {
       return {
-        code: 400,
-        message: "Chỉ được phép xoá bảng giá trong tương lai.",
+        code: 200,
+        message:
+          "Bảng giá đang được sử dụng không thể xoá.Nếu bạn vẫn muốn xoá hãy ngưng hoạt động nó trước",
         data: null,
       };
     }
@@ -331,6 +330,16 @@ const getCatalogByRangeDate = async (start, end) =>
       { startDate: { $lte: start }, endDate: { $gte: end } },
     ],
     status: { $nin: ["deleted", "expires"] },
+  });
+const getCatalogByRangeDateOtherId = async (start, end, id) =>
+  await PriceCatalog.find({
+    $or: [
+      { startDate: { $gte: start, $lte: end } },
+      { endDate: { $gte: start, $lte: end } },
+      { startDate: { $lte: start }, endDate: { $gte: end } },
+    ],
+    status: { $nin: ["deleted", "expires"] },
+    _id: { $ne: id },
   });
 const getCatalogById = async (id) => await PriceCatalog.findById(id);
 // get catalog with active status and current date
@@ -507,12 +516,7 @@ const refreshStatusPriceCatalog = async () => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     await PriceCatalog.updateMany(
-      {
-        $or: [
-          { startDate: { $eq: now } },
-          { startDate: { $lte: now }, endDate: { $gt: now } },
-        ],
-      },
+      { startDate: { $eq: now } },
       { status: "active" }
     );
     await PriceCatalog.updateMany(
