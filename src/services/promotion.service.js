@@ -3,7 +3,7 @@ const Promotion = require("../models/promotion.model");
 const PromotionLine = require("../models/promotion_line.model");
 const { generateID, increaseLastId } = require("./lastID.service");
 const { formatCurrency } = require("../utils/convert");
-
+const validator = require("validator");
 const createPromotion = async (promotion) => {
   promotion.promotionId = await generateID("CTKM");
   return await Promotion.create(promotion);
@@ -48,6 +48,7 @@ const createPromotionLine = async (data) => {
   session.startTransaction();
   try {
     data.lineId = await generateID("CTKMCT");
+    await increaseLastId("CTKMCT");
     for (let i = 0; i < data.detail.length; i++) {
       data.detail[i].code = await generateID("COD");
       await increaseLastId("COD");
@@ -78,7 +79,8 @@ const createPromotionLine = async (data) => {
 };
 const updatePromotionLine = async (id, promotionLine) => {
   try {
-    const obj = await PromotionLine.findById(id);
+    delete promotionLine.status;
+    const obj = await PromotionLine.findById(id).lean();
     if (!obj) {
       return {
         code: 400,
@@ -86,6 +88,7 @@ const updatePromotionLine = async (id, promotionLine) => {
         data: null,
       };
     }
+
     if (obj.status == "active" || obj.status == "expires") {
       return {
         code: 400,
@@ -103,21 +106,139 @@ const updatePromotionLine = async (id, promotionLine) => {
       };
     }
     const parentStart = new Date(parent.startDate);
-    const parentEnd = new Date(paretn.endDate);
+    const parentEnd = new Date(parent.endDate);
     const startDate = new Date(newLine.startDate);
     const endDate = new Date(newLine.endDate);
+    const now = new Date();
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 0);
+    if (startDate > endDate) {
+      return {
+        code: 400,
+        message: "Thời gian bắt đầu phải lớn hơn thời gian kết thúc",
+        data: null,
+      };
+    }
+    if (startDate < now) {
+      return {
+        code: 400,
+        message: "Thời gian bắt đầu phải sau ngày hiện tại",
+        data: null,
+      };
+    }
+    if (startDate < parentStart || endDate > parentEnd) {
+      return {
+        code: 400,
+        message:
+          "Ngày bắt đầu hoặc ngày kết thức nằm ngoài chương trình khuyến mãi",
+        data: null,
+      };
+    }
+    newLine.startDate = new Date(startDate);
+    newLine.endDate = new Date(endDate);
+    await newLine.validate();
+    const result = await PromotionLine.findOneAndUpdate({ _id: id }, newLine, {
+      new: true,
+    });
+    return { code: 200, message: "Thành công", data: result };
   } catch (error) {
+    if (error.name == "ValidationError" && error.errors) {
+      console.log("Error validate promotion line ", error);
+      return { code: 400, message: "Dữ liệu không hợp lệ", data: null };
+    }
     console.log("Error in update promotion line ", error);
     return { code: 500, message: "Internal server error", data: null };
   }
 };
-const deletePromotionLine = async (id) =>
-  await PromotionLine.findOneAndUpdate(
-    { _id: id },
-    { status: "inactive" },
-    { new: true }
-  );
 
+const deletePromotionLine = async (id) => {
+  try {
+    const obj = await Promotion.findById(id);
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy dòng khuyến mãi",
+        data: null,
+      };
+    }
+    if (obj.status == "active" || obj.status == "expires") {
+      return {
+        code: 400,
+        message: "Không thể xoá dòng khuyến mãi đang hoạt động hoặc hết hạn",
+        data: null,
+      };
+    }
+    const result = await PromotionLine.findOneAndUpdate(
+      { _id: id },
+      { status: "deleted" },
+      { new: true }
+    );
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in delete promotion line", error);
+    return { code: 500, message: "Internal server error", error };
+  }
+};
+const updateEndDatePromotionLine = async (id, date) => {
+  try {
+    const obj = await PromotionLine.findById(id);
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy dòng khuyến mãi",
+        data: null,
+      };
+    }
+    if (!validator.isISO8601(date)) {
+      if (typeof date != "number" || !date) {
+        return {
+          code: 400,
+          message: "EndDate phải là ngày",
+          data: null,
+        };
+      }
+    }
+    const startDate = new Date(obj.startDate);
+    const oldEndDate = new Date(obj.endDate);
+    const newEndDate = new Date(date);
+    newEndDate.setHours(23, 59, 59, 0);
+    const now = new Date();
+    if (newEndDate > oldEndDate) {
+      return {
+        code: 400,
+        message: "Ngày kết thúc mới phải nhỏ hơn ngày kết thúc cũ",
+        data: null,
+      };
+    }
+    if (newEndDate < now) {
+      return {
+        code: 400,
+        message: "Ngày kết thúc không được nhỏ hơn thời điểm hiện tại",
+        data: null,
+      };
+    }
+    if (newEndDate < startDate) {
+      return {
+        code: 400,
+        message: "Ngày kết thúc mới không được nhỏ nhở ngày bắt đầu",
+        data: null,
+      };
+    }
+    const result = await PromotionLine.findOneAndUpdate(
+      { _id: id },
+      { $set: { endDate: newEndDate } },
+      { new: true }
+    );
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in update endDate promotion line", error);
+    return {
+      code: 500,
+      message: "Internal server error",
+      data: null,
+    };
+  }
+};
 const getPromotionLineByParent = async (parentId) =>
   await PromotionLine.find({ parentId: parentId, status: "active" }).lean();
 const getTotalPage = async (limit) => {
@@ -340,4 +461,5 @@ module.exports = {
   getProBill,
   getProService,
   addDescriptionPromotionDetail,
+  updateEndDatePromotionLine,
 };

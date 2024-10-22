@@ -10,6 +10,7 @@ const {
   getPromotionLineByParentId,
   addPromtionDetail,
   deletePromotionDetail,
+  editEndDatePromotionLine,
 } = require("../controllers/promotion.controller");
 const auth = require("../middlewares/auth.middleware");
 router.post("/create-promotion", auth(["admin"]), savePromotion);
@@ -29,5 +30,10 @@ router.put(
   "/delete-promotion-detail/:id/:idDetail",
   auth(["admin"]),
   deletePromotionDetail
+);
+router.put(
+  "/update-end-date/:id",
+  auth(["admin", "staff"]),
+  editEndDatePromotionLine
 );
 module.exports = router;
