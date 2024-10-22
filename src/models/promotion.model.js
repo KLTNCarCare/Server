@@ -21,7 +21,7 @@ const promotionSchema = new mongoose.Schema({
     required: true,
     validate: {
       validator: function (item) {
-        return startDate > new Date();
+        return this.startDate > new Date();
       },
       message: "Ngày bắt đầu phải lớn hơn ngày hiện tại",
     },
@@ -31,7 +31,7 @@ const promotionSchema = new mongoose.Schema({
     required: true,
     validate: {
       validator: function (item) {
-        return startDate < endDate;
+        return this.startDate < this.endDate;
       },
       message: "Ngày kết thúc phải lớn hơn ngày bắt đầu",
     },

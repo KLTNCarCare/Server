@@ -10,8 +10,12 @@ const createPromotion = async (promotion) => {
   try {
     promotion.promotionId = await generateID("CTKM");
     await increaseLastId("CTKM");
-    promotion.startDate = new Date(promotion.startDate).setHours(0, 0, 0, 0);
-    promotion.endDate = new Date(promotion.endDate).setHours(23, 59, 59, 0);
+    promotion.startDate = new Date(promotion.startDate);
+    promotion.endDate = new Date(promotion.endDate);
+    promotion.startDate.setHours(0, 0, 0, 0);
+    promotion.endDate.setHours(23, 59, 59, 0);
+    console.log(promotion);
+
     result = await Promotion.create(promotion);
     session.commitTransaction();
     return { code: 200, message: "Thành công", data: result };
@@ -68,6 +72,12 @@ const deletePromotion = async (id) => {
         data: null,
       };
     }
+    result = await Promotion.findOneAndUpdate(
+      { _id: id },
+      { status: "deleted" },
+      { new: true }
+    );
+    return { code: 200, message: "Thành công", data: result };
   } catch (error) {
     console.log("Errror in update promotion", error);
     return { code: 500, message: "Internal server error", data: null };
