@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose");
 const PriceCatalog = require("../models/priceCatalog.model");
 const { generateID, increaseLastId } = require("../services/lastID.service");
+const validator = require("validator");
 const createCatalog = async (data) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -68,10 +69,11 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
         data: null,
       };
     }
-    if (obj.status == "active") {
+    if (obj.status == "active" || obj.status == "expires") {
       return {
         code: 400,
-        message: "Không thể cập nhật bảng giá đang hoạt động",
+        message:
+          "Không thể cập nhật bảng giá đang hoạt động và bảng giá đã hết hạn",
         data: null,
       };
     }
@@ -140,12 +142,62 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
     };
   }
 };
-const updateEndDate = async (id, newDate) =>
-  await PriceCatalog.findOneAndUpdate(
-    { _id: id },
-    { endDate: newDate },
-    { new: true }
-  );
+const updateEndDate = async (id, date) => {
+  try {
+    const obj = await PriceCatalog.findById(id);
+    if (!obj) {
+      return { code: 400, message: "Không tìm thấy bảng giá", data: null };
+    }
+    if (!validator.isISO8601(date)) {
+      if (typeof date != "number" || !date) {
+        return {
+          code: 400,
+          message: "EndDate phải là ngày",
+          data: null,
+        };
+      }
+    }
+    const startDate = new Date(obj.startDate);
+    const oldEndDate = new Date(obj.endDate);
+    const newEndDate = new Date(date);
+    newEndDate.setHours(23, 59, 59, 0);
+    const now = new Date();
+    if (newEndDate > oldEndDate) {
+      return {
+        code: 400,
+        message: "Ngày kết thúc mới phải nhỏ hơn ngày kết thúc cũ",
+        data: null,
+      };
+    }
+    if (newEndDate < now) {
+      return {
+        code: 400,
+        message: "Ngày kết thúc không được nhỏ hơn thời điểm hiện tại",
+        data: null,
+      };
+    }
+    if (newEndDate < startDate) {
+      return {
+        code: 400,
+        message: "Ngày kết thúc mới không được nhỏ nhở ngày bắt đầu",
+        data: null,
+      };
+    }
+    const result = await PriceCatalog.findOneAndUpdate(
+      { _id: id },
+      { $set: { endDate: newEndDate } },
+      { new: true }
+    );
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in update endDate price catalog", error);
+    return {
+      code: 500,
+      message: "Internal server error",
+      data: null,
+    };
+  }
+};
 const activeCatalog = async (id) => {
   try {
     const obj = await PriceCatalog.findById(id);
@@ -233,11 +285,13 @@ const deleteCatalog = async (id) => {
     const startDate = new Date(obj.startDate);
     const endDate = new Date(obj.endDate);
     const now = new Date();
-    if (startDate < now && now < endDate && obj.status == "active") {
+    if (
+      (startDate < now && now < endDate && obj.status == "active") ||
+      obj.status == "expires"
+    ) {
       return {
-        code: 200,
-        message:
-          "Bảng giá đang được sử dụng không thể xoá.Nếu bạn vẫn muốn xoá hãy ngưng hoạt động nó trước",
+        code: 400,
+        message: "Chỉ được phép xoá bảng giá trong tương lai.",
         data: null,
       };
     }
@@ -453,7 +507,12 @@ const refreshStatusPriceCatalog = async () => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     await PriceCatalog.updateMany(
-      { startDate: { $eq: now } },
+      {
+        $or: [
+          { startDate: { $eq: now } },
+          { startDate: { $lte: now }, endDate: { $gt: now } },
+        ],
+      },
       { status: "active" }
     );
     await PriceCatalog.updateMany(
