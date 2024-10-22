@@ -3,7 +3,6 @@ const Promotion = require("../models/promotion.model");
 const PromotionLine = require("../models/promotion_line.model");
 const { generateID, increaseLastId } = require("./lastID.service");
 const { formatCurrency } = require("../utils/convert");
-const { findServiceById } = require("./service.service");
 
 const createPromotion = async (promotion) => {
   promotion.promotionId = await generateID("CTKM");
@@ -57,11 +56,12 @@ const createPromotionLine = async (data) => {
         data.type
       );
     }
-    await PromotionLine.create(data);
+    const result = await PromotionLine.create(data);
     session.commitTransaction();
     return {
       code: 200,
       message: "Successfully",
+      data: result,
     };
   } catch (error) {
     console.log(error);
@@ -70,16 +70,47 @@ const createPromotionLine = async (data) => {
     return {
       code: 500,
       message: "Internal server error",
+      data: null,
     };
   } finally {
     session.endSession();
   }
 };
-const updatePromotionLine = async (id, promotionLine) =>
-  await PromotionLine.findOneAndUpdate({ _id: id }, promotionLine, {
-    new: true,
-  });
-
+const updatePromotionLine = async (id, promotionLine) => {
+  try {
+    const obj = await PromotionLine.findById(id);
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy dòng khuyễn mãi",
+        data: null,
+      };
+    }
+    if (obj.status == "active" || obj.status == "expires") {
+      return {
+        code: 400,
+        message: "Không thể sửa promotion đang hoạt động hoặc hết hạn",
+        data: null,
+      };
+    }
+    const newLine = new PromotionLine({ ...obj, ...promotionLine });
+    const parent = Promotion.findById(obj.parentId);
+    if (!parent) {
+      return {
+        code: 400,
+        message: "Không tìm thấy chương trình khuyến mãi của dòng khuyến mãi",
+        data: null,
+      };
+    }
+    const parentStart = new Date(parent.startDate);
+    const parentEnd = new Date(paretn.endDate);
+    const startDate = new Date(newLine.startDate);
+    const endDate = new Date(newLine.endDate);
+  } catch (error) {
+    console.log("Error in update promotion line ", error);
+    return { code: 500, message: "Internal server error", data: null };
+  }
+};
 const deletePromotionLine = async (id) =>
   await PromotionLine.findOneAndUpdate(
     { _id: id },
@@ -280,23 +311,12 @@ const addDescriptionPromotionDetail = async (
     str = `Giảm ${promotionDetail.discount}% đối với hoá đơn từ ${bill} trở lên, giảm tối đa ${limitDiscount}`;
   } else {
     if (promotionDetail.itemId == promotionDetail.itemGiftId) {
-      const service = await findServiceById(promotionDetail.itemId);
-      if (!service) {
-        throw new Error("Dont get service to itemId in promotion detail");
-      }
-      str = `Giảm ${promotionDetail.discount}% cho ${service.serviceName}`;
+      str = `Giảm ${promotionDetail.discount}% cho ${promotionDetail.itemName}`;
     } else {
-      const service = await findServiceById(promotionDetail.itemId);
-      const serviceGift = await findServiceById(promotionDetail.itemGiftId);
-      if (!service || !serviceGift) {
-        throw new Error(
-          "Dont get service to itemId or itemGiftId in promotio detail"
-        );
-      }
       if (promotionDetail.discount == 100) {
-        str = `Miễn phí ${serviceGift.serviceName} khi ${service.serviceName}`;
+        str = `Miễn phí ${promotionDetail.itemGiftName} khi ${promotionDetail.itemName}`;
       } else {
-        str = `Giảm ${promotionDetail.discount}% ${serviceGift.serviceName} khi ${service.serviceName}`;
+        str = `Giảm ${promotionDetail.discount}% ${promotionDetail.itemGiftName} khi ${promotionDetail.itemName}`;
       }
     }
   }

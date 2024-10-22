@@ -26,7 +26,7 @@ const promotionSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["active", "inactive"],
+    enum: ["active", "inactive", "deleted"],
     default: "active",
   },
   createdAt: {
@@ -39,7 +39,6 @@ const promotionSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
-
 promotionSchema.pre("save", function (next) {
   if (this.startDate >= this.endDate || Date.now() >= this.startDate) {
     return next(new Error("Valid range : Date now <  startDate < endDate"));

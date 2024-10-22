@@ -11,32 +11,36 @@ const detailSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    itemName: {
+      type: String,
+      default: null,
+    },
     description: {
       type: String,
-      required: false,
+      required: true,
     },
     itemGiftId: {
+      type: String,
+      default: null,
+    },
+    itemGiftName: {
       type: String,
       default: null,
     },
     bill: {
       type: Number,
       min: 0,
+      default: null,
     },
     discount: {
       type: Number,
-      default: 0,
       min: 0,
       max: 100,
+      required: true,
     },
     limitDiscount: {
       type: Number,
-      default: 0,
-    },
-    status: {
-      type: String,
-      enum: ["active", "inactive"],
-      default: "active",
+      default: null,
     },
   },
   { _id: false }
@@ -72,12 +76,42 @@ const lineSchema = new mongoose.Schema({
   },
   detail: {
     type: [detailSchema],
-    required: false,
+    default: [],
+    validate: {
+      validator: function (items) {
+        if (this.type == "discount-service") {
+          if (items.length > 0) {
+            for (let item of items) {
+              if (
+                !item.itemId ||
+                !item.itemGiftId ||
+                !item.itemName ||
+                !item.itemGiftName
+              ) {
+                return false;
+              }
+            }
+            return true;
+          }
+        } else if (this.type == "discount-bill") {
+          if (items.length > 0) {
+            for (let item of items) {
+              if (!item.bill || !item.limitDiscount) {
+                return false;
+              }
+            }
+            return true;
+          }
+        }
+        return true;
+      },
+      message: "Thiếu dữ liệu chi tiết giảm giá",
+    },
   },
   status: {
     type: String,
-    enum: ["active", "inactive", "deteled"],
-    default: "active",
+    enum: ["active", "inactive", "deteled", "expires"],
+    default: "inactive",
   },
   createdAt: {
     type: Date,
