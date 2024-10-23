@@ -110,7 +110,7 @@ const lineSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["active", "inactive", "deteled", "expires"],
+    enum: ["active", "inactive", "deleted", "expires"],
     default: "inactive",
   },
   createdAt: {
