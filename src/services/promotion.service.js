@@ -102,8 +102,47 @@ const createPromotionLine = async (data) => {
         data.type
       );
     }
-    data.startDate = new Date(data.startDate).setHours(0, 0, 0, 0);
-    data.endDate = new Date(data.endDate).setHours(23, 59, 59, 0);
+    const parent = await Promotion.findById(data.parentId).lean();
+    if (!parent) {
+      return {
+        code: 400,
+        message: "Không tìm thấy chương trình khuyến mãi của dòng khuyến mãi",
+        data: null,
+      };
+    }
+    const parentStart = new Date(parent.startDate);
+    const parentEnd = new Date(parent.endDate);
+    const startDate = new Date(data.startDate);
+    const endDate = new Date(data.endDate);
+    const now = new Date();
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 0);
+    if (startDate > endDate) {
+      return {
+        code: 400,
+        message: "Thời gian bắt đầu phải lớn hơn thời gian kết thúc",
+        data: null,
+      };
+    }
+    if (startDate < now) {
+      return {
+        code: 400,
+        message: "Thời gian bắt đầu phải sau ngày hiện tại",
+        data: null,
+      };
+    }
+    console.log(parent);
+
+    if (startDate < parentStart || endDate > parentEnd) {
+      return {
+        code: 400,
+        message:
+          "Ngày bắt đầu hoặc ngày kết thức nằm ngoài chương trình khuyến mãi",
+        data: null,
+      };
+    }
+    data.startDate = new Date(startDate);
+    data.endDate = new Date(endDate);
     const result = await PromotionLine.create(data);
     session.commitTransaction();
     return {
@@ -377,7 +416,6 @@ const getProBill = async (time, sub_total) => {
             as: "detailItem",
             cond: {
               $and: [
-                { $eq: ["$$detailItem.status", "active"] }, // Điều kiện status phải là active
                 { $lt: ["$$detailItem.bill", sub_total] }, // Điều kiện cho discount-bill: bill < sub_total
               ],
             },
@@ -432,7 +470,6 @@ const getProService = async (time, listItemId) => {
             as: "detailItem",
             cond: {
               $and: [
-                { $eq: ["$$detailItem.status", "active"] },
                 { $in: ["$$detailItem.itemId", listItemId] },
                 { $in: ["$$detailItem.itemGiftId", listItemId] },
               ],
