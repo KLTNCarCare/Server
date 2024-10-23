@@ -7,12 +7,6 @@ const createCustomer = async (cust) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const obj = await findCustByPhone(cust.phone);
-    if (obj && cust.vehicles && cust.vehicles.length > 0) {
-      for (let vehicle of cust.vehicles) {
-        await pushVehicle(obj._id, vehicle);
-      }
-    }
     cust.custId = await generateID("KH");
     await increaseLastId("KH");
     const result = await Customer.create(cust);
