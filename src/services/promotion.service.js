@@ -200,7 +200,7 @@ const updatePromotionLine = async (id, promotionLine) => {
 
 const deletePromotionLine = async (id) => {
   try {
-    const obj = await Promotion.findById(id);
+    const obj = await PromotionLine.findById(id);
     if (!obj) {
       return {
         code: 400,
