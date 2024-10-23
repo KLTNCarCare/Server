@@ -287,7 +287,10 @@ const updateEndDatePromotionLine = async (id, date) => {
   }
 };
 const getPromotionLineByParent = async (parentId) =>
-  await PromotionLine.find({ parentId: parentId, status: "active" }).lean();
+  await PromotionLine.find({
+    parentId: parentId,
+    status: { $ne: "deleted" },
+  }).lean();
 const getTotalPage = async (limit) => {
   const totalPromotion = await Promotion.countDocuments({ status: "active" });
   return Math.ceil(totalPromotion / limit);
