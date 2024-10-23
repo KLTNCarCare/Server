@@ -40,17 +40,9 @@ const savePromotionLine = async (req, res) => {
   return res.status(result.code).json(result);
 };
 const removePromotionLine = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await deletePromotionLine(id);
-    if (!result) {
-      return res.status(404).json({ message: "Promotion line not found" });
-    }
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in deletePromotionLine", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const id = req.params.id;
+  const result = await deletePromotionLine(id);
+  return res.status(result.code).json(result);
 };
 
 const editPromotionLine = async (req, res) => {
@@ -82,7 +74,6 @@ const getPromotionLineByParentId = async (req, res) => {
         line.itemGift = await findServiceById(line.itemGiftId);
       }
     }
-
     //get list item gift
     return res.status(200).json(result);
   } catch (error) {
