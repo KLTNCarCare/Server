@@ -14,15 +14,27 @@ const promotionSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: true,
+    default: "",
   },
   startDate: {
     type: Date,
     required: true,
+    validate: {
+      validator: function (item) {
+        return this.startDate > new Date();
+      },
+      message: "Ngày bắt đầu phải lớn hơn ngày hiện tại",
+    },
   },
   endDate: {
     type: Date,
     required: true,
+    validate: {
+      validator: function (item) {
+        return this.startDate < this.endDate;
+      },
+      message: "Ngày kết thúc phải lớn hơn ngày bắt đầu",
+    },
   },
   status: {
     type: String,
@@ -39,12 +51,6 @@ const promotionSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
-promotionSchema.pre("save", function (next) {
-  if (this.startDate >= this.endDate || Date.now() >= this.startDate) {
-    return next(new Error("Valid range : Date now <  startDate < endDate"));
-  }
-  next();
-});
 promotionSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
   const update = this.getUpdate();
   if (update) {
@@ -52,14 +58,6 @@ promotionSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
     this.setUpdate(update); // Đảm bảo cập nhật lại giá trị
   }
   next();
-});
-// inscrease Last id
-promotionSchema.post("save", async (doc) => {
-  try {
-    await increaseLastId("CTKM");
-  } catch (error) {
-    console.log("Error in increase last id", error);
-  }
 });
 const Promotion = mongoose.model("Promotion", promotionSchema);
 module.exports = Promotion;

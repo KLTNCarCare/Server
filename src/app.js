@@ -6,6 +6,7 @@ const {
   cronJobExpiresAppointment,
   cronJobResetIdInvoice,
   cronRefreshPriceCatalog,
+  cronRefreshPromotionLine,
 } = require("./services/cron_job.service");
 const { app, server } = require("./config/socket");
 const startServer = async (port) => {
@@ -59,6 +60,7 @@ const startServer = async (port) => {
   cronJobExpiresAppointment.start();
   cronJobResetIdInvoice.start();
   cronRefreshPriceCatalog.start();
+  cronRefreshPromotionLine.start();
   //start server
   server.listen(port, () => {
     console.log(`Server is running on port ${port}`);

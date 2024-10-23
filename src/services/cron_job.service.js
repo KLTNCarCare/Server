@@ -4,6 +4,7 @@ const { resetInvoiceAndAppointmentId } = require("./lastID.service");
 const connection = require("./sockjs_manager");
 const { messageType } = require("../utils/constants");
 const { refreshStatusPriceCatalog } = require("./price_catalog.service");
+const { refreshStatusPromotionLine } = require("./promotion.service");
 const cronJobExpiresAppointment = cron.schedule(
   "15,45 7-16 * * *",
   async () => {
@@ -50,8 +51,20 @@ const cronRefreshPriceCatalog = cron.schedule(
     timezone: "Asia/Ho_Chi_Minh",
   }
 );
+const cronRefreshPromotionLine = cron.schedule(
+  " 0 0 * * *",
+  async () => {
+    await refreshStatusPromotionLine();
+    console.log(`Cập nhật trạng thái các dòng khuyến mãi ngày:${new Date()} `);
+  },
+  {
+    scheduled: true,
+    timezone: "Asia/Ho_Chi_Minh",
+  }
+);
 module.exports = {
   cronJobExpiresAppointment,
   cronJobResetIdInvoice,
   cronRefreshPriceCatalog,
+  cronRefreshPromotionLine,
 };

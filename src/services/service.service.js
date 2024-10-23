@@ -3,6 +3,8 @@ const Service = require("../models/service.model");
 const { generateID, increaseLastId } = require("./lastID.service");
 const res = require("express/lib/response");
 const { updateItemNamePriceCatalog } = require("./price_catalog.service");
+const { updateItemNamePromotionLine } = require("./promotion.service");
+const { getAppointmentByServiceId } = require("./appointment.service");
 
 const createService = async (service) => {
   const session = await mongoose.startSession();
@@ -97,8 +99,45 @@ const updateService = async (id, service) => {
         data: null,
       };
     }
+    const newService = { ...obj, ...service };
+    if (obj.status == "active") {
+      for (let key in obj) {
+        console.log(key);
+
+        if (key == "status") {
+          continue;
+        }
+        if (obj[key] != newService[key]) {
+          return {
+            code: 400,
+            message: "Dịch vụ đang hoạt động chỉ có thể cập nhật trạng thái",
+            data: null,
+          };
+        }
+      }
+    }
+
+    const appointment = await getAppointmentByServiceId(id);
+    if (!appointment) {
+      if (obj.status == "inactive") {
+        for (let key in obj) {
+          console.log(key);
+          if (key == "status") {
+            continue;
+          }
+          if (obj[key] != newService[key]) {
+            return {
+              code: 400,
+              message: "Dịch vụ đã được sử dụng chỉ có thể cập nhật trạng thái",
+              data: null,
+            };
+          }
+        }
+      }
+    }
     if (service.serviceName && service.serviceName != obj.serviceName) {
       await updateItemNamePriceCatalog(String(obj._id), service.serviceName);
+      await updateItemNamePromotionLine(String(obj._id), service.serviceName);
     }
     const result = await Service.findOneAndUpdate(
       { _id: id },
