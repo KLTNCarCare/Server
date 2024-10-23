@@ -139,12 +139,12 @@ const updatePromotionLine = async (id, promotionLine) => {
     if (obj.status == "active" || obj.status == "expires") {
       return {
         code: 400,
-        message: "Không thể sửa promotion đang hoạt động hoặc hết hạn",
+        message: "Không thể sửa dòng khuyến mãi đang hoạt động hoặc hết hạn",
         data: null,
       };
     }
     const newLine = new PromotionLine({ ...obj, ...promotionLine });
-    const parent = Promotion.findById(obj.parentId);
+    const parent = await Promotion.findById(obj.parentId).lean();
     if (!parent) {
       return {
         code: 400,
