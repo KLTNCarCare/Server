@@ -100,8 +100,20 @@ const updateService = async (id, service) => {
       };
     }
     const newService = { ...obj, ...service };
+    for (let key in obj) {
+      if (key == "status") {
+        continue;
+      }
+      if (obj[key] != newService[key]) {
+        continue;
+      }
+      return {
+        code: 400,
+        message: "Không có dữ liệu mới cần cập nhật",
+        data: null,
+      };
+    }
     console.log(obj, newService);
-
     if (obj.status == "active") {
       for (let key in obj) {
         if (key == "status") {
