@@ -19,13 +19,8 @@ const removeService = async (req, res) => {
 
 const editService = async (req, res) => {
   const id = req.params.id;
-  const { serviceName, duration, description, status } = req.body;
-  const result = await updateService(id, {
-    serviceName,
-    duration,
-    description,
-    status,
-  });
+  const data = req.body;
+  const result = await updateService(id, data);
   return res.status(result.code).json(result);
 };
 const getAllServices = async (req, res) => {

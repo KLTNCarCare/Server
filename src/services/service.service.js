@@ -91,7 +91,7 @@ const updateService = async (id, service) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const obj = await Service.findById(id);
+    const obj = await Service.findById(id).lean();
     if (!obj) {
       return {
         code: 400,
@@ -100,10 +100,10 @@ const updateService = async (id, service) => {
       };
     }
     const newService = { ...obj, ...service };
+    console.log(obj, newService);
+
     if (obj.status == "active") {
       for (let key in obj) {
-        console.log(key);
-
         if (key == "status") {
           continue;
         }
@@ -118,7 +118,7 @@ const updateService = async (id, service) => {
     }
 
     const appointment = await getAppointmentByServiceId(id);
-    if (!appointment) {
+    if (appointment) {
       if (obj.status == "inactive") {
         for (let key in obj) {
           console.log(key);
