@@ -490,7 +490,7 @@ const updateAppointmentCreatedInvoice = async (id) => {
 const getAppointmentById = async (id) =>
   await Appointment.findOne({ _id: id }).lean();
 const getAppointmentByServiceId = async (serviceId) =>
-  await Appointment.findOne({ "items.serviceId": serviceId });
+  await Appointment.findOne({ "items.serviceId": serviceId }).lean();
 module.exports = {
   createAppointment,
   createAppointmentOnSite,
