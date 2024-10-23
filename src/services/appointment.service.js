@@ -235,7 +235,7 @@ const createAppointmentOnSite = async (appointment) => {
         data: null,
       };
     }
-    const time_promotion = new Date(appointment.startTime);
+    const time_promotion = new Date();
     const items = appointment.items.map((item) => item.serviceId);
     // áp dụng loại khuyến mãi dịch vụ
     const promotion_result = [];
@@ -264,6 +264,7 @@ const createAppointmentOnSite = async (appointment) => {
       0
     );
     const pro_bill = await getProBill(time_promotion, sub_total);
+    console.log(list_pro_service, pro_bill);
 
     if (pro_bill) {
       appointment.discount = {

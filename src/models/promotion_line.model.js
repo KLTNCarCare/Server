@@ -122,28 +122,6 @@ const lineSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
-lineSchema.pre("save", async function (next) {
-  try {
-    const parent = await Promotion.findOne({ _id: this.parentId });
-    if (!parent) {
-      return next(new Error("Promotion not found"));
-    }
-    const startDate = new Date(this.startDate);
-    const endDate = new Date(this.endDate);
-    const parentStartDate = new Date(parent.startDate);
-    const parentEndDate = new Date(parent.endDate);
-    if (startDate < parentStartDate || endDate > parentEndDate) {
-      return next(
-        new Error(
-          "Valid range : parent.startDate <  startDate < endDate < parent.endDate"
-        )
-      );
-    }
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
 // modify updatedAt
 lineSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
   const update = this.getUpdate();
