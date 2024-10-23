@@ -506,6 +506,42 @@ const refreshStatusPromotionLine = async () => {
     console.log("Error in refreshStatusPrmotionLine");
   }
 };
+const updateItemNamePromotionLine = async (itemId, itemName) => {
+  await PromotionLine.updateMany(
+    {
+      status: {
+        $ne: "deleted",
+      },
+      type: "discount-service",
+      "detail.itemId": itemId,
+    },
+    {
+      $set: {
+        "detail.$[elem].itemName": itemName,
+      },
+    },
+    {
+      arrayFilters: [{ "elem.itemId": itemId }],
+    }
+  );
+  await PromotionLine.updateMany(
+    {
+      status: {
+        $ne: "deleted",
+      },
+      type: "discount-service",
+      "detail.itemGiftId": itemId,
+    },
+    {
+      $set: {
+        "detail.$[elem].itemGiftName": itemName,
+      },
+    },
+    {
+      arrayFilters: [{ "elem.itemGiftId": itemId }],
+    }
+  );
+};
 const getPromotionLineById = async (id) => await PromotionLine.findById(id);
 module.exports = {
   createPromotion,
@@ -526,4 +562,5 @@ module.exports = {
   addDescriptionPromotionDetail,
   updateEndDatePromotionLine,
   refreshStatusPromotionLine,
+  updateItemNamePromotionLine,
 };
