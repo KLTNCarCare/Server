@@ -5,7 +5,6 @@ const res = require("express/lib/response");
 const { updateItemNamePriceCatalog } = require("./price_catalog.service");
 const { updateItemNamePromotionLine } = require("./promotion.service");
 const { getAppointmentByServiceId } = require("./appointment.service");
-
 const createService = async (service) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -29,14 +28,23 @@ const createService = async (service) => {
 };
 const deleteService = async (id) => {
   try {
+    const obj = await Service.findById(id).lean();
+    if (!obj) {
+      return { code: 400, message: "Không tìm thấy dịch vụ", data: null };
+    }
+    const appointment = await getAppointmentByServiceId(id);
+    if (appointment) {
+      return {
+        code: 400,
+        message: "Dịch vụ đã được sử dụng không thể xoá",
+        data: null,
+      };
+    }
     const result = await Service.findOneAndUpdate(
       { _id: id },
       { status: "deleted" },
       { new: true }
     );
-    if (!result) {
-      return { code: 400, message: "Xoá thất bại", data: null };
-    }
     return {
       code: 200,
       message: "Xoá thành công",
@@ -126,7 +134,6 @@ const updateService = async (id, service) => {
     if (appointment) {
       if (obj.status == "inactive") {
         for (let key in obj) {
-          console.log(key);
           if (key == "status") {
             continue;
           }
@@ -281,6 +288,8 @@ const findAllServiceToPick = async (textSearch) => {
   const result = await Service.aggregate(pipeline);
   return { code: 200, message: "Thành công", data: result };
 };
+const findOneSerivceByCategoryId = async (categoryId) =>
+  await Service.findOne({ categoryId: categoryId }).lean();
 module.exports = {
   createService,
   deleteService,
@@ -292,4 +301,5 @@ module.exports = {
   findServiceById,
   findServicesByListId,
   findAllServiceToPick,
+  findOneSerivceByCategoryId,
 };

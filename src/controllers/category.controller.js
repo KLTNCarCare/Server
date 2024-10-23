@@ -24,17 +24,9 @@ const saveCategory = async (req, res) => {
 };
 
 const deleteCategory = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await delCategory(id);
-    if (!result) {
-      return res.status(400).json({ message: "Failed to delete category" });
-    }
-    return res.status(200).json({ message: "Category deleted successfully" });
-  } catch (error) {
-    console.log("Error in delCategory", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const id = req.params.id;
+  const result = await delCategory(id);
+  return res.status(result.code).json(result);
 };
 
 const inactiveCategory = async (req, res) => {
