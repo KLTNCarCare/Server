@@ -2,12 +2,17 @@ const { default: mongoose } = require("mongoose");
 
 const { generateID, increaseLastId } = require("./lastID.service");
 const Customer = require("../models/customer.model");
-const { find } = require("../models/promotion.model");
 
 const createCustomer = async (cust) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
+    const obj = await findCustByPhone(cust.phone);
+    if (obj && cust.vehicles && cust.vehicles.length > 0) {
+      for (let vehicle of cust.vehicles) {
+        await pushVehicle(obj._id, vehicle);
+      }
+    }
     cust.custId = await generateID("KH");
     await increaseLastId("KH");
     const result = await Customer.create(cust);
@@ -33,12 +38,8 @@ const createCustomer = async (cust) => {
 const findCustById = async (id) => await Customer.findById(id);
 const findCustByCustId = async (custId) =>
   await Customer.findOne({ custId: custId });
-const findCustByPhone = async (phone, limit) =>
-  await Customer.find({
-    phone: {
-      $regex: RegExp("^" + phone, "i"),
-    },
-  }).limit(limit);
+const findCustByPhone = async (phone) =>
+  await Customer.findOne({ phone: phone }).lean();
 const pushVehicle = async (id, vehicle) =>
   await Customer.findOneAndUpdate(
     { _id: id, "vehicles.licensePlate": { $ne: vehicle.licensePlate } },
