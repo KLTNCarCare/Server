@@ -1,4 +1,4 @@
-const { default: mongoose } = require("mongoose");
+const { default: mongoose, ConnectionStates } = require("mongoose");
 
 const { generateID, increaseLastId } = require("./lastID.service");
 const Customer = require("../models/customer.model");
@@ -17,8 +17,16 @@ const createCustomer = async (cust) => {
       data: result[0],
     };
   } catch (error) {
-    console.log(error);
     await session.abortTransaction();
+    if (error.code == 11000) {
+      return { code: 400, message: "Số điện thoại đã tồn tại", data: null };
+    }
+    if (
+      error.name == "ValidationError" &&
+      error.errors &&
+      error.errors["phone"]
+    )
+      return { code: 400, message: error.errors["phone"].message, data: null };
     return {
       code: 500,
       message: "Internal server error",
@@ -60,7 +68,6 @@ const findAllCustomer = async (page, limit, k, v, sort, sortOrder) => {
     if (k && v) {
       filter[k] = RegExp("^" + v, "iu");
     }
-    console.log(filter, sort);
     const count = await Customer.countDocuments(filter);
     const data = await Customer.find(filter)
       .skip((page - 1) * limit)
@@ -86,16 +93,33 @@ const findAllCustomer = async (page, limit, k, v, sort, sortOrder) => {
 };
 const updateCustomer = async (id, custUpdate) => {
   try {
-    const result = await Customer.findOneAndUpdate({ _id: id }, custUpdate, {
-      new: true,
-    });
+    const obj = await Customer.findById(id).lean();
+    const newCustomer = new Customer({ ...obj, ...custUpdate });
+    await newCustomer.validate();
+    const result = await Customer.findOneAndUpdate(
+      { _id: id },
+      { $set: newCustomer },
+      {
+        new: true,
+      }
+    );
     return {
       code: 200,
-      message: "Succesful",
+      message: "Thành công",
       data: result,
     };
   } catch (error) {
     console.log("Error in updateCustomer", error);
+    if (
+      error.name == "ValidationErorr" &&
+      error.errors &&
+      error.erros["phone"]
+    ) {
+      return { code: 400, message: error.errors["phone"].message, data: null };
+    }
+    if (error.code == 11000) {
+      return { code: 400, message: "Số điện thoại đã tồn tại", data: null };
+    }
     return {
       code: 500,
       message: "Internal server error",
