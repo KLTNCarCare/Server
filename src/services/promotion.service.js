@@ -8,19 +8,17 @@ const createPromotion = async (promotion) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    promotion.promotionId = await generateID("CTKM");
-    await increaseLastId("CTKM");
+    promotion.promotionId = await generateID("CTKM", { session });
+    await increaseLastId("CTKM", { session });
     promotion.startDate = new Date(promotion.startDate);
     promotion.endDate = new Date(promotion.endDate);
     promotion.startDate.setHours(0, 0, 0, 0);
     promotion.endDate.setHours(23, 59, 59, 0);
-    console.log(promotion);
-
-    result = await Promotion.create(promotion);
-    session.commitTransaction();
-    return { code: 200, message: "Thành công", data: result };
+    result = await Promotion.create([promotion], { session });
+    await session.commitTransaction();
+    return { code: 200, message: "Thành công", data: result[0] };
   } catch (error) {
-    session.abortTransaction();
+    await session.abortTransaction();
     console.log("Error in create promotion", error);
     return { code: 500, message: "Internal server error", data: null };
   } finally {
@@ -92,11 +90,11 @@ const createPromotionLine = async (data) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    data.lineId = await generateID("CTKMCT");
-    await increaseLastId("CTKMCT");
+    data.lineId = await generateID("CTKMCT", { session });
+    await increaseLastId("CTKMCT", { session });
     for (let i = 0; i < data.detail.length; i++) {
-      data.detail[i].code = await generateID("COD");
-      await increaseLastId("COD");
+      data.detail[i].code = await generateID("COD", { session });
+      await increaseLastId("COD", { session });
       data.detail[i].description = await addDescriptionPromotionDetail(
         data.detail[i],
         data.type
@@ -131,8 +129,6 @@ const createPromotionLine = async (data) => {
         data: null,
       };
     }
-    console.log(parent);
-
     if (startDate < parentStart || endDate > parentEnd) {
       return {
         code: 400,
@@ -143,12 +139,12 @@ const createPromotionLine = async (data) => {
     }
     data.startDate = new Date(startDate);
     data.endDate = new Date(endDate);
-    const result = await PromotionLine.create(data);
-    session.commitTransaction();
+    const result = await PromotionLine.create([data], { session });
+    await session.commitTransaction();
     return {
       code: 200,
       message: "Successfully",
-      data: result,
+      data: result[0],
     };
   } catch (error) {
     console.log(error);
@@ -359,8 +355,8 @@ const pushPromotionDetail = async (id, data) => {
           return { EC: 400, data: null };
         break;
     }
-    data.code = await generateID("COD");
-    await increaseLastId("COD");
+    data.code = await generateID("COD", { session });
+    await increaseLastId("COD", { session });
     const result = await PromotionLine.findOneAndUpdate(
       { _id: id },
       {
@@ -368,16 +364,16 @@ const pushPromotionDetail = async (id, data) => {
           detail: data,
         },
       },
-      { new: true }
+      { new: true, session }
     );
-    session.commitTransaction();
+    await session.commitTransaction();
     return {
       EC: 200,
       data: result,
     };
   } catch (error) {
     console.log(error);
-    session.abortTransaction();
+    await session.abortTransaction();
     return {
       EC: 500,
       data: null,
@@ -546,7 +542,7 @@ const refreshStatusPromotionLine = async () => {
     console.log("Error in refreshStatusPrmotionLine");
   }
 };
-const updateItemNamePromotionLine = async (itemId, itemName) => {
+const updateItemNamePromotionLine = async (itemId, itemName, session) => {
   await PromotionLine.updateMany(
     {
       status: {
@@ -562,6 +558,7 @@ const updateItemNamePromotionLine = async (itemId, itemName) => {
     },
     {
       arrayFilters: [{ "elem.itemId": itemId }],
+      ...session,
     }
   );
   await PromotionLine.updateMany(

@@ -9,10 +9,10 @@ const createService = async (service) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    service.serviceId = await generateID("DV");
-    await increaseLastId("DV");
-    const result = await Service.create(service);
-    session.commitTransaction();
+    service.serviceId = await generateID("DV", { session });
+    await increaseLastId("DV", { session });
+    const result = await Service.create([service], { session });
+    await session.commitTransaction();
     return {
       code: 200,
       message: "Successful",
@@ -20,7 +20,7 @@ const createService = async (service) => {
     };
   } catch (error) {
     console.log("Error in save service", error);
-    session.abortTransaction();
+    await session.abortTransaction();
     return { code: 500, message: "Internal server error", data: null };
   } finally {
     session.endSession();
@@ -148,16 +148,22 @@ const updateService = async (id, service) => {
       }
     }
     if (service.serviceName && service.serviceName != obj.serviceName) {
-      await updateItemNamePriceCatalog(String(obj._id), service.serviceName);
-      await updateItemNamePromotionLine(String(obj._id), service.serviceName);
+      await updateItemNamePriceCatalog(String(obj._id), service.serviceName, {
+        session,
+      });
+      await updateItemNamePromotionLine(String(obj._id), service.serviceName, {
+        session,
+      });
     }
     const result = await Service.findOneAndUpdate(
       { _id: id },
       { $set: service },
       {
+        session,
         new: true,
       }
     );
+    await session.commitTransaction();
     return {
       code: 200,
       message: "Thành công",
@@ -165,7 +171,10 @@ const updateService = async (id, service) => {
     };
   } catch (error) {
     console.log("Error in update service", error);
+    await session.abortTransaction();
     return { code: 500, message: "Internal server error", data: null };
+  } finally {
+    session.endSession();
   }
 };
 const getTotalPage = async (limit) => {

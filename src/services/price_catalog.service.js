@@ -6,8 +6,8 @@ const createCatalog = async (data) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    data.priceId = await generateID("BG");
-    await increaseLastId("BG");
+    data.priceId = await generateID("BG", { session });
+    await increaseLastId("BG", { session });
     const priceCatalog = new PriceCatalog(data);
     await priceCatalog.validate();
 
@@ -31,16 +31,16 @@ const createCatalog = async (data) => {
         }
       }
     }
-    const result = await PriceCatalog.create(data);
-    session.commitTransaction();
+    const result = await PriceCatalog.create([data], { session });
+    await session.commitTransaction();
     return {
       code: 200,
       message: "Thành công",
-      data: result,
+      data: result[0],
     };
   } catch (error) {
     console.log("Error in  create price catalog", error);
-    session.abortTransaction();
+    await session.abortTransaction();
     if (
       (error.name = "ValidatorError" && error.errors && error.errors["items"])
     ) {
@@ -497,7 +497,7 @@ const getAllPriceCurrent = async (textSearch) => {
     return { code: 500, message: "Internal server error", data: null };
   }
 };
-const updateItemNamePriceCatalog = async (itemId, itemName) =>
+const updateItemNamePriceCatalog = async (itemId, itemName, session) =>
   PriceCatalog.updateMany(
     {
       status: {
@@ -512,6 +512,7 @@ const updateItemNamePriceCatalog = async (itemId, itemName) =>
     },
     {
       arrayFilters: [{ "elem.itemId": itemId }],
+      ...session,
     }
   );
 const refreshStatusPriceCatalog = async () => {

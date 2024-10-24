@@ -19,11 +19,11 @@ const vehicleSchema = mongoose.Schema(
   {
     licensePlate: {
       type: String,
-      default: null,
+      required: true,
     },
     model: {
       type: String,
-      default: null,
+      required: true,
     },
   },
   { _id: false }

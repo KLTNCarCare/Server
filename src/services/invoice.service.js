@@ -13,40 +13,51 @@ const createInvoiceFromAppointmentId = async (appId, paymentMethod) => {
   session.startTransaction();
   try {
     const app = await getAppointmentById(appId);
-    const promotion_result = [];
     // Không tìm thấy appointment
     if (!app) {
       return {
         code: 400,
-        message: "Dont find appointment with _id " + appId,
+        message: "Không tìm thấy đơn hàng",
         data: null,
       };
     }
-    app.invoiceId = await generateInvoiceID();
+    if (app.invoiceCreated == true) {
+      return {
+        code: 400,
+        message: "Đơn hàng đã có hoá đơn",
+        data: null,
+      };
+    }
+    app.invoiceId = await generateInvoiceID({ session });
     app.appointmentId = app._id;
     app.payment_method = paymentMethod;
     delete app._id;
     // lưu hoá đơn
-    const result = await Invoice.create(app);
-    // cập nhật appointment đã được tạo invoice
-    await updateAppointmentCreatedInvoice(appId);
-    console.log(app.promotion);
+    const result = await Invoice.create([app], { session });
+    console.log(result);
 
+    // cập nhật appointment đã được tạo invoice
+    await updateAppointmentCreatedInvoice(appId, { session });
     // lưu kết quả khuyến mãi
     if (app.promotion.length > 0) {
       for (let pro of app.promotion) {
-        await createPromotionResult({ ...pro, invoice: result._id });
+        await createPromotionResult(
+          { ...pro, invoice: result[0]._id },
+          {
+            session,
+          }
+        );
       }
     }
-    session.commitTransaction();
-    const invoice = await findInvoiceById(result._id);
+    await session.commitTransaction();
+    const invoice = await findInvoiceById(result[0]._id);
     return {
       code: 200,
       message: "Successfully",
       data: invoice,
     };
   } catch (error) {
-    session.abortTransaction();
+    await session.abortTransaction();
     console.log(error);
 
     return {

@@ -283,10 +283,12 @@ const createAppointmentOnSite = async (appointment) => {
     }
     // tạo object hoá đơn
     appointment.promotion = promotion_result;
-    appointment.appointmentId = await generateAppointmentID();
-    const appointment_result = await Appointment.create(appointment);
+    appointment.appointmentId = await generateAppointmentID({ session });
+    const appointment_result = await Appointment.create([appointment], {
+      session,
+    });
     await session.commitTransaction();
-    const data_response = await Appointment.findById(appointment_result._id);
+    const data_response = await Appointment.findById(appointment_result[0]._id);
     return {
       code: 200,
       message: "Successfully",
@@ -294,7 +296,7 @@ const createAppointmentOnSite = async (appointment) => {
     };
   } catch (error) {
     console.log("Error in saveAppointmetOnSite: ", error);
-    session.abortTransaction();
+    await session.abortTransaction();
     if (
       (error.name = "ValidatorError" && error.errors && error.errors["items"])
     ) {
@@ -473,7 +475,8 @@ const updateExpiresAppoinment = async (deadline) => {
   );
   return await Appointment.find({ _id: { $in: ids } });
 };
-const updateAppointmentCreatedInvoice = async (id) => {
+
+const updateAppointmentCreatedInvoice = async (id, session) => {
   const result = await Appointment.findOneAndUpdate(
     { _id: id },
     {
@@ -481,7 +484,7 @@ const updateAppointmentCreatedInvoice = async (id) => {
         invoiceCreated: true,
       },
     },
-    { new: true }
+    { new: true, ...session }
   );
   if (result) {
     connection.sendMessageAllStaff(messageType.created_invoice_app, result);

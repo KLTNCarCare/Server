@@ -14,7 +14,7 @@ const createCustomer = async (cust) => {
     return {
       code: 200,
       message: "Successful",
-      data: result,
+      data: result[0],
     };
   } catch (error) {
     console.log(error);
