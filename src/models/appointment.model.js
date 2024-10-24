@@ -6,6 +6,11 @@ const {
 } = require("../services/customer.service");
 const customerSchema = mongoose.Schema(
   {
+    _id: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+    },
+    custId: { type: String, required: true },
     phone: {
       type: String,
       required: true,

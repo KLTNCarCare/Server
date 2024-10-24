@@ -42,7 +42,7 @@ const customerSchema = mongoose.Schema({
   vehicles: {
     type: [vehicleSchema],
     required: true,
-    minlenght: [1, "Khách hàng hàng phải có ít nhất một thông tin xe"],
+    default: [],
   },
   status: {
     type: String,

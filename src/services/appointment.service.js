@@ -5,6 +5,7 @@ const { messageType } = require("../utils/constants");
 const { generateAppointmentID } = require("./lastID.service");
 const { getProBill, getProService } = require("./promotion.service");
 const { getStringClockToDate } = require("../utils/convert");
+const { findCustByPhone, createCustomer } = require("./customer.service");
 const start_work = Number(process.env.START_WORK);
 const end_work = Number(process.env.END_WORK);
 const interval = Number(process.env.INTERVAL);
@@ -281,9 +282,21 @@ const createAppointmentOnSite = async (appointment) => {
             : (sub_total * pro_bill.discount) / 100,
       });
     }
+    //tạo thông tin khách hàng
+    let customer = await findCustByPhone(appointment.customer.phone);
+    if (!customer) {
+      customerResult = await createCustomer(appointment.customer);
+      if (customerResult.code == 200) {
+        customer = customerResult.data;
+      } else {
+        return customerResult;
+      }
+    }
+    appointment.customer = customer;
     // tạo object hoá đơn
     appointment.promotion = promotion_result;
     appointment.appointmentId = await generateAppointmentID({ session });
+    console.log(appointment);
     const appointment_result = await Appointment.create([appointment], {
       session,
     });

@@ -140,9 +140,13 @@ const findInvoiceByAppointmentId = async (appointmentId) => {
   }
 };
 const findInvoiceById = async (id) => await Invoice.findOne({ _id: id });
-const findAllInvoice = async (page, limit) => {
+const findAllInvoice = async (page, limit, field, word) => {
   try {
-    const result = await Invoice.find()
+    const filter = {};
+    if (field && word) {
+      filter[field] = RegExp(word, "iu");
+    }
+    const result = await Invoice.find(filter)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
@@ -166,11 +170,22 @@ const findAllInvoice = async (page, limit) => {
     };
   }
 };
-
+const findInvoiceByCustId = async (custId) => {
+  try {
+    const result = await Invoice.find({ "customer.custId": custId }).sort({
+      createdAt: -1,
+    });
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in getInvoiceByCustId", error);
+    return { code: 500, messasge: "Internal server error", data: null };
+  }
+};
 module.exports = {
   createInvoiceFromAppointmentId,
   findAllInvoice,
   findInvoiceByAppointmentId,
   updateInvoiceStatusToPaid,
   updateInvoiceTypeToRefund,
+  findInvoiceByCustId,
 };
