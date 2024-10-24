@@ -10,7 +10,7 @@ const accountSchema = mongoose.Schema({
   },
   username: {
     type: String,
-    match: [phoneNumberRegex, "Username must be a string of 10 digits"],
+    match: [phoneNumberRegex, "Số điện thoại không hợp lệ"],
     required: true,
     unique: true,
     immutable: true,

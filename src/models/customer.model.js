@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { phoneNumberRegex } = require("../utils/regex");
 const vehicleSchema = mongoose.Schema(
   {
     model: {
@@ -26,6 +27,8 @@ const customerSchema = mongoose.Schema({
   phone: {
     type: String,
     required: true,
+    unique: true,
+    match: [phoneNumberRegex, "Số điện thoại không hợp lệ"],
   },
   email: {
     type: String,

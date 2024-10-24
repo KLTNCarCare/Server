@@ -4,6 +4,7 @@ const {
   pushVehicle,
   createCustomer,
 } = require("../services/customer.service");
+const { phoneNumberRegex } = require("../utils/regex");
 const customerSchema = mongoose.Schema(
   {
     _id: {
@@ -14,6 +15,7 @@ const customerSchema = mongoose.Schema(
     phone: {
       type: String,
       required: true,
+      match: [phoneNumberRegex, "Số điện thoại không hợp lệ"],
     },
 
     name: { type: String, required: true },
