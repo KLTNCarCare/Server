@@ -4,6 +4,7 @@ const {
   getAllCustomer,
   editCustomer,
   removeCustomer,
+  saveCustomer,
 } = require("../controllers/customer.controller");
 const auth = require("../middlewares/auth.middleware");
 router.get(
@@ -14,4 +15,5 @@ router.get(
 router.put("/edit/:id", auth(["admin", "staff", "customer"]), editCustomer);
 router.get("/get-all", auth(["admin", "staff"]), getAllCustomer);
 router.put("/remove/:id", auth(["admin", "staff", "customer"]), removeCustomer);
+router.post("/save", auth(["admin", "staff", "customer"]), saveCustomer);
 module.exports = router;

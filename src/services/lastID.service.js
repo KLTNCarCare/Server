@@ -1,9 +1,12 @@
 const LastId = require("../models/lastId.model");
 
-const generateID = async (modelCode) => {
-  let lastId = await LastId.findOne({ modelCode });
+const generateID = async (modelCode, session) => {
+  let lastId = await LastId.findOne({ modelCode }, null, session);
   if (!lastId) {
-    lastId = await LastId.create({ modelCode: modelCode, lastId: 0 });
+    lastId = await LastId.create(
+      [{ modelCode: modelCode, lastId: 0 }],
+      session
+    );
   }
   lastId.lastId += 1;
   if (lastId.lastId < 10) return lastId.modelCode + "000" + lastId.lastId;
@@ -11,6 +14,12 @@ const generateID = async (modelCode) => {
   if (lastId.lastId < 1000) return lastId.modelCode + "0" + lastId.lastId;
   return lastId.modelCode + lastId.lastId;
 };
+const increaseLastId = async (modelCode, session) =>
+  await LastId.findOneAndUpdate(
+    { modelCode },
+    { $inc: { lastId: 1 } },
+    session
+  );
 const generateInvoiceID = async () => {
   let lastId = await LastId.findOne({ modelCode: "HD" });
   if (!lastId) {
@@ -48,8 +57,6 @@ const resetInvoiceAndAppointmentId = async () =>
     { modelCode: { $in: ["HD", "LH"] } },
     { lastId: 0 }
   );
-const increaseLastId = async (modelCode) =>
-  await LastId.findOneAndUpdate({ modelCode }, { $inc: { lastId: 1 } });
 module.exports = {
   generateID,
   increaseLastId,

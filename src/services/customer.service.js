@@ -7,10 +7,10 @@ const createCustomer = async (cust) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    cust.custId = await generateID("KH");
-    await increaseLastId("KH");
-    const result = await Customer.create(cust);
-    session.commitTransaction();
+    cust.custId = await generateID("KH", { session });
+    await increaseLastId("KH", { session });
+    const result = await Customer.create([cust], { session });
+    await session.commitTransaction();
     return {
       code: 200,
       message: "Successful",
@@ -18,11 +18,10 @@ const createCustomer = async (cust) => {
     };
   } catch (error) {
     console.log(error);
-
-    session.abortTransaction();
+    await session.abortTransaction();
     return {
       code: 500,
-      message: error.message,
+      message: "Internal server error",
       data: null,
     };
   } finally {
