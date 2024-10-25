@@ -1,11 +1,11 @@
 const mongoose = require("mongoose");
-const Promotion = require("./promotion.model");
-const { increaseLastId } = require("../services/lastID.service");
 const detailSchema = new mongoose.Schema(
   {
     code: {
       type: String,
       required: true,
+      immutable: true,
+      unique: true,
     },
     itemId: {
       type: String,
@@ -51,6 +51,12 @@ const lineSchema = new mongoose.Schema({
     required: true,
     unique: true,
     immutable: true,
+  },
+  code: {
+    type: String,
+    required: true,
+    immutable: true,
+    unique: true,
   },
   parentId: {
     type: String,

@@ -20,6 +20,13 @@ const createPromotion = async (promotion) => {
   } catch (error) {
     await session.abortTransaction();
     console.log("Error in create promotion", error);
+    if (error.code == 11000 && error.keyValue["code"]) {
+      return {
+        code: 400,
+        message: `Mã ${error.keyValue["code"]} đã tồn tại`,
+        data: null,
+      };
+    }
     return { code: 500, message: "Internal server error", data: null };
   } finally {
     session.endSession();
@@ -93,8 +100,8 @@ const createPromotionLine = async (data) => {
     data.lineId = await generateID("CTKMCT", { session });
     await increaseLastId("CTKMCT", { session });
     for (let i = 0; i < data.detail.length; i++) {
-      data.detail[i].code = await generateID("COD", { session });
-      await increaseLastId("COD", { session });
+      // data.detail[i].code = await generateID("COD", { session });
+      // await increaseLastId("COD", { session });
       data.detail[i].description = await addDescriptionPromotionDetail(
         data.detail[i],
         data.type
@@ -149,7 +156,24 @@ const createPromotionLine = async (data) => {
   } catch (error) {
     console.log(error);
 
-    session.abortTransaction();
+    await session.abortTransaction();
+    if (error.code == 11000) {
+      if (error.keyValue["code"]) {
+        return {
+          code: 400,
+          message: "Mã dòng khuyến mãi tồn tại " + error.keyValue["code"],
+          data: null,
+        };
+      }
+      if (error.keyValue["detail.code"]) {
+        return {
+          code: 400,
+          message:
+            "Mã chi tiết khuyến mãi tồn tại " + error.keyValue["detail.code"],
+          data: null,
+        };
+      }
+    }
     return {
       code: 500,
       message: "Internal server error",
