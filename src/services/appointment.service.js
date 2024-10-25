@@ -125,7 +125,92 @@ const findAppointmentInRangeDatePriorityStatus = async (d1, d2) =>
       },
     },
   ]);
+const findAppointmentDashboard = async (time) => {
+  try {
+    const today = new Date(time);
+    today.setHours(0, 0, 0, 0);
+    const appointments = await Appointment.aggregate(
+      pipelineFindAppointmentDashboard(today)
+    );
 
+    const result = appointments.map((item) => new Appointment(item));
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in findAppointmentDashboard", error);
+    return { code: 500, message: "Internal server error", data: null };
+  }
+};
+const pipelineFindAppointmentDashboard = (d1) => [
+  {
+    // Đầu tiên, lọc các document theo khoảng thời gian
+    $match: {
+      $or: [
+        { status: { $in: ["in-progress", "confirmed", "pending"] } }, // hiện đơn hàng đang xử lý, đã được xác nhận
+        { status: "completed", invoiceCreated: false }, // đơn hàng đã hoàn thành nhưng chưa thanh toán
+        { status: { $in: ["missed", "canceled"] }, startTime: { $gte: d1 } }, // đơn hàng bị huỷ và bỏ lỡ
+      ],
+    },
+  },
+  {
+    // Thêm trường sortPriority dựa trên status
+    $addFields: {
+      sortPriority: {
+        $switch: {
+          branches: Object.entries(statusPriority).map(
+            ([status, priority]) => ({
+              case: { $eq: ["$status", status] },
+              then: priority,
+            })
+          ),
+          default: 0,
+        },
+      },
+    },
+  },
+  {
+    $project: {
+      day: { $dayOfMonth: "$startTime" },
+      month: { $month: "$startTime" },
+      year: { $year: "$startTime" },
+      sortPriority: 1,
+      appointment: "$$ROOT",
+    },
+  },
+  {
+    $group: {
+      _id: { year: "$year", month: "$month", day: "$day" },
+      appointments: { $push: "$appointment" },
+    },
+  },
+  { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } },
+  {
+    $project: {
+      _id: 1,
+      appointments: {
+        $sortArray: {
+          input: "$appointments",
+          sortBy: { status: 1 }, // tùy chỉnh sắp xếp theo thứ tự ưu tiên trạng thái nếu cần
+        },
+      },
+    },
+  },
+  {
+    $unwind: {
+      path: "$appointments",
+    },
+  },
+  {
+    $replaceRoot: {
+      newRoot: "$appointments",
+    },
+  },
+  {
+    // Nếu không cần trường sortPriority trong kết quả cuối
+    $project: {
+      sortPriority: 0,
+    },
+  },
+];
 const createAppointment = async (data) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -474,7 +559,6 @@ const getAppointmentInDate = async (d) => {
   );
   return result;
 };
-
 const updateExpiresAppoinment = async (deadline) => {
   const expires = await Appointment.find({
     status: "pending",
@@ -526,4 +610,5 @@ module.exports = {
   getAppointmentById,
   updateAppointmentCreatedInvoice,
   getAppointmentByServiceId,
+  findAppointmentDashboard,
 };

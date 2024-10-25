@@ -13,6 +13,7 @@ const {
   getTimePointAvailableBooking_New,
   calEndtime,
   createAppointmentOnSite,
+  findAppointmentDashboard,
 } = require("../services/appointment.service");
 const connection = require("../services/sockjs_manager");
 const { messageType } = require("../utils/constants");
@@ -179,16 +180,9 @@ const getAllSlotInDay = async (req, res) => {
   }
 };
 const getAppointmentInDay = async (req, res) => {
-  try {
-    const day_timestamp = req.query.date;
-    if (!day_timestamp || !validator.isInt(day_timestamp))
-      return res.status(400).json({ message: "Bad request" });
-    const result = await getAppointmentInDate(Number(day_timestamp));
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in getAllSlotInDay", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const time = Number(req.query.date) || Date.now();
+  const result = await findAppointmentDashboard(time);
+  return res.status(result.code).json(result.data);
 };
 module.exports = {
   saveAppointment,

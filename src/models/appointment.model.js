@@ -120,97 +120,100 @@ const PromotionSchema = mongoose.Schema(
   },
   { _id: false }
 );
-const appointmentSchema = mongoose.Schema({
-  appointmentId: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  customer: {
-    type: customerSchema,
-    required: true,
-  },
-  vehicle: {
-    type: vehicleSchema,
-    required: true,
-  },
-  total_duration: {
-    type: Number,
-    min: 0,
-    required: true,
-  },
-  startTime: {
-    type: Date,
-    required: true,
-  },
-  endTime: {
-    type: Date,
-    required: true,
-  },
-  startActual: {
-    type: Date,
-    required: true,
-  },
-  endActual: {
-    type: Date,
-    required: true,
-  },
-  notes: {
-    type: String,
-    default: null,
-  },
-  status: {
-    type: String,
-    enum: [
-      "pending",
-      "confirmed",
-      "in-progress",
-      "completed",
-      "canceled",
-      "rescheduled",
-      "missed",
-    ],
-    default: "pending",
-  },
-  discount: {
-    type: discountSchema,
-    default: {
-      per: 0,
-      value_max: 0,
+const appointmentSchema = mongoose.Schema(
+  {
+    appointmentId: {
+      type: String,
+      required: true,
+      unique: true,
     },
-  },
-  promotion: {
-    type: [PromotionSchema],
-    default: [],
-  },
-  payment: {
-    type: paymentSchema,
-  },
-  invoiceCreated: {
-    type: Boolean,
-    default: false,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    immutable: true,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
-  items: {
-    type: [serviceSchema],
-    required: true,
-    validate: {
-      validator: function (items) {
-        const itemIds = items.map((item) => item.serviceId);
-        return itemIds.length === new Set(itemIds).size;
+    customer: {
+      type: customerSchema,
+      required: true,
+    },
+    vehicle: {
+      type: vehicleSchema,
+      required: true,
+    },
+    total_duration: {
+      type: Number,
+      min: 0,
+      required: true,
+    },
+    startTime: {
+      type: Date,
+      required: true,
+    },
+    endTime: {
+      type: Date,
+      required: true,
+    },
+    startActual: {
+      type: Date,
+      required: true,
+    },
+    endActual: {
+      type: Date,
+      required: true,
+    },
+    notes: {
+      type: String,
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: [
+        "pending",
+        "confirmed",
+        "in-progress",
+        "completed",
+        "canceled",
+        "rescheduled",
+        "missed",
+      ],
+      default: "pending",
+    },
+    discount: {
+      type: discountSchema,
+      default: {
+        per: 0,
+        value_max: 0,
       },
-      message: "Dịch vụ trong một đơn hàng phải là duy nhất",
+    },
+    promotion: {
+      type: [PromotionSchema],
+      default: [],
+    },
+    payment: {
+      type: paymentSchema,
+    },
+    invoiceCreated: {
+      type: Boolean,
+      default: false,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+      immutable: true,
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    items: {
+      type: [serviceSchema],
+      required: true,
+      validate: {
+        validator: function (items) {
+          const itemIds = items.map((item) => item.serviceId);
+          return itemIds.length === new Set(itemIds).size;
+        },
+        message: "Dịch vụ trong một đơn hàng phải là duy nhất",
+      },
     },
   },
-});
+  { toObject: { virtuals: true }, toJSON: { virtuals: true } }
+);
 appointmentSchema.virtual("sub_total").get(function () {
   return this.items.reduce(
     (total, service) => total + service.price * (1 - service.discount / 100),
