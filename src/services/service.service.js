@@ -305,7 +305,10 @@ const findAllServiceToPick = async (textSearch) => {
   return { code: 200, message: "Thành công", data: result };
 };
 const findOneSerivceByCategoryId = async (categoryId) =>
-  await Service.findOne({ categoryId: categoryId }).lean();
+  await Service.findOne({
+    categoryId: categoryId,
+    status: { $ne: "deleted" },
+  }).lean();
 module.exports = {
   createService,
   deleteService,
