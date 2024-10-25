@@ -8,11 +8,9 @@ const promotionSchema = new mongoose.Schema({
     unique: true,
     immutable: true,
   },
-  code: {
+  promotionName: {
     type: String,
     required: true,
-    unique: true,
-    immutable: true,
   },
   description: {
     type: String,
