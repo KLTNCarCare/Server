@@ -32,6 +32,13 @@ const deleteService = async (id) => {
     if (!obj) {
       return { code: 400, message: "Không tìm thấy dịch vụ", data: null };
     }
+    if (obj.status == "active") {
+      return {
+        code: 400,
+        message: "Không thể xoá dịch vụ đang hoạt động",
+        data: null,
+      };
+    }
     const appointment = await getAppointmentByServiceId(id);
     if (appointment) {
       return {
