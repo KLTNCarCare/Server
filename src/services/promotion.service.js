@@ -56,6 +56,13 @@ const updatePromotion = async (id, promotion) => {
     return { code: 200, message: "Thành công", data: result };
   } catch (error) {
     console.log("Errror in update promotion", error);
+    if (error.code == 11000 && error.keyValue["code"]) {
+      return {
+        code: 400,
+        message: `Mã ${error.keyValue["code"]} đã tồn tại`,
+        data: null,
+      };
+    }
     return { code: 500, message: "Internal server error", data: null };
   }
 };
@@ -248,11 +255,28 @@ const updatePromotionLine = async (id, promotionLine) => {
     });
     return { code: 200, message: "Thành công", data: result };
   } catch (error) {
+    console.log("Error in update promotion line ", error);
     if (error.name == "ValidationError" && error.errors) {
       console.log("Error validate promotion line ", error);
       return { code: 400, message: "Dữ liệu không hợp lệ", data: null };
     }
-    console.log("Error in update promotion line ", error);
+    if (error.code == 11000) {
+      if (error.keyValue["code"]) {
+        return {
+          code: 400,
+          message: "Mã dòng khuyến mãi tồn tại " + error.keyValue["code"],
+          data: null,
+        };
+      }
+      if (error.keyValue["detail.code"]) {
+        return {
+          code: 400,
+          message:
+            "Mã chi tiết khuyến mãi tồn tại " + error.keyValue["detail.code"],
+          data: null,
+        };
+      }
+    }
     return { code: 500, message: "Internal server error", data: null };
   }
 };
