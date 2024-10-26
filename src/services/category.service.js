@@ -29,9 +29,35 @@ const updateCategory = async (id, category) =>
   await Category.findOneAndUpdate({ _id: id }, category);
 const activeCategoryById = async (id) =>
   await Category.findOneAndUpdate({ _id: id }, { status: "active" });
-const findAllCategory = async (page, limit) => {
+const findAllCategory = async (page, limit, field, word) => {
   try {
-  } catch (error) {}
+    const filter = { status: { $ne: "deleted" } };
+    if (field && word) {
+      filter[field] = RegExp(word, "iu");
+    }
+    const totalCount = await Category.countDocuments(filter);
+    const result = await Category.find(filter)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+    const totalPage = Math.ceil(totalCount / limit);
+    return {
+      code: 200,
+      message: "Thành công",
+      totalCount,
+      totalPage,
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in get all cateogry", error);
+    return {
+      code: 500,
+      message: "Internal server error",
+      totalCount: 0,
+      totalPage: 0,
+      data: null,
+    };
+  }
 };
 
 const getTotalCategory = async (limit) => {

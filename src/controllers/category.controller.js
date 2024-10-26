@@ -71,18 +71,12 @@ const editCategory = async (req, res) => {
 };
 
 const getAllCategories = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    console.log(page, limit);
-
-    const totalPage = await getTotalCategory(limit);
-    const data = await findAllCategory(page, limit);
-    return res.status(200).json({ data, totalPage });
-  } catch (error) {
-    console.log("Error in findAllCategory", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const field = req.query.field;
+  const word = req.query.word;
+  const result = await findAllCategory(page, limit, field, word);
+  return res.status(result.code).json(result);
 };
 module.exports = {
   saveCategory,
