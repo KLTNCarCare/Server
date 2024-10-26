@@ -76,7 +76,9 @@ const deletePromotion = async (id) => {
         data: null,
       };
     }
-    lines = await getPromotionLineByParent(id);
+    lines = await getPromotionLineByParent(obj._id);
+    console.log(lines);
+
     if (lines.length > 0) {
       return {
         code: 400,
@@ -324,11 +326,7 @@ const deletePromotionLine = async (id) => {
         data: null,
       };
     }
-    const result = await PromotionLine.findOneAndUpdate(
-      { _id: id },
-      { status: "deleted" },
-      { new: true }
-    );
+    const result = await PromotionLine.delete({ _id: id });
     return { code: 200, message: "Thành công", data: result };
   } catch (error) {
     console.log("Error in delete promotion line", error);
@@ -398,7 +396,6 @@ const updateEndDatePromotionLine = async (id, date) => {
 const getPromotionLineByParent = async (parentId) =>
   await PromotionLine.find({
     parentId: parentId,
-    status: { $ne: "deleted" },
   }).lean();
 
 const pushPromotionDetail = async (id, data) => {

@@ -7,7 +7,6 @@ const { generateAppointmentID } = require("./lastID.service");
 const { getProBill, getProService } = require("./promotion.service");
 const { getStringClockToDate } = require("../utils/convert");
 const { findCustByPhone, createCustomer } = require("./customer.service");
-const { toBoolean } = require("validator");
 const start_work = Number(process.env.START_WORK);
 const end_work = Number(process.env.END_WORK);
 const interval = Number(process.env.INTERVAL);

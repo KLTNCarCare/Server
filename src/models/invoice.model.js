@@ -186,4 +186,4 @@ invoiceSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
   next();
 });
 const Invoice = mongoose.model("Invoice", invoiceSchema);
-module.exports = Invoice;
+module.exports = { Invoice, invoiceSchema };

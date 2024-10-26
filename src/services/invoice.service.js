@@ -1,10 +1,9 @@
 const { default: mongoose } = require("mongoose");
-const Invoice = require("../models/invoice.model");
+const { Invoice } = require("../models/invoice.model");
 const {
   getAppointmentById,
   updateAppointmentCreatedInvoice,
 } = require("./appointment.service");
-const Appointment = require("../models/appointment.model");
 const { createPromotionResult } = require("./promotion_result.service");
 const { generateInvoiceID } = require("./lastID.service");
 
