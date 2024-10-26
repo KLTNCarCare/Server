@@ -10,27 +10,26 @@ const createCatalog = async (data) => {
     await increaseLastId("BG", { session });
     const priceCatalog = new PriceCatalog(data);
     await priceCatalog.validate();
-
-    const serviceIds = priceCatalog.items.map((item) => item.itemId);
-    const listObj = await getCatalogByRangeDate(
-      new Date(priceCatalog.startDate),
-      new Date(priceCatalog.endDate)
-    );
     //check item exist in another catalog
-    if (listObj.length > 0) {
-      for (let catalog of listObj) {
-        const check = catalog.items.some((item) =>
-          serviceIds.includes(item.itemId)
-        );
-        if (check) {
-          return {
-            code: 400,
-            message: "Xung đột với bảng giá " + catalog.priceId,
-            data: null,
-          };
-        }
-      }
-    }
+    // const serviceIds = priceCatalog.items.map((item) => item.itemId);
+    // const listObj = await getCatalogByRangeDate(
+    //   new Date(priceCatalog.startDate),
+    //   new Date(priceCatalog.endDate)
+    // );
+    // if (listObj.length > 0) {
+    //   for (let catalog of listObj) {
+    //     const check = catalog.items.some((item) =>
+    //       serviceIds.includes(item.itemId)
+    //     );
+    //     if (check) {
+    //       return {
+    //         code: 400,
+    //         message: "Xung đột với bảng giá " + catalog.priceId,
+    //         data: null,
+    //       };
+    //     }
+    //   }
+    // }
     const result = await PriceCatalog.create([data], { session });
     await session.commitTransaction();
     return {
@@ -73,7 +72,7 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
       return {
         code: 400,
         message:
-          "Không thể cập nhật bảng giá đang hoạt động và bảng giá đã hết hạn",
+          "Không thể cập nhật bảng giá đang hoạt động và bảng giá đã qua sử dụng",
         data: null,
       };
     }
@@ -94,7 +93,6 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
       };
     }
     await data.validate();
-
     const serviceIds = data.items.map((item) => item.itemId);
     const listObj = await getCatalogByRangeDateOtherId(
       new Date(data.startDate),
@@ -201,11 +199,18 @@ const updateEndDate = async (id, date) => {
 };
 const activeCatalog = async (id) => {
   try {
-    const obj = await PriceCatalog.findById(id);
+    const obj = await PriceCatalog.findById(id).lean();
     if (!obj) {
       return {
         code: 400,
-        message: "Thất bại! Không tìm thấy bảng giá",
+        message: "Không tìm thấy bảng giá",
+        data: null,
+      };
+    }
+    if (new Date(obj.startDate) <= new Date()) {
+      return {
+        code: 400,
+        message: "Chỉ được phép kích hoạt bảng giá tương lai",
         data: null,
       };
     }
@@ -223,7 +228,7 @@ const activeCatalog = async (id) => {
         if (check) {
           return {
             code: 400,
-            message: "Xung đột với bảng giá " + catalog.priceId,
+            message: "Xung đột với bảng giá - " + catalog.priceId,
             data: null,
           };
         }
@@ -250,11 +255,27 @@ const activeCatalog = async (id) => {
 };
 const inactiveCatalog = async (id) => {
   try {
-    const ojb = await PriceCatalog.findById(id);
-    if (!ojb) {
+    const obj = await PriceCatalog.findById(id).lean();
+    if (!obj) {
       return {
         code: 400,
-        message: "Thất bại! Không tìm thấy bảng giá",
+        message: "Không tìm thấy bảng giá",
+        data: null,
+      };
+    }
+    console.log(obj);
+
+    if (new Date(obj.startDate) <= new Date()) {
+      return {
+        code: 400,
+        message: "Bảng giá đang được áp dụng không được ngưng hoạt động",
+        data: null,
+      };
+    }
+    if (obj.status != "active") {
+      return {
+        code: 400,
+        message: "Bảng giá đã qua sử dụng không được phép chỉnh sửa",
         data: null,
       };
     }
@@ -283,16 +304,10 @@ const deleteCatalog = async (id) => {
         data: null,
       };
     }
-    const startDate = new Date(obj.startDate);
-    const endDate = new Date(obj.endDate);
-    const now = new Date();
-    if (
-      (startDate < now && now < endDate && obj.status == "active") ||
-      obj.status == "expires"
-    ) {
+    if (obj.status != "inactive") {
       return {
         code: 400,
-        message: "Không thể xoá bảng giá đang hoạt động và bảng giá đã hết hạn",
+        message: "Không được xoá bảng giá đang hoạt động hoặc đã qua sử dụng",
         data: null,
       };
     }
@@ -539,11 +554,7 @@ const refreshStatusPriceCatalog = async () => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     await PriceCatalog.updateMany(
-      { startDate: { $eq: now } },
-      { status: "active" }
-    );
-    await PriceCatalog.updateMany(
-      { endDate: { $lte: now } },
+      { endDate: { $lte: now }, status: "active" },
       { status: "expires" }
     );
   } catch (error) {

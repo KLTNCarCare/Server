@@ -66,7 +66,7 @@ const findAllCustomer = async (page, limit, k, v, sort, sortOrder) => {
     const sortMap = {};
     sortMap[sort] = sortOrder;
     if (k && v) {
-      filter[k] = RegExp("^" + v, "iu");
+      filter[k] = RegExp(v, "iu");
     }
     const count = await Customer.countDocuments(filter);
     const data = await Customer.find(filter)

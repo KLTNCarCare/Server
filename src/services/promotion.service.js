@@ -241,7 +241,8 @@ const updatePromotionLine = async (id, promotionLine) => {
     if (obj.status == "active" || obj.status == "expires") {
       return {
         code: 400,
-        message: "Không thể sửa dòng khuyến mãi đang hoạt động hoặc hết hạn",
+        message:
+          "Không thể sửa dòng khuyến mãi đang hoạt động hoặc đã qua sử dụng",
         data: null,
       };
     }
@@ -348,7 +349,8 @@ const deletePromotionLine = async (id) => {
     if (obj.status == "active" || obj.status == "expires") {
       return {
         code: 400,
-        message: "Không thể xoá dòng khuyến mãi đang hoạt động hoặc hết hạn",
+        message:
+          "Không thể xoá dòng khuyến mãi đang hoạt động hoặc đã qua sử dụng",
         data: null,
       };
     }
@@ -361,11 +363,18 @@ const deletePromotionLine = async (id) => {
 };
 const updateEndDatePromotionLine = async (id, date) => {
   try {
-    const obj = await PromotionLine.findById(id);
+    const obj = await PromotionLine.findById(id).lean();
     if (!obj) {
       return {
         code: 400,
         message: "Không tìm thấy dòng khuyến mãi",
+        data: null,
+      };
+    }
+    if (obj.status == "expires") {
+      return {
+        code: 400,
+        message: "Không thể cập nhật bảng giá đã qua sử dụng",
         data: null,
       };
     }
@@ -393,7 +402,7 @@ const updateEndDatePromotionLine = async (id, date) => {
     if (newEndDate < now) {
       return {
         code: 400,
-        message: "Ngày kết thúc không được nhỏ hơn thời điểm hiện tại",
+        message: "Ngày kết thúc không được nhỏ hơn ngày hiện tại",
         data: null,
       };
     }
@@ -673,6 +682,69 @@ const updateItemNamePromotionLine = async (itemId, itemName, session) => {
   );
 };
 const getPromotionLineById = async (id) => await PromotionLine.findById(id);
+const updateStatusActivePromotionLine = async (id) => {
+  try {
+    const obj = await PromotionLine.findById(id).lean();
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy dòng khuyến mãi",
+        data: null,
+      };
+    }
+    if (new Date(obj.startDate) < new Date()) {
+      return {
+        code: 400,
+        message: "Chỉ có thể kích hoạt dòng khuyến mãi trong tương lai",
+        data: null,
+      };
+    }
+    const result = await PromotionLine.findOneAndUpdate(
+      { _id: id },
+      { status: "active" },
+      { new: true }
+    );
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in active promotion line", error);
+    return { code: 500, message: "Internal server error", data: null };
+  }
+};
+const updateStatusInactivePromotionLine = async (id) => {
+  try {
+    const obj = await PromotionLine.findById(id).lean();
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy dòng khuyến mãi",
+        data: null,
+      };
+    }
+    if (obj.status == "expires") {
+      return {
+        code: 400,
+        message: "Dòng khuyến mãi đã qua sử dụng không thể chỉnh sửa",
+        data: null,
+      };
+    }
+    if (new Date(obj.startDate) < new Date()) {
+      return {
+        code: 400,
+        message: "Dòng khuyến mãi đang được sử dụng không thể ngưng hoạt động",
+        data: null,
+      };
+    }
+    const result = await PromotionLine.findOneAndUpdate(
+      { _id: id },
+      { status: "inactive" },
+      { new: true }
+    );
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in inactive promotion line", error);
+    return { code: 500, message: "Internal server error", data: null };
+  }
+};
 module.exports = {
   createPromotion,
   updatePromotion,
@@ -692,4 +764,6 @@ module.exports = {
   updateEndDatePromotionLine,
   refreshStatusPromotionLine,
   updateItemNamePromotionLine,
+  updateStatusActivePromotionLine,
+  updateStatusInactivePromotionLine,
 };

@@ -1,4 +1,3 @@
-const { isTime } = require("validator");
 const {
   createPromotion,
   deletePromotion,
@@ -8,14 +7,13 @@ const {
   updatePromotionLine,
   getPromotions,
   getPromotionLineByParent,
-  getPromotion,
-  getTotalPage,
-  getPromotionLineById,
   pushPromotionDetail,
   removePromotionDetail,
   updateEndDatePromotionLine,
+  updateStatusActivePromotionLine,
+  updateStatusInactivePromotionLine,
 } = require("../services/promotion.service");
-const { findById, findServiceById } = require("../services/service.service");
+const { findServiceById } = require("../services/service.service");
 
 const savePromotion = async (req, res) => {
   const data = req.body;
@@ -108,6 +106,16 @@ const editEndDatePromotionLine = async (req, res) => {
   const result = await updateEndDatePromotionLine(id, endDate);
   return res.status(result.code).json(result);
 };
+const activePromotionLine = async (req, res) => {
+  const id = req.params.id;
+  const result = await updateStatusActivePromotionLine(id);
+  return res.status(result.code).json(result);
+};
+const inactivePromotionLine = async (req, res) => {
+  const id = req.params.id;
+  const result = await updateStatusInactivePromotionLine(id);
+  return res.status(result.code).json(result);
+};
 module.exports = {
   savePromotion,
   removePromotion,
@@ -120,4 +128,6 @@ module.exports = {
   addPromtionDetail,
   deletePromotionDetail,
   editEndDatePromotionLine,
+  activePromotionLine,
+  inactivePromotionLine,
 };
