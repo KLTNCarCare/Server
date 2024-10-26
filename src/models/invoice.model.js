@@ -141,6 +141,10 @@ const invoiceSchema = mongoose.Schema(
       enum: ["cash", "transfer"],
       required: true,
     },
+    isRefund: {
+      type: Boolean,
+      default: false,
+    },
     e_invoice_code: {
       type: String,
       default: null,

@@ -6,6 +6,7 @@ const {
 } = require("./appointment.service");
 const { createPromotionResult } = require("./promotion_result.service");
 const { generateInvoiceID } = require("./lastID.service");
+const { findOneAndUpdate } = require("../models/promotion.model");
 
 const createInvoiceFromAppointmentId = async (appId, paymentMethod) => {
   const session = await mongoose.startSession();
@@ -86,60 +87,12 @@ const createInvoiceFromAppointmentId = async (appId, paymentMethod) => {
     session.endSession();
   }
 };
-const updateInvoiceStatusToPaid = async (id) => {
-  try {
-    if (!id) {
-      return { code: 400, message: "Bad request", data: null };
-    }
-    const result = await Invoice.findOneAndUpdate(
-      { _id: id },
-      { status: "paid" },
-      { new: true }
-    );
-    if (!result) {
-      return {
-        code: 400,
-        message: "Unsuccessful",
-        data: result,
-      };
-    }
-    return {
-      code: 200,
-      message: "Successful",
-      data: result,
-    };
-  } catch (error) {
-    console.log(error);
-    return { code: 500, message: "Internal server error", data: null };
-  }
-};
-const updateInvoiceTypeToRefund = async (id) => {
-  try {
-    if (!id) {
-      return { code: 400, message: "Bad request", data: null };
-    }
-    const result = await Invoice.findOneAndUpdate(
-      { _id: id },
-      { type: "refund" },
-      { new: true }
-    );
-    if (!result) {
-      return {
-        code: 400,
-        message: "Unsuccessful",
-        data: result,
-      };
-    }
-    return {
-      code: 200,
-      message: "Successful",
-      data: result,
-    };
-  } catch (error) {
-    console.log(error);
-    return { code: 500, message: "Internal server error", data: null };
-  }
-};
+const refundInvoice = async (id, session) =>
+  await Invoice.findOneAndUpdate(
+    { _id: id },
+    { isRefund: true },
+    { new: true, ...session }
+  );
 const findInvoiceByAppointmentId = async (appointmentId) => {
   try {
     if (!appointmentId) {
@@ -156,7 +109,7 @@ const findInvoiceByAppointmentId = async (appointmentId) => {
     return { code: 500, message: "Internal server error", data: null };
   }
 };
-const findInvoiceById = async (id) => await Invoice.findOne({ _id: id });
+const findInvoiceById = async (id) => await Invoice.findById(id).lean();
 const findAllInvoice = async (page, limit, field, word) => {
   try {
     const filter = {};
@@ -201,8 +154,8 @@ const findInvoiceByCustId = async (custId) => {
 module.exports = {
   createInvoiceFromAppointmentId,
   findAllInvoice,
+  findInvoiceById,
   findInvoiceByAppointmentId,
-  updateInvoiceStatusToPaid,
-  updateInvoiceTypeToRefund,
   findInvoiceByCustId,
+  refundInvoice,
 };

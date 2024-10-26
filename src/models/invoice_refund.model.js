@@ -1,29 +1,34 @@
 const mongoose = require("mongoose");
 const { invoiceSchema } = require("./invoice.model");
-const paymentSchema = mongoose.Schema({
-  method: {
-    type: String,
-    enum: ["cash", "transfer"],
-    required: true,
-  },
-  e_invoice_code: {
-    type: String,
-    default: null,
-    validate: {
-      validator: function (value) {
-        if (this.method != "cash" && !value) {
-          return false;
-        }
-        return true;
+const paymentSchema = mongoose.Schema(
+  {
+    method: {
+      type: String,
+      enum: ["cash", "transfer"],
+      required: true,
+    },
+    e_invoice_code: {
+      type: String,
+      default: null,
+      validate: {
+        validator: function (value) {
+          if (this.method != "cash" && !value) {
+            return false;
+          }
+          return true;
+        },
+        message:
+          "Cần mã hoá đơn điên tử cho các phương thức thanh toán điện tử",
       },
-      message: "Cần mã hoá đơn điên tử cho các phương thức thanh toán điện tử",
     },
   },
-});
+  { _id: false }
+);
 const invoiceRefundSchema = mongoose.Schema({
   invoiceId: {
     type: String,
     required: true,
+    unique: true,
     immutable: true,
   },
   invoice: {
@@ -34,12 +39,9 @@ const invoiceRefundSchema = mongoose.Schema({
   reason: {
     type: String,
     required: true,
-    validte: {
+    validate: {
       validator: function (value) {
-        if (value.trim().length == 0 || value.trim() < 5) {
-          return false;
-        }
-        return true;
+        return value.trim().length >= 5;
       },
       message: "Lý do hoàn trả quá ngắn",
     },
