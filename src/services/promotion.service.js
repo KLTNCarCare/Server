@@ -96,10 +96,36 @@ const deletePromotion = async (id) => {
   }
 };
 const getPromotion = async (id) => await Promotion.findById(id);
-const getPromotions = async (page, limit) =>
-  await Promotion.find({ status: "active" })
-    .skip((page - 1) * limit)
-    .limit(limit);
+const getPromotions = async (page, limit, field, word) => {
+  try {
+    const filter = { status: { $ne: "deleted" } };
+    if (field && word) {
+      filter[field] = RegExp(word, "iu");
+    }
+    const totalCount = await Promotion.countDocuments(filter);
+    const result = await Promotion.find(filter)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+    const totalPage = Math.ceil(totalCount / limit);
+    return {
+      code: 200,
+      message: "Thành công",
+      totalCount,
+      totalPage,
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in get all promotion", error);
+    return {
+      code: 500,
+      message: "Internal server error",
+      totalCount: 0,
+      totalPage: 0,
+      data: null,
+    };
+  }
+};
 const createPromotionLine = async (data) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -374,10 +400,6 @@ const getPromotionLineByParent = async (parentId) =>
     parentId: parentId,
     status: { $ne: "deleted" },
   }).lean();
-const getTotalPage = async (limit) => {
-  const totalPromotion = await Promotion.countDocuments({ status: "active" });
-  return Math.ceil(totalPromotion / limit);
-};
 
 const pushPromotionDetail = async (id, data) => {
   const session = await mongoose.startSession();
@@ -639,7 +661,6 @@ module.exports = {
   deletePromotionLine,
   getPromotionLineByParent,
   getPromotionLineById,
-  getTotalPage,
   pushPromotionDetail,
   removePromotionDetail,
   getProBill,

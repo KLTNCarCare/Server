@@ -53,16 +53,12 @@ const editPromotionLine = async (req, res) => {
 };
 
 const getAllPromotion = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const totalPage = await getTotalPage(limit);
-    const data = await getPromotions(page, limit);
-    return res.status(200).json({ data, totalPage });
-  } catch (error) {
-    console.log("Error in getAllPromotion", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const field = req.query.field;
+  const word = req.query.word;
+  const result = await getPromotions(page, limit, field, word);
+  return res.status(result.code).json(result);
 };
 const getPromotionLineByParentId = async (req, res) => {
   try {

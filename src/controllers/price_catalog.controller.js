@@ -55,7 +55,7 @@ const getAll = async (req, res) => {
   const field = req.query.field;
   const word = req.query.word;
   const result = await getAllCatalog(page, limit, field, word);
-  return res.status(200).json(result);
+  return res.status(result.code).json(result);
 };
 const getCurrent = async (req, res) => {
   try {
