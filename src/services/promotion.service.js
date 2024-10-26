@@ -130,16 +130,6 @@ const createPromotionLine = async (data) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    data.lineId = await generateID("CTKMCT", { session });
-    await increaseLastId("CTKMCT", { session });
-    for (let i = 0; i < data.detail.length; i++) {
-      // data.detail[i].code = await generateID("COD", { session });
-      // await increaseLastId("COD", { session });
-      data.detail[i].description = await addDescriptionPromotionDetail(
-        data.detail[i],
-        data.type
-      );
-    }
     const parent = await Promotion.findById(data.parentId).lean();
     if (!parent) {
       return {
@@ -176,6 +166,16 @@ const createPromotionLine = async (data) => {
           "Ngày bắt đầu hoặc ngày kết thức nằm ngoài chương trình khuyến mãi",
         data: null,
       };
+    }
+    data.lineId = await generateID("CTKMCT", { session });
+    await increaseLastId("CTKMCT", { session });
+    for (let i = 0; i < data.detail.length; i++) {
+      // data.detail[i].code = await generateID("COD", { session });
+      // await increaseLastId("COD", { session });
+      data.detail[i].description = await addDescriptionPromotionDetail(
+        data.detail[i],
+        data.type
+      );
     }
     data.startDate = new Date(startDate);
     data.endDate = new Date(endDate);
@@ -227,7 +227,6 @@ const updatePromotionLine = async (id, promotionLine) => {
         data: null,
       };
     }
-
     if (obj.status == "active" || obj.status == "expires") {
       return {
         code: 400,
@@ -275,6 +274,14 @@ const updatePromotionLine = async (id, promotionLine) => {
     }
     newLine.startDate = new Date(startDate);
     newLine.endDate = new Date(endDate);
+    for (let i = 0; i < newLine.detail.length; i++) {
+      // data.detail[i].code = await generateID("COD", { session });
+      // await increaseLastId("COD", { session });
+      newLine.detail[i].description = await addDescriptionPromotionDetail(
+        newLine.detail[i],
+        newLine.type
+      );
+    }
     await newLine.validate();
     const result = await PromotionLine.findOneAndUpdate({ _id: id }, newLine, {
       new: true,
