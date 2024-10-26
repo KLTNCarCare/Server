@@ -14,6 +14,7 @@ const {
   calEndtime,
   createAppointmentOnSite,
   findAppointmentDashboard,
+  findAllAppointment,
 } = require("../services/appointment.service");
 const connection = require("../services/sockjs_manager");
 const { messageType } = require("../utils/constants");
@@ -184,6 +185,14 @@ const getAppointmentInDay = async (req, res) => {
   const result = await findAppointmentDashboard(time);
   return res.status(result.code).json(result.data);
 };
+const getAllAppointment = async (req, res) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const field = req.query.field;
+  const word = req.query.word;
+  const result = await findAllAppointment(page, limit, field, word);
+  return res.status(result.code).json(result);
+};
 module.exports = {
   saveAppointment,
   saveAppointmentOnSite,
@@ -196,4 +205,5 @@ module.exports = {
   cancelAppointment,
   getAllSlotInDay,
   getAppointmentInDay,
+  getAllAppointment,
 };

@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const validator = require("validator");
 const Appointment = require("../models/appointment.model");
 const connection = require("./sockjs_manager");
 const { messageType } = require("../utils/constants");
@@ -6,6 +7,7 @@ const { generateAppointmentID } = require("./lastID.service");
 const { getProBill, getProService } = require("./promotion.service");
 const { getStringClockToDate } = require("../utils/convert");
 const { findCustByPhone, createCustomer } = require("./customer.service");
+const { toBoolean } = require("validator");
 const start_work = Number(process.env.START_WORK);
 const end_work = Number(process.env.END_WORK);
 const interval = Number(process.env.INTERVAL);
@@ -588,6 +590,43 @@ const updateAppointmentCreatedInvoice = async (id, session) => {
   }
   return result;
 };
+const findAllAppointment = async (page, limit, field, word) => {
+  try {
+    const filter = {};
+    if (field && word) {
+      switch (field) {
+        case "invoiceCreated":
+          filter[field] = validator.toBoolean(word, true);
+          break;
+        default:
+          filter[field] = RegExp(word, "iu");
+          break;
+      }
+    }
+    const totalCount = await Appointment.countDocuments(filter);
+    const result = await Appointment.find(filter)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+    const totalPage = Math.ceil(totalCount / limit);
+    return {
+      code: 200,
+      message: "Thành công",
+      totalCount,
+      totalPage,
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in get all cateogry", error);
+    return {
+      code: 500,
+      message: "Internal server error",
+      totalCount: 0,
+      totalPage: 0,
+      data: null,
+    };
+  }
+};
 const getAppointmentById = async (id) =>
   await Appointment.findOne({ _id: id }).lean();
 const getAppointmentByServiceId = async (serviceId) =>
@@ -611,4 +650,5 @@ module.exports = {
   updateAppointmentCreatedInvoice,
   getAppointmentByServiceId,
   findAppointmentDashboard,
+  findAllAppointment,
 };
