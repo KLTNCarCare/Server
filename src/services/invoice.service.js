@@ -58,10 +58,28 @@ const createInvoiceFromAppointmentId = async (appId, paymentMethod) => {
   } catch (error) {
     await session.abortTransaction();
     console.log(error);
-
+    if (error.name == "ValidationError" && error.errors) {
+      if (error.errors["payment_method"]) {
+        return {
+          code: 400,
+          message:
+            "Phương thức thanh toán không hợp lệ: " +
+            error.errors["payment_method"].value,
+          data: null,
+        };
+      }
+      if (error.errors["e_invoice_code"]) {
+        return {
+          code: 400,
+          message:
+            "Cần mã hoá đơn điên tử cho phương thức thanh toán chuyển khoản",
+          data: null,
+        };
+      }
+    }
     return {
       code: 500,
-      message: error.message,
+      message: "Internal server error",
       data: null,
     };
   } finally {

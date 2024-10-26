@@ -77,8 +77,6 @@ const deletePromotion = async (id) => {
       };
     }
     lines = await getPromotionLineByParent(obj._id);
-    console.log(lines);
-
     if (lines.length > 0) {
       return {
         code: 400,

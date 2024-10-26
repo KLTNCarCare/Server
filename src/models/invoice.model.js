@@ -121,11 +121,6 @@ const invoiceSchema = mongoose.Schema(
       type: String,
       default: null,
     },
-    type: {
-      type: String,
-      enum: ["normal", "refund"],
-      default: "normal",
-    },
     items: {
       type: [serviceSchema],
       required: true,
@@ -145,6 +140,20 @@ const invoiceSchema = mongoose.Schema(
       type: String,
       enum: ["cash", "transfer"],
       required: true,
+    },
+    e_invoice_code: {
+      type: String,
+      default: null,
+      validate: {
+        validator: function (value) {
+          if (this.payment_method != "cash" && !value) {
+            return false;
+          }
+          return true;
+        },
+        message:
+          "Cần mã hoá đơn điên tử cho phương thức thanh toán chuyển khoản",
+      },
     },
     createdAt: {
       type: Date,
