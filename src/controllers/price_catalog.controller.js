@@ -50,16 +50,12 @@ const delelePriceCatalog = async (req, res) => {
   return res.status(result.code).json(result);
 };
 const getAll = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const totalPage = await getTotalPage(limit);
-    const data = await getAllCatalog(page, limit);
-    return res.status(200).json({ data, totalPage });
-  } catch (error) {
-    console.log("Error in getAllCatalog", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const field = req.query.field;
+  const word = req.query.word;
+  const result = await getAllCatalog(page, limit, field, word);
+  return res.status(200).json(result);
 };
 const getCurrent = async (req, res) => {
   try {
@@ -76,7 +72,7 @@ const getActive = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const catalogs = await getActiveCatalog(page, limit);
+    const catalogs = await getActiveCatalog(page, limit, field, word);
     return res.status(200).json(catalogs);
   } catch (error) {
     console.log("Error in getActiveCatalog", error);

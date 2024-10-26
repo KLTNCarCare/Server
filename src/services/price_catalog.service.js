@@ -359,16 +359,35 @@ const getActiveCatalog = async (page, limit) =>
     .skip((page - 1) * limit)
     .limit(limit);
 // get all catalog with active, inactive status
-const getAllCatalog = async (page, limit) =>
-  await PriceCatalog.find({ status: { $ne: "deleted" } })
-    .skip((page - 1) * limit)
-    .limit(limit)
-    .sort({ status: 1 });
-const getTotalPage = async (limit) => {
-  const total = await PriceCatalog.countDocuments({
-    status: { $ne: "deleted" },
-  });
-  return Math.ceil(total / limit);
+const getAllCatalog = async (page, limit, field, word) => {
+  try {
+    const filter = { status: { $ne: "deleted" } };
+    if (field && word) {
+      filter[field] = RegExp(word, "iu");
+    }
+    const totalCount = await PriceCatalog.countDocuments(filter);
+    const result = await PriceCatalog.find(filter)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+    const totalPage = Math.ceil(totalCount / limit);
+    return {
+      code: 200,
+      message: "Thành công",
+      totalCount,
+      totalPage,
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in get all price catalog", error);
+    return {
+      code: 500,
+      message: "Internal server error",
+      totalCount: 0,
+      totalPage: 0,
+      data: null,
+    };
+  }
 };
 const getPriceByServices = async (time, services) => {
   const result = await PriceCatalog.aggregate([
@@ -543,7 +562,6 @@ module.exports = {
   getAllCatalog,
   getActiveCurrentDate,
   getActiveCatalog,
-  getTotalPage,
   getPriceByServices,
   getAllPriceCurrent,
   updateItemNamePriceCatalog,

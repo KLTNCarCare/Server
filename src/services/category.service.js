@@ -29,10 +29,10 @@ const updateCategory = async (id, category) =>
   await Category.findOneAndUpdate({ _id: id }, category);
 const activeCategoryById = async (id) =>
   await Category.findOneAndUpdate({ _id: id }, { status: "active" });
-const findAllCategory = async (page, limit) =>
-  await Category.find({ status: { $ne: "deleted" } })
-    .skip((page - 1) * limit)
-    .limit(limit);
+const findAllCategory = async (page, limit) => {
+  try {
+  } catch (error) {}
+};
 
 const getTotalCategory = async (limit) => {
   const total = await Category.countDocuments({ status: { $ne: "deleted" } });
