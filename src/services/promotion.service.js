@@ -167,6 +167,17 @@ const createPromotionLine = async (data) => {
         data: null,
       };
     }
+    // kiêm tra code trùng trong detail
+    if (data.detail.length > 1) {
+      const codes = new Set(data.detail.map((ele) => ele.code));
+      if (codes.size < data.detail.length) {
+        return {
+          code: 400,
+          message: "Mã chi tiết khuyến mãi không được trùng nhau",
+          data: null,
+        };
+      }
+    }
     data.lineId = await generateID("CTKMCT", { session });
     await increaseLastId("CTKMCT", { session });
     for (let i = 0; i < data.detail.length; i++) {
@@ -202,7 +213,7 @@ const createPromotionLine = async (data) => {
         return {
           code: 400,
           message:
-            "Mã chi tiết khuyến mãi tồn tại " + error.keyValue["detail.code"],
+            "Mã chi tiết khuyến mãi tồn tại: " + error.keyValue["detail.code"],
           data: null,
         };
       }
@@ -242,6 +253,16 @@ const updatePromotionLine = async (id, promotionLine) => {
         message: "Không tìm thấy chương trình khuyến mãi của dòng khuyến mãi",
         data: null,
       };
+    }
+    if (newLine.detail.length > 1) {
+      const codes = new Set(newLine.detail.map((ele) => ele.code));
+      if (codes.size < newLine.detail.length) {
+        return {
+          code: 400,
+          message: "Mã chi tiết khuyến mãi không được trùng nhau",
+          data: null,
+        };
+      }
     }
     const parentStart = new Date(parent.startDate);
     const parentEnd = new Date(parent.endDate);
