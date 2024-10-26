@@ -65,7 +65,7 @@ const getCurrent = async (req, res) => {
     return res.status(200).json(catalogs);
   } catch (error) {
     console.log("Error in getCurrentCatalog", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const getActive = async (req, res) => {
@@ -76,7 +76,7 @@ const getActive = async (req, res) => {
     return res.status(200).json(catalogs);
   } catch (error) {
     console.log("Error in getActiveCatalog", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const getPriceCurrent = async (req, res) => {

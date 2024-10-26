@@ -20,12 +20,12 @@ const createEmployee = async (req, res) => {
     };
     const result = await createEmp(employee);
     if (!result) {
-      return res.status(500).json({ message: "Internal server error" });
+      return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
     }
     return res.status(201).json(result);
   } catch (error) {
     console.log("Error in createEmployee", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 // update name,email,address,persionId,dob,phoneNumber
@@ -39,12 +39,12 @@ const updateEmployee = async (req, res) => {
     employee.updatedAt = new Date();
     const result = await updateEmp(id, employee);
     if (!result) {
-      return res.status(500).json({ message: "Internal server error" });
+      return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
     }
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in updateEmployee", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 module.exports = {

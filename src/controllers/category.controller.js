@@ -19,7 +19,7 @@ const saveCategory = async (req, res) => {
     return res.status(201).json(result);
   } catch (error) {
     console.log("Error in saveCategory", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 
@@ -39,7 +39,7 @@ const inactiveCategory = async (req, res) => {
     return res.status(200).json({ message: "Category inactive successfully" });
   } catch (error) {
     console.log("Error in inactiveCategory", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const activeCategory = async (req, res) => {
@@ -52,7 +52,7 @@ const activeCategory = async (req, res) => {
     return res.status(200).json({ message: "Category inactive successfully" });
   } catch (error) {
     console.log("Error in inactiveCategory", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const editCategory = async (req, res) => {
@@ -66,7 +66,7 @@ const editCategory = async (req, res) => {
     return res.status(200).json({ message: "Category updated successfully" });
   } catch (error) {
     console.log("Error in updateCategory", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 

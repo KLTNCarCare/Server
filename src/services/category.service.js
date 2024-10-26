@@ -20,7 +20,7 @@ const delCategory = async (id) => {
     return { code: 200, message: "Xoá thành công", data: result };
   } catch (error) {
     console.log("Error in delete category");
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const inactiveCategoryById = async (id) =>
@@ -52,7 +52,7 @@ const findAllCategory = async (page, limit, field, word) => {
     console.log("Error in get all cateogry", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       totalCount: 0,
       totalPage: 0,
       data: null,

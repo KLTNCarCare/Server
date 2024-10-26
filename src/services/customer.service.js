@@ -29,7 +29,7 @@ const createCustomer = async (cust) => {
       return { code: 400, message: error.errors["phone"].message, data: null };
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   } finally {
@@ -86,7 +86,7 @@ const findAllCustomer = async (page, limit, k, v, sort, sortOrder) => {
     console.log("Error in find all customer", error);
     return {
       code: 200,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -122,7 +122,7 @@ const updateCustomer = async (id, custUpdate) => {
     }
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -143,7 +143,7 @@ const deleteCustomer = async (id) => {
     console.log("Error in updateCustomer", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }

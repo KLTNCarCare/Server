@@ -47,7 +47,7 @@ const getTimeAvailable = async (req, res) => {
     });
   } catch (error) {
     console.log("Error in getTimeAvailable:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const saveAppointment = async (req, res) => {
@@ -85,7 +85,7 @@ const addServiceToAppointment = async (req, res) => {
   } catch (error) {
     console.log("Error in addServiceToAppointment", error);
 
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 // chỉ được xoá service có status là pending
@@ -102,7 +102,7 @@ const deleteServiceToAppointment = async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in deleteServiceToAppointment", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 // cập nhật trạng thái là in-progress khi xe đang được xử lý
@@ -118,7 +118,7 @@ const inProgressAppointment = async (req, res) => {
   } catch (error) {
     console.log("Error in inProgressAppointment", error);
 
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 //cập nhật trạng thái là confirmed khi tiếp nhận xe của khách
@@ -134,7 +134,7 @@ const confirmAppointment = async (req, res) => {
   } catch (error) {
     console.log("Error in inProgressAppointment", error);
 
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 //cập nhật trạng thái là completed khi xe đã xử lý xong
@@ -150,7 +150,7 @@ const completeAppointment = async (req, res) => {
   } catch (error) {
     console.log("Error in inProgressAppointment", error);
 
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const cancelAppointment = async (req, res) => {
@@ -165,7 +165,7 @@ const cancelAppointment = async (req, res) => {
   } catch (error) {
     console.log("Error in cancelAppointment", error);
 
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const getAllSlotInDay = async (req, res) => {
@@ -177,7 +177,7 @@ const getAllSlotInDay = async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in getAllSlotInDay", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const getAppointmentInDay = async (req, res) => {

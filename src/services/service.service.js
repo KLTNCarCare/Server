@@ -21,7 +21,7 @@ const createService = async (service) => {
   } catch (error) {
     console.log("Error in save service", error);
     await session.abortTransaction();
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   } finally {
     session.endSession();
   }
@@ -59,7 +59,7 @@ const deleteService = async (id) => {
     };
   } catch (error) {
     console.log("Error in delete service", error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const inactiveService = async (id) => {
@@ -79,7 +79,7 @@ const inactiveService = async (id) => {
     };
   } catch (error) {
     console.log("Error in delete service", error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const activeService = async (id) => {
@@ -99,7 +99,7 @@ const activeService = async (id) => {
     };
   } catch (error) {
     console.log("Error in delete service", error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const updateService = async (id, service) => {
@@ -179,7 +179,7 @@ const updateService = async (id, service) => {
   } catch (error) {
     console.log("Error in update service", error);
     await session.abortTransaction();
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   } finally {
     session.endSession();
   }

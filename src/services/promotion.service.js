@@ -19,7 +19,7 @@ const createPromotion = async (promotion) => {
     return { code: 200, message: "Thành công", data: result[0] };
   } catch (error) {
     await session.abortTransaction();
-    console.log("Error in create promotion", error);
+    console.log("Đã xảy ra lỗi máy chủ", error);
     if (error.code == 11000 && error.keyValue["code"]) {
       return {
         code: 400,
@@ -27,7 +27,7 @@ const createPromotion = async (promotion) => {
         data: null,
       };
     }
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   } finally {
     session.endSession();
   }
@@ -63,7 +63,7 @@ const updatePromotion = async (id, promotion) => {
         data: null,
       };
     }
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const deletePromotion = async (id) => {
@@ -92,7 +92,7 @@ const deletePromotion = async (id) => {
     return { code: 200, message: "Thành công", data: result };
   } catch (error) {
     console.log("Errror in update promotion", error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const getPromotion = async (id) => await Promotion.findById(id);
@@ -119,7 +119,7 @@ const getPromotions = async (page, limit, field, word) => {
     console.log("Error in get all promotion", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       totalCount: 0,
       totalPage: 0,
       data: null,
@@ -220,7 +220,7 @@ const createPromotionLine = async (data) => {
     }
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   } finally {
@@ -332,7 +332,7 @@ const updatePromotionLine = async (id, promotionLine) => {
         };
       }
     }
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 
@@ -358,7 +358,7 @@ const deletePromotionLine = async (id) => {
     return { code: 200, message: "Thành công", data: result };
   } catch (error) {
     console.log("Error in delete promotion line", error);
-    return { code: 500, message: "Internal server error", error };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", error };
   }
 };
 const updateEndDatePromotionLine = async (id, date) => {
@@ -423,7 +423,7 @@ const updateEndDatePromotionLine = async (id, date) => {
     console.log("Error in update endDate promotion line", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -707,7 +707,7 @@ const updateStatusActivePromotionLine = async (id) => {
     return { code: 200, message: "Thành công", data: result };
   } catch (error) {
     console.log("Error in active promotion line", error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const updateStatusInactivePromotionLine = async (id) => {
@@ -742,7 +742,7 @@ const updateStatusInactivePromotionLine = async (id) => {
     return { code: 200, message: "Thành công", data: result };
   } catch (error) {
     console.log("Error in inactive promotion line", error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 module.exports = {

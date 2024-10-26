@@ -138,7 +138,7 @@ const findAppointmentDashboard = async (time) => {
     return { code: 200, message: "Thành công", data: result };
   } catch (error) {
     console.log("Error in findAppointmentDashboard", error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const pipelineFindAppointmentDashboard = (d1) => [
@@ -269,7 +269,7 @@ const createAppointment = async (data) => {
     }
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   } finally {
@@ -351,7 +351,6 @@ const createAppointmentOnSite = async (appointment) => {
       0
     );
     const pro_bill = await getProBill(time_promotion, sub_total);
-    console.log(list_pro_service, pro_bill);
 
     if (pro_bill) {
       appointment.discount = {
@@ -382,11 +381,10 @@ const createAppointmentOnSite = async (appointment) => {
     // tạo object hoá đơn
     appointment.promotion = promotion_result;
     appointment.appointmentId = await generateAppointmentID({ session });
-    console.log(appointment);
     const appointment_result = await Appointment.create([appointment], {
       session,
     });
-    await session.commitTransaction();
+    // await session.commitTransaction();
     const data_response = await Appointment.findById(appointment_result[0]._id);
     return {
       code: 200,
@@ -407,7 +405,7 @@ const createAppointmentOnSite = async (appointment) => {
     }
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   } finally {
@@ -496,7 +494,10 @@ const calEndtime = (startTime, duration) => {
   let endTime = startTime;
   let count = 0;
   while (count < duration) {
-    if (new Date(endTime).getHours() == end_work) {
+    const temp = new Date(endTime);
+    console.log(temp.getHours());
+
+    if (temp.getHours() + temp.getMinutes() / 60 > end_work) {
       endTime += (24 - (end_work - start_work) + interval) * 60 * 60 * 1000;
     } else {
       endTime += interval * 60 * 60 * 1000;
@@ -504,6 +505,7 @@ const calEndtime = (startTime, duration) => {
     count += interval;
   }
   console.log(count);
+  console.log(new Date(endTime));
 
   return endTime;
 };
@@ -568,7 +570,6 @@ const updateExpiresAppoinment = async (deadline) => {
     startTime: { $lte: deadline },
   });
   const ids = expires.map((ele) => ele._id);
-  console.log(ids);
   await Appointment.updateMany(
     { _id: { $in: ids }, status: "pending" },
     { $set: { status: "missed" } }
@@ -621,7 +622,7 @@ const findAllAppointment = async (page, limit, field, word) => {
     console.log("Error in get all cateogry", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       totalCount: 0,
       totalPage: 0,
       data: null,

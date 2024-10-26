@@ -14,7 +14,7 @@ const getCustomerByTextPhone = async (req, res) => {
     return res.status(200).json({ message: "Successful", data: result });
   } catch (error) {
     console.log("Error in getCustomerByPhone", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const getAllCustomer = async (req, res) => {

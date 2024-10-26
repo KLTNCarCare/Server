@@ -80,7 +80,7 @@ const createInvoiceFromAppointmentId = async (appId, paymentMethod) => {
     }
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   } finally {
@@ -106,7 +106,7 @@ const findInvoiceByAppointmentId = async (appointmentId) => {
     };
   } catch (error) {
     console.log(error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const findInvoiceById = async (id) => await Invoice.findById(id).lean();
@@ -135,7 +135,7 @@ const findAllInvoice = async (page, limit, field, word) => {
 
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -148,7 +148,7 @@ const findInvoiceByCustId = async (custId) => {
     return { code: 200, message: "Thành công", data: result };
   } catch (error) {
     console.log("Error in getInvoiceByCustId", error);
-    return { code: 500, messasge: "Internal server error", data: null };
+    return { code: 500, messasge: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 module.exports = {

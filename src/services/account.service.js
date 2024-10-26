@@ -44,7 +44,7 @@ const getAccountByUsernamePassword = async (username, password) => {
   } catch (error) {
     console.log(error);
     return {
-      message: "Internal Server Error",
+      message: "Đã xảy ra lỗi máy chủ",
       statusCode: 500,
     };
   }

@@ -72,7 +72,7 @@ const getPromotionLineByParentId = async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in getPromotionLineByParentId", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const addPromtionDetail = async (req, res) => {
@@ -85,7 +85,7 @@ const addPromtionDetail = async (req, res) => {
   if (result.EC === 200) {
     return res.status(200).json(result.data);
   }
-  return res.status(500).json({ message: "Internal server error" });
+  return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
 };
 const deletePromotionDetail = async (req, res) => {
   try {
@@ -97,7 +97,7 @@ const deletePromotionDetail = async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in deletePromotionDetail ", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const editEndDatePromotionLine = async (req, res) => {

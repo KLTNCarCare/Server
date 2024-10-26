@@ -58,7 +58,7 @@ const createInvoiceRefund = async (id, data) => {
         };
       }
     }
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   } finally {
     session.endSession();
   }

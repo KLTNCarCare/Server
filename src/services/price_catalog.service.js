@@ -51,7 +51,7 @@ const createCatalog = async (data) => {
     }
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   } finally {
@@ -136,7 +136,7 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
 
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -192,7 +192,7 @@ const updateEndDate = async (id, date) => {
     console.log("Error in update endDate price catalog", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -248,7 +248,7 @@ const activeCatalog = async (id) => {
     console.log("Error in active price catalog", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -289,7 +289,7 @@ const inactiveCatalog = async (id) => {
     console.log("Error in inactive price catalog", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -325,7 +325,7 @@ const deleteCatalog = async (id) => {
     console.log("Error in delete price catalog", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -397,7 +397,7 @@ const getAllCatalog = async (page, limit, field, word) => {
     console.log("Error in get all price catalog", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       totalCount: 0,
       totalPage: 0,
       data: null,
@@ -528,7 +528,7 @@ const getAllPriceCurrent = async (textSearch) => {
     };
   } catch (error) {
     console.log(error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const updateItemNamePriceCatalog = async (itemId, itemName, session) =>

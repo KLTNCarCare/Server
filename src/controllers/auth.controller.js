@@ -67,7 +67,7 @@ const getTimeLeft = (req, res) => {
     return res.status(200).json({ timeLeft: timeLeftSecond });
   } catch (error) {
     console.log("Error in getTimeLeft", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const checkOTP = async (req, res) => {
@@ -77,7 +77,7 @@ const checkOTP = async (req, res) => {
     return res.status(result.code).json({ message: result.message });
   } catch (error) {
     console.log("Error in checkOTP", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const sendOTP = async (req, res) => {
@@ -87,7 +87,7 @@ const sendOTP = async (req, res) => {
     return res.status(200).json();
   } catch (error) {
     console.log("Error in sendOTP", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 module.exports = {

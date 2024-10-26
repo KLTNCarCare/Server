@@ -53,7 +53,7 @@ const startServer = async (port) => {
     // Nếu không phải môi trường 'development', chỉ gửi thông báo lỗi chung
     return res.status(err.status || 500).json({
       error: {
-        message: "Internal Server Error",
+        message: "Đã xảy ra lỗi máy chủ",
       },
     });
   });

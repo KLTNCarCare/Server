@@ -16,7 +16,7 @@ const saveProduct = async (req, res) => {
     return res.status(201).json(result);
   } catch (error) {
     console.log("Error in saveProdcut", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 
@@ -30,7 +30,7 @@ const removeProduct = async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in removeProduct", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 
@@ -45,7 +45,7 @@ const editProduct = async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in editProduct", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const getAllProduct = async (req, res) => {
@@ -61,7 +61,7 @@ const getAllProduct = async (req, res) => {
     return res.status(200).json({ data: result, totalPage });
   } catch (error) {
     console.log("Error in getProductByCategory", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 module.exports = {

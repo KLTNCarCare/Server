@@ -30,7 +30,7 @@ const createAccountEmp = async (req, res) => {
     return res.status(201).json({ message: "Tạo tài khoản thành công." });
   } catch (error) {
     console.log("Error in createAccountEmp", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 
@@ -48,7 +48,7 @@ const checkUsernameExist = async (req, res) => {
     return res.status(200).json({ message: "Số điện thoại chưa được đăng ký" });
   } catch (error) {
     console.log("Error in checkUsernameExist", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 module.exports = { sendHello, createAccountEmp, checkUsernameExist };
