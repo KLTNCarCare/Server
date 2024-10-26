@@ -503,6 +503,8 @@ const calEndtime = (startTime, duration) => {
     }
     count += interval;
   }
+  console.log(count);
+
   return endTime;
 };
 const getTimePointAvailableBooking_New = async (date, duration) => {

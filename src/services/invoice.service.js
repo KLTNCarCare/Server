@@ -120,7 +120,7 @@ const findAllInvoice = async (page, limit, field, word) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
-    const totalCount = await Invoice.countDocuments();
+    const totalCount = await Invoice.countDocuments(filter);
     return {
       code: 200,
       message: "Successful",
