@@ -280,7 +280,10 @@ const createAppointmentOnSite = async (appointment) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const start_time = new Date(appointment.startTime);
+    const start_timestamp = setstartTime(appointment.startTime);
+    console.log(start_timestamp);
+
+    const start_time = new Date(start_timestamp);
     const total_duration = Number(appointment.total_duration);
     const end_timestamp = calEndtime(start_time.getTime(), total_duration);
     const end_time = new Date(end_timestamp);
@@ -495,19 +498,30 @@ const calEndtime = (startTime, duration) => {
   let count = 0;
   while (count < duration) {
     const temp = new Date(endTime);
-    console.log(temp.getHours());
-
-    if (temp.getHours() + temp.getMinutes() / 60 > end_work) {
+    if (temp.getHours() + temp.getMinutes() / 60 >= end_work) {
       endTime += (24 - (end_work - start_work) + interval) * 60 * 60 * 1000;
     } else {
       endTime += interval * 60 * 60 * 1000;
     }
     count += interval;
   }
-  console.log(count);
-  console.log(new Date(endTime));
-
   return endTime;
+};
+const setstartTime = (startTime) => {
+  if ((60 % interval) * 60 != 0) {
+    throw new Error("Thiết lập bước không hợp lệ, interval phải là ước của 60");
+  }
+  const date = new Date(startTime);
+  const part = Math.floor(60 / interval);
+  for (let i = 0; i < part; i++) {
+    if (
+      i * interval * 60 < date.getMinutes() &&
+      date.getMinutes() < (i + 1) * interval * 60
+    ) {
+      date.setMinutes(i * interval, 0, 0);
+      return date.getTime();
+    }
+  }
 };
 const getTimePointAvailableBooking_New = async (date, duration) => {
   const date_booking = new Date(date);
