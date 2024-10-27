@@ -592,19 +592,24 @@ const getProService = async (time, listItemId) => {
         newRoot: "$detail", // Thay đổi root thành detail
       },
     },
+    {
+      // Sắp xếp tài liệu theo itemGiftId và discount giảm dần
+      $sort: { itemGiftId: 1, discount: -1 },
+    },
+    {
+      // Nhóm theo itemGiftId, lấy tài liệu đầu tiên của mỗi nhóm
+      $group: {
+        _id: "$itemGiftId",
+        highestDiscountDoc: { $first: "$$ROOT" },
+      },
+    },
+    {
+      // Chuyển tài liệu có discount cao nhất lên đầu ra
+      $replaceRoot: { newRoot: "$highestDiscountDoc" },
+    },
   ]);
 
-  const discountServiceByGiftId =
-    data.length > 0
-      ? data.reduce((acc, item) => {
-          const existing = acc.find((el) => el.itemGiftId === item.itemGiftId);
-          if (!existing || item.discount > existing.discount) {
-            return [...acc, item];
-          }
-          return acc;
-        }, [])
-      : [];
-  return discountServiceByGiftId;
+  return data;
 };
 const addDescriptionPromotionDetail = async (
   promotionDetail,

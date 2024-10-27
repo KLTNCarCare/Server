@@ -63,7 +63,8 @@ const saveAppointment = async (req, res) => {
 };
 const saveAppointmentOnSite = async (req, res) => {
   const data = req.body;
-  const result = await createAppointmentOnSite(data);
+  const skipCond = req.query.skipCond;
+  const result = await createAppointmentOnSite(data, skipCond);
   if (result.code == 200) {
     connection.sendMessageAllStaff(messageType.in_progress_app, result.data);
   }

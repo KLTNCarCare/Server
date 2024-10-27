@@ -276,14 +276,13 @@ const createAppointment = async (data) => {
     session.endSession();
   }
 };
-const createAppointmentOnSite = async (appointment) => {
+const createAppointmentOnSite = async (appointment, skipCond) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
     const start_timestamp = setstartTime(appointment.startTime);
-    console.log(start_timestamp);
-
     const start_time = new Date(start_timestamp);
+    console.log(start_time);
     const total_duration = Number(appointment.total_duration);
     const end_timestamp = calEndtime(start_time.getTime(), total_duration);
     const end_time = new Date(end_timestamp);
@@ -291,39 +290,47 @@ const createAppointmentOnSite = async (appointment) => {
     appointment.startActual = start_time;
     appointment.endActual = end_time;
     appointment.status = "in-progress";
-    const existing_apps =
-      await findAppointmentStatusNotCanceledCompletedInRangeDate(
-        start_time,
-        end_time
+
+    if (!skipCond || !validator.toBoolean(skipCond, true)) {
+      console.log("co chay vao");
+
+      const existing_apps =
+        await findAppointmentStatusNotCanceledCompletedInRangeDate(
+          start_time,
+          end_time
+        );
+      existing_apps.forEach((item) => {
+        if ((item.status = "in-progress")) {
+          item.startTime = item.startActual;
+        }
+      });
+      const slot_booking = await groupSlotTimePoint(
+        existing_apps,
+        start_time.getTime(),
+        end_time.getTime()
       );
-    existing_apps.forEach((item) => {
-      if ((item.status = "in-progress")) {
-        item.startTime = item.startActual;
+      for (const [index, value] of slot_booking.entries()) {
+        if (value < 6) {
+          continue;
+        }
+        // const time_full = new Date(
+        //   start_time.getTime() + index * interval * 60 * 60 * 1000
+        // );
+        // const min_full = time_full.getMinutes() < 30 ? 0 : 30;
+        // time_full.setMinutes(min_full);
+        const time_full = setstartTime(
+          calEndtime(start_time.getTime(), index * interval)
+        );
+        return {
+          code: 400,
+          message: `Đã đầy lịch hẹn tại khung giờ ${getStringClockToDate(
+            time_full
+          )}.Thời gian còn lại chỉ phù hợp cho dịch vụ từ dưới ${
+            (index + 1) * interval
+          }h`,
+          data: null,
+        };
       }
-    });
-    const slot_booking = await groupSlotTimePoint(
-      existing_apps,
-      start_time.getTime(),
-      end_time.getTime()
-    );
-    for (const [index, value] of slot_booking.entries()) {
-      if (value < 6) {
-        continue;
-      }
-      const time_full = new Date(
-        start_time.getTime() + index * interval * 60 * 60 * 1000
-      );
-      const min_full = time_full.getMinutes() < 30 ? 0 : 30;
-      time_full.setMinutes(min_full);
-      return {
-        code: 400,
-        message: `Đã đầy lịch hẹn tại khung giờ ${getStringClockToDate(
-          time_full
-        )}.Thời gian còn lại chỉ phù hợp cho dịch vụ từ dưới ${
-          (index + 1) * interval
-        }h`,
-        data: null,
-      };
     }
     const time_promotion = new Date();
     const items = appointment.items.map((item) => item.serviceId);
@@ -333,7 +340,7 @@ const createAppointmentOnSite = async (appointment) => {
     if (list_pro_service.length > 0) {
       appointment.items.forEach((item) => {
         const pro = list_pro_service.find(
-          (pro) => pro.itemId == item.serviceId
+          (pro) => pro.itemGiftId == item.serviceId
         );
         if (pro) {
           item.discount = pro.discount;
@@ -387,7 +394,7 @@ const createAppointmentOnSite = async (appointment) => {
     const appointment_result = await Appointment.create([appointment], {
       session,
     });
-    // await session.commitTransaction();
+    await session.commitTransaction();
     const data_response = await Appointment.findById(appointment_result[0]._id);
     return {
       code: 200,
@@ -515,7 +522,7 @@ const setstartTime = (startTime) => {
   const part = Math.floor(60 / interval);
   for (let i = 0; i < part; i++) {
     if (
-      i * interval * 60 < date.getMinutes() &&
+      i * interval * 60 <= date.getMinutes() &&
       date.getMinutes() < (i + 1) * interval * 60
     ) {
       date.setMinutes(i * interval, 0, 0);
