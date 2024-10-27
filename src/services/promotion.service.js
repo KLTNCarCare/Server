@@ -710,7 +710,7 @@ const updateStatusActivePromotionLine = async (id) => {
       }
     }
     const result = await PromotionLine.findOneAndUpdate(
-      { _id: id },
+      { _id: obj._id },
       { status: "active" },
       { new: true }
     );
@@ -745,7 +745,7 @@ const updateStatusInactivePromotionLine = async (id) => {
       };
     }
     const result = await PromotionLine.findOneAndUpdate(
-      { _id: id },
+      { _id: obj._id },
       { status: "inactive" },
       { new: true }
     );
@@ -795,6 +795,31 @@ const findPromotionDetailDuplicate = async (promotionLine) => {
   }
   return null;
 };
+const updateStatusPromotionLine = async (id) => {
+  try {
+    const obj = await PromotionLine.findById(id).lean();
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy bảng giá",
+        data: null,
+      };
+    }
+    if (obj.status == "active") {
+      return await updateStatusInactivePromotionLine(obj);
+    } else if (obj.status == "inactive") {
+      return await updateStatusActivePromotionLine(obj);
+    }
+    return {
+      code: 400,
+      message: "Chỉ có đổi qua lại giữa đang hoạt động và ngưng hoạt động",
+      data: null,
+    };
+  } catch (error) {
+    console.log("Error in updateStatusPromotionLine", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
 module.exports = {
   createPromotion,
   updatePromotion,
@@ -816,4 +841,5 @@ module.exports = {
   updateItemNamePromotionLine,
   updateStatusActivePromotionLine,
   updateStatusInactivePromotionLine,
+  updateStatusPromotionLine,
 };

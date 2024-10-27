@@ -12,6 +12,7 @@ const {
   updateEndDatePromotionLine,
   updateStatusActivePromotionLine,
   updateStatusInactivePromotionLine,
+  updateStatusPromotionLine,
 } = require("../services/promotion.service");
 const { findServiceById } = require("../services/service.service");
 
@@ -116,6 +117,11 @@ const inactivePromotionLine = async (req, res) => {
   const result = await updateStatusInactivePromotionLine(id);
   return res.status(result.code).json(result);
 };
+const changeStatusPromotionLine = async (req, res) => {
+  const id = req.params.id;
+  const result = await updateStatusPromotionLine(id);
+  return res.status(result.code).json(result);
+};
 module.exports = {
   savePromotion,
   removePromotion,
@@ -130,4 +136,5 @@ module.exports = {
   editEndDatePromotionLine,
   activePromotionLine,
   inactivePromotionLine,
+  changeStatusPromotionLine,
 };

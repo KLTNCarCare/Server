@@ -13,6 +13,7 @@ const {
   editEndDatePromotionLine,
   activePromotionLine,
   inactivePromotionLine,
+  changeStatusPromotionLine,
 } = require("../controllers/promotion.controller");
 const auth = require("../middlewares/auth.middleware");
 router.post("/create-promotion", auth(["admin"]), savePromotion);
@@ -43,5 +44,10 @@ router.put(
   "/inactive-line/:id",
   auth(["admin", "staff"]),
   inactivePromotionLine
+);
+router.put(
+  "/change-status-line/:id",
+  auth(["admin", "staff"]),
+  changeStatusPromotionLine
 );
 module.exports = router;
