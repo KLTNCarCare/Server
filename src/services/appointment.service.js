@@ -280,20 +280,21 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const start_timestamp = setstartTime(appointment.startTime);
+    const start_timestamp = setStartTime(appointment.startTime);
     const start_time = new Date(start_timestamp);
-    console.log(start_time);
     const total_duration = Number(appointment.total_duration);
-    const end_timestamp = calEndtime(start_time.getTime(), total_duration);
-    const end_time = new Date(end_timestamp);
+    const end_timestamp = calEndtime(
+      new Date(appointment.startTime).getTime(),
+      total_duration
+    );
+    const end_time = new Date(setEndTime(end_timestamp));
     appointment.endTime = end_time;
     appointment.startActual = start_time;
     appointment.endActual = end_time;
     appointment.status = "in-progress";
+    console.log(start_time, end_time);
 
     if (!skipCond || !validator.toBoolean(skipCond, true)) {
-      console.log("co chay vao");
-
       const existing_apps =
         await findAppointmentStatusNotCanceledCompletedInRangeDate(
           start_time,
@@ -309,16 +310,13 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
         start_time.getTime(),
         end_time.getTime()
       );
+      console.log(slot_booking); //log
+
       for (const [index, value] of slot_booking.entries()) {
         if (value < 6) {
           continue;
         }
-        // const time_full = new Date(
-        //   start_time.getTime() + index * interval * 60 * 60 * 1000
-        // );
-        // const min_full = time_full.getMinutes() < 30 ? 0 : 30;
-        // time_full.setMinutes(min_full);
-        const time_full = setstartTime(
+        const time_full = setStartTime(
           calEndtime(start_time.getTime(), index * interval)
         );
         return {
@@ -326,8 +324,8 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
           message: `Đã đầy lịch hẹn tại khung giờ ${getStringClockToDate(
             time_full
           )}.Thời gian còn lại chỉ phù hợp cho dịch vụ từ dưới ${
-            (index + 1) * interval
-          }h`,
+            index * interval
+          } giờ`,
           data: null,
         };
       }
@@ -467,7 +465,7 @@ const groupSlotTimePoint = async (list_booking, start, end) => {
     //đếm slot
     const slot_time_point = list_booking.filter(
       (ele) =>
-        new Date(ele.startTime).getTime() <= time_point &&
+        new Date(setStartTime(ele.startTime)).getTime() <= time_point &&
         new Date(ele.endTime).getTime() > time_point
     ).length;
     result.push(slot_time_point);
@@ -505,7 +503,7 @@ const calEndtime = (startTime, duration) => {
   let count = 0;
   while (count < duration) {
     const temp = new Date(endTime);
-    if (temp.getHours() + temp.getMinutes() / 60 >= end_work) {
+    if (temp.getHours() + temp.getMinutes() / 60 > end_work - interval) {
       endTime += (24 - (end_work - start_work) + interval) * 60 * 60 * 1000;
     } else {
       endTime += interval * 60 * 60 * 1000;
@@ -514,18 +512,45 @@ const calEndtime = (startTime, duration) => {
   }
   return endTime;
 };
-const setstartTime = (startTime) => {
-  if ((60 % interval) * 60 != 0) {
+const setStartTime = (startTime) => {
+  if (60 % (interval * 60) != 0) {
     throw new Error("Thiết lập bước không hợp lệ, interval phải là ước của 60");
   }
   const date = new Date(startTime);
-  const part = Math.floor(60 / interval);
+  const part = Math.floor(60 / (interval * 60));
   for (let i = 0; i < part; i++) {
     if (
       i * interval * 60 <= date.getMinutes() &&
       date.getMinutes() < (i + 1) * interval * 60
     ) {
-      date.setMinutes(i * interval, 0, 0);
+      date.setMinutes(i * interval * 60, 0, 0);
+      return date.getTime();
+    }
+  }
+};
+const setEndTime = (endTime) => {
+  if (60 % (interval * 60) != 0) {
+    throw new Error("Thiết lập bước không hợp lệ, interval phải là ước của 60");
+  }
+  const date = new Date(endTime);
+  const part = Math.floor(60 / (interval * 60));
+  if (date.getMinutes() == 0) {
+    return date.getTime();
+  }
+  if (
+    (part - 1) * interval * 60 < date.getMinutes() &&
+    date.getMinutes() <= part * interval * 60
+  ) {
+    const h = date.getHours() + 1;
+    date.setHours(h, 0, 0, 0);
+    return date.getTime();
+  }
+  for (let i = 0; i < part; i++) {
+    if (
+      i * interval * 60 < date.getMinutes() &&
+      date.getMinutes() <= (i + 1) * interval * 60
+    ) {
+      date.setMinutes((i + 1) * interval * 60, 0, 0);
       return date.getTime();
     }
   }
@@ -536,10 +561,11 @@ const getTimePointAvailableBooking_New = async (date, duration) => {
   const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
   const start = date_booking.getTime() + end_work * 60 * 60 * 1000;
   const t2 = calEndtime(start, duration - interval);
-  const booking_exist = await findAppointmentStatusNotCanceledInRangeDate(
-    new Date(t1),
-    new Date(t2)
-  );
+  const booking_exist =
+    await findAppointmentStatusNotCanceledCompletedInRangeDate(
+      new Date(t1),
+      new Date(t2)
+    );
   const slot_time_point = await groupSlotTimePoint(booking_exist, t1, t2);
 
   const time_available = [];
@@ -561,13 +587,12 @@ const getAllSlotInDate = async (d) => {
   const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
   const t2 = date_booking.getTime() + end_work * 60 * 60 * 1000;
 
-  const booking_exist = await findAppointmentStatusNotCanceledInRangeDate(
-    new Date(t1),
-    new Date(t2)
-  );
-
+  const booking_exist =
+    await findAppointmentStatusNotCanceledCompletedInRangeDate(
+      new Date(t1),
+      new Date(t2)
+    );
   const slot_list = await groupSlotTimePoint(booking_exist, t1, t2);
-
   const result = slot_list.map((slot, index) => ({
     time_point: (index + 14) / 2,
     slot_current: slot,

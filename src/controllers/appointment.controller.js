@@ -68,10 +68,7 @@ const saveAppointmentOnSite = async (req, res) => {
   if (result.code == 200) {
     connection.sendMessageAllStaff(messageType.in_progress_app, result.data);
   }
-  return res.status(result.code).json({
-    message: result.message,
-    data: result.data,
-  });
+  return res.status(result.code).json(result);
 };
 // add service
 const addServiceToAppointment = async (req, res) => {
