@@ -699,6 +699,16 @@ const updateStatusActivePromotionLine = async (id) => {
         data: null,
       };
     }
+    if (obj.type == "discount-service") {
+      const lineDuplicate = await findPromotionDetailDuplicate(obj);
+      if (lineDuplicate) {
+        return {
+          code: 400,
+          message: `Xung đột với dòng khuyến mãi <${lineDuplicate.code}> mã chi tiết <${lineDuplicate.detail.code}>`,
+          data: null,
+        };
+      }
+    }
     const result = await PromotionLine.findOneAndUpdate(
       { _id: id },
       { status: "active" },
@@ -744,6 +754,46 @@ const updateStatusInactivePromotionLine = async (id) => {
     console.log("Error in inactive promotion line", error);
     return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
+};
+const findPromotionDetailDuplicate = async (promotionLine) => {
+  const listDetail = promotionLine.detail;
+  if (!listDetail || listDetail.length == 0) {
+    return null;
+  }
+  const d1 = new Date(promotionLine.startDate);
+  const d2 = new Date(promotionLine.endDate);
+  const pipeline = [
+    {
+      $match: {
+        status: "active",
+        type: "discount-service",
+        $or: [
+          { startDate: { $gte: d1, $lt: d2 } },
+          { endDate: { $gt: d1, $lte: d2 } },
+          { startDate: { $lte: d1 }, endDate: { $gte: d2 } },
+        ],
+      },
+    },
+    { $unwind: "$detail" },
+    {
+      $replaceRoot: {
+        newRoot: { detail: "$detail", code: "$code" },
+      },
+    },
+  ];
+  const listDetailInfluence = await PromotionLine.aggregate(pipeline);
+  console.log(listDetailInfluence); //log
+  for (let detailX of listDetailInfluence) {
+    for (let detailY of listDetail) {
+      if (
+        detailX.detail.itemId == detailY.itemId &&
+        detailX.detail.itemGiftId == detailY.itemGiftId
+      ) {
+        return detailX;
+      }
+    }
+  }
+  return null;
 };
 module.exports = {
   createPromotion,
