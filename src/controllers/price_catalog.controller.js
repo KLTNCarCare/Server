@@ -14,6 +14,7 @@ const {
   getCatalogActiveByRangeDate,
   getAllPriceCurrent,
   updatePriceCatalog,
+  updateStatusPriceCatalog,
 } = require("../services/price_catalog.service");
 const { findAllServiceToPick } = require("../services/service.service");
 const createPriceCatalog = async (req, res) => {
@@ -85,6 +86,11 @@ const getPriceCurrent = async (req, res) => {
   const result = await findAllServiceToPick();
   return res.status(result.code).json(result);
 };
+const changeStatusPriceCatalog = async (req, res) => {
+  const id = req.params.id;
+  const result = await updateStatusPriceCatalog(id);
+  return res.status(result.code).json(result);
+};
 module.exports = {
   createPriceCatalog,
   editPriceCatalog,
@@ -96,4 +102,5 @@ module.exports = {
   getCurrent,
   getActive,
   getPriceCurrent,
+  changeStatusPriceCatalog,
 };

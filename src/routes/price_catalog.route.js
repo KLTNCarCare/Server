@@ -10,6 +10,7 @@ const {
   getActive,
   getPriceCurrent,
   editPriceCatalog,
+  changeStatusPriceCatalog,
 } = require("../controllers/price_catalog.controller");
 const auth = require("../middlewares/auth.middleware");
 
@@ -22,6 +23,11 @@ router.put(
   "/inactive-price-catalog/:id",
   auth(["admin"]),
   inactivePriceCatalog
+);
+router.put(
+  "/change-status",
+  auth(["admin", "staff"]),
+  changeStatusPriceCatalog
 );
 router.get("/get-all", auth(["admin"]), getAll);
 router.get("/get-current", auth(["admin"]), getCurrent);

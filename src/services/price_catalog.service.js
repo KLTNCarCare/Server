@@ -197,16 +197,8 @@ const updateEndDate = async (id, date) => {
     };
   }
 };
-const activeCatalog = async (id) => {
+const activeCatalog = async (obj) => {
   try {
-    const obj = await PriceCatalog.findById(id).lean();
-    if (!obj) {
-      return {
-        code: 400,
-        message: "Không tìm thấy bảng giá",
-        data: null,
-      };
-    }
     if (new Date(obj.startDate) <= new Date()) {
       return {
         code: 400,
@@ -253,18 +245,8 @@ const activeCatalog = async (id) => {
     };
   }
 };
-const inactiveCatalog = async (id) => {
+const inactiveCatalog = async (obj) => {
   try {
-    const obj = await PriceCatalog.findById(id).lean();
-    if (!obj) {
-      return {
-        code: 400,
-        message: "Không tìm thấy bảng giá",
-        data: null,
-      };
-    }
-    console.log(obj);
-
     if (new Date(obj.startDate) <= new Date()) {
       return {
         code: 400,
@@ -561,6 +543,31 @@ const refreshStatusPriceCatalog = async () => {
     console.log("Error in refreshStatusPriceCatalog");
   }
 };
+const updateStatusPriceCatalog = async (id) => {
+  try {
+    const obj = await PriceCatalog.findById(id).lean();
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy bảng giá",
+        data: null,
+      };
+    }
+    if (obj.status == "active") {
+      return await inactiveCatalog(obj);
+    } else if (obj.status == "inactive") {
+      return await activeCatalog(obj);
+    }
+    return {
+      code: 400,
+      message: "Chỉ có đổi qua lại giữa đang hoạt động và ngưng hoạt động",
+      data: null,
+    };
+  } catch (error) {
+    console.log("Error in updateStatusPriceCatalog", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
 module.exports = {
   createCatalog,
   getCatalogById,
@@ -577,4 +584,5 @@ module.exports = {
   getAllPriceCurrent,
   updateItemNamePriceCatalog,
   refreshStatusPriceCatalog,
+  updateStatusPriceCatalog,
 };
