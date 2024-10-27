@@ -227,7 +227,7 @@ const activeCatalog = async (obj) => {
       }
     }
     const result = await PriceCatalog.findOneAndUpdate(
-      { _id: id },
+      { _id: obj._id },
       { status: "active" },
       { new: true }
     );
@@ -262,7 +262,7 @@ const inactiveCatalog = async (obj) => {
       };
     }
     const result = await PriceCatalog.findOneAndUpdate(
-      { _id: id },
+      { _id: obj._id },
       { status: "inactive" },
       { new: true }
     );
