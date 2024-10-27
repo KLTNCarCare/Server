@@ -2,8 +2,6 @@ const {
   createInvoiceFromAppointmentId,
   findAllInvoice,
   findInvoiceByAppointmentId,
-  updateInvoiceStatusToPaid,
-  updateInvoiceTypeToRefund,
   findInvoiceByCustId,
 } = require("../services/invoice.service");
 const { createInvoiceRefund } = require("../services/invoice_refund.service");

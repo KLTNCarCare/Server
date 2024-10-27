@@ -1,4 +1,5 @@
 const { default: mongoose } = require("mongoose");
+const crypto = require("crypto");
 const { Invoice } = require("../models/invoice.model");
 const {
   getAppointmentById,
@@ -6,7 +7,6 @@ const {
 } = require("./appointment.service");
 const { createPromotionResult } = require("./promotion_result.service");
 const { generateInvoiceID } = require("./lastID.service");
-const { findOneAndUpdate } = require("../models/promotion.model");
 
 const createInvoiceFromAppointmentId = async (appId, paymentMethod) => {
   const session = await mongoose.startSession();
@@ -158,4 +158,5 @@ module.exports = {
   findInvoiceByAppointmentId,
   findInvoiceByCustId,
   refundInvoice,
+  createInvoicePaymentOnline,
 };

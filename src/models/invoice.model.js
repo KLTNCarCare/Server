@@ -145,20 +145,6 @@ const invoiceSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    e_invoice_code: {
-      type: String,
-      default: null,
-      validate: {
-        validator: function (value) {
-          if (this.payment_method != "cash" && !value) {
-            return false;
-          }
-          return true;
-        },
-        message:
-          "Cần mã hoá đơn điên tử cho phương thức thanh toán chuyển khoản",
-      },
-    },
     createdAt: {
       type: Date,
       default: Date.now,
