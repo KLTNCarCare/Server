@@ -25,7 +25,7 @@ router.put(
   inactivePriceCatalog
 );
 router.put(
-  "/change-status",
+  "/change-status/:id",
   auth(["admin", "staff"]),
   changeStatusPriceCatalog
 );
