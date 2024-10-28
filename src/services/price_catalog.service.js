@@ -505,7 +505,7 @@ const getAllPriceCurrent = async (textSearch) => {
     const data = await PriceCatalog.aggregate(pipeline);
     return {
       code: 200,
-      message: "Successful",
+      message: "Thành công",
       data: data,
     };
   } catch (error) {

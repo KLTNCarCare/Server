@@ -15,7 +15,7 @@ const createService = async (service) => {
     await session.commitTransaction();
     return {
       code: 200,
-      message: "Successful",
+      message: "Thành công",
       data: result,
     };
   } catch (error) {

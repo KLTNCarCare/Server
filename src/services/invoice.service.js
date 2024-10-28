@@ -53,7 +53,7 @@ const createInvoiceFromAppointmentId = async (appId, paymentMethod) => {
     const invoice = await findInvoiceById(result[0]._id);
     return {
       code: 200,
-      message: "Successfully",
+      message: "Thành công",
       data: invoice,
     };
   } catch (error) {
@@ -101,7 +101,7 @@ const findInvoiceByAppointmentId = async (appointmentId) => {
     const result = await Invoice.findOne({ appointmentId: appointmentId });
     return {
       code: 200,
-      message: "Successful",
+      message: "Thành công",
       data: result,
     };
   } catch (error) {
@@ -123,7 +123,7 @@ const findAllInvoice = async (page, limit, field, word) => {
     const totalCount = await Invoice.countDocuments(filter);
     return {
       code: 200,
-      message: "Successful",
+      message: "Thành công",
       data: {
         data: result,
         totalPage: Math.ceil(totalCount / limit),
@@ -158,5 +158,4 @@ module.exports = {
   findInvoiceByAppointmentId,
   findInvoiceByCustId,
   refundInvoice,
-  createInvoicePaymentOnline,
 };

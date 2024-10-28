@@ -13,7 +13,7 @@ const createCustomer = async (cust) => {
     await session.commitTransaction();
     return {
       code: 200,
-      message: "Successful",
+      message: "Thành công",
       data: result[0],
     };
   } catch (error) {

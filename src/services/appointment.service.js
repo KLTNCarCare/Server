@@ -252,7 +252,7 @@ const createAppointment = async (data) => {
     await session.commitTransaction();
     return {
       code: 200,
-      message: "Successfully",
+      message: "Thành công",
       data: result,
     };
   } catch (error) {
@@ -292,8 +292,7 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
     appointment.startActual = start_time;
     appointment.endActual = end_time;
     appointment.status = "in-progress";
-    console.log(start_time, end_time);
-
+    appointment.items[0].status = "in-progress";
     if (!skipCond || !validator.toBoolean(skipCond, true)) {
       const existing_apps =
         await findAppointmentStatusNotCanceledCompletedInRangeDate(
@@ -396,7 +395,7 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
     const data_response = await Appointment.findById(appointment_result[0]._id);
     return {
       code: 200,
-      message: "Successfully",
+      message: "Thành công",
       data: data_response,
     };
   } catch (error) {
@@ -675,10 +674,44 @@ const findAllAppointment = async (page, limit, field, word) => {
     };
   }
 };
-const getAppointmentById = async (id) =>
-  await Appointment.findOne({ _id: id }).lean();
+const getAppointmentById = async (id) => await Appointment.findOne({ _id: id });
 const getAppointmentByServiceId = async (serviceId) =>
   await Appointment.findOne({ "items.serviceId": serviceId }).lean();
+const updateStatusCompletedServiceAppointment = async (
+  appointmentId,
+  serviceId
+) => {
+  try {
+    const obj = await Appointment.findOne({
+      _id: appointmentId,
+      "items.serviceId": serviceId,
+    });
+    if (!obj) {
+      return status400("Không tìm thấy lịch hẹn");
+    }
+    const items = obj.items;
+    const index = items.findIndex((item) => item.serviceId == serviceId);
+    if (index < items.length - 1) {
+      items[index].status = "completed";
+      items[index + 1].status = "in-progress";
+    } else {
+      //Xử lý khi cập nhật dịch vụ cuối
+      items[index].status = "completed";
+    }
+    const result = await Appointment.findOneAndUpdate(
+      { _id: appointmentId },
+      { $set: { items: items } },
+      { new: true }
+    );
+    return status200(result);
+  } catch (error) {
+    console.log("Error in updateStatusInProgressServiceAppointment", error);
+    return status500;
+  }
+};
+const status500 = { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+const status400 = (mess) => ({ code: 400, message: mess, data: null });
+const status200 = (data) => ({ code: 200, message: "Thành công", data: data });
 module.exports = {
   createAppointment,
   createAppointmentOnSite,
@@ -699,4 +732,5 @@ module.exports = {
   getAppointmentByServiceId,
   findAppointmentDashboard,
   findAllAppointment,
+  updateStatusCompletedServiceAppointment,
 };

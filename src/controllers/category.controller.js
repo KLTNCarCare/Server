@@ -36,7 +36,7 @@ const inactiveCategory = async (req, res) => {
     if (!result) {
       return res.status(400).json({ message: "Failed to inactive category" });
     }
-    return res.status(200).json({ message: "Category inactive successfully" });
+    return res.status(200).json({ message: "Category inactive Thành công" });
   } catch (error) {
     console.log("Error in inactiveCategory", error);
     return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
@@ -49,7 +49,7 @@ const activeCategory = async (req, res) => {
     if (!result) {
       return res.status(400).json({ message: "Failed to inactive category" });
     }
-    return res.status(200).json({ message: "Category inactive successfully" });
+    return res.status(200).json({ message: "Category inactive Thành công" });
   } catch (error) {
     console.log("Error in inactiveCategory", error);
     return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
@@ -63,7 +63,7 @@ const editCategory = async (req, res) => {
     if (!result) {
       return res.status(400).json({ message: "Failed to update category" });
     }
-    return res.status(200).json({ message: "Category updated successfully" });
+    return res.status(200).json({ message: "Category updated Thành công" });
   } catch (error) {
     console.log("Error in updateCategory", error);
     return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });

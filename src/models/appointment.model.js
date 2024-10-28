@@ -75,7 +75,7 @@ const serviceSchema = mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "in-progess", "completed", "canceled"],
+      enum: ["pending", "in-progress", "completed"],
       default: "pending",
     },
   },

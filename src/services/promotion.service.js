@@ -194,7 +194,7 @@ const createPromotionLine = async (data) => {
     await session.commitTransaction();
     return {
       code: 200,
-      message: "Successfully",
+      message: "Thành công",
       data: result[0],
     };
   } catch (error) {

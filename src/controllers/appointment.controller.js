@@ -15,9 +15,11 @@ const {
   createAppointmentOnSite,
   findAppointmentDashboard,
   findAllAppointment,
+  updateStatusCompletedServiceAppointment,
 } = require("../services/appointment.service");
 const connection = require("../services/sockjs_manager");
 const { messageType } = require("../utils/constants");
+const Appointment = require("../models/appointment.model");
 //get time available in day
 const start_work = 7; // 7:00 A.M
 const end_work = 17; // 5:00 P.M
@@ -191,6 +193,19 @@ const getAllAppointment = async (req, res) => {
   const result = await findAllAppointment(page, limit, field, word);
   return res.status(result.code).json(result);
 };
+const updateProccessAppointment = async (req, res) => {
+  const appointmentId = req.params.appointmentId;
+  const serviceId = req.params.serviceId;
+  const result = await updateStatusCompletedServiceAppointment(
+    appointmentId,
+    serviceId
+  );
+  if (result.code == 200) {
+    const app = new Appointment(result.data);
+    connection.sendMessageAllStaff(messageType.update_process_app, app);
+  }
+  return res.status(result.code).json(result);
+};
 module.exports = {
   saveAppointment,
   saveAppointmentOnSite,
@@ -204,4 +219,5 @@ module.exports = {
   getAllSlotInDay,
   getAppointmentInDay,
   getAllAppointment,
+  updateProccessAppointment,
 };
