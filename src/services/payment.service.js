@@ -134,7 +134,11 @@ const createPaymentZaloPay = async (id) => {
     const result = await axios.post(config.pay_endpoint, null, {
       params: order,
     });
-    return { code: 200, message: "Thành công", data: result.data };
+    return {
+      code: 200,
+      message: "Thành công",
+      data: { order_url: result.data.order_url },
+    };
   } catch (error) {
     console.log("Error in createRequestPayment", error);
     return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
