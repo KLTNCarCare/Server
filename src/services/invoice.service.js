@@ -4,9 +4,11 @@ const { Invoice } = require("../models/invoice.model");
 const {
   getAppointmentById,
   updateAppointmentCreatedInvoice,
+  getAppointmentByAppointmentId,
 } = require("./appointment.service");
 const { createPromotionResult } = require("./promotion_result.service");
 const { generateInvoiceID } = require("./lastID.service");
+const { log } = require("console");
 
 const createInvoiceFromAppointmentId = async (appId, paymentMethod) => {
   const session = await mongoose.startSession();
@@ -55,6 +57,86 @@ const createInvoiceFromAppointmentId = async (appId, paymentMethod) => {
       code: 200,
       message: "Thành công",
       data: invoice,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    console.log(error);
+    if (error.name == "ValidationError" && error.errors) {
+      if (error.errors["payment_method"]) {
+        return {
+          code: 400,
+          message:
+            "Phương thức thanh toán không hợp lệ: " +
+            error.errors["payment_method"].value,
+          data: null,
+        };
+      }
+      if (error.errors["e_invoice_code"]) {
+        return {
+          code: 400,
+          message:
+            "Cần mã hoá đơn điên tử cho phương thức thanh toán chuyển khoản",
+          data: null,
+        };
+      }
+    }
+    return {
+      code: 500,
+      message: "Đã xảy ra lỗi máy chủ",
+      data: null,
+    };
+  } finally {
+    session.endSession();
+  }
+};
+const createInvoiceByAppointmentId = async (appId, paymentMethod) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const app = await getAppointmentByAppointmentId(appId);
+    // Không tìm thấy appointment
+    if (!app) {
+      return {
+        code: 400,
+        message: "Không tìm thấy đơn hàng",
+        data: null,
+      };
+    }
+    if (app.invoiceCreated == true) {
+      return {
+        code: 400,
+        message: "Đơn hàng đã có hoá đơn",
+        data: null,
+      };
+    }
+    app.invoiceId = await generateInvoiceID({ session });
+    app.appointmentId = app._id;
+    app.payment_method = paymentMethod;
+    delete app._id;
+    // lưu hoá đơn
+    console.log(app); //log
+
+    const result = await Invoice.create([app], { session });
+    console.log(result);
+
+    // cập nhật appointment đã được tạo invoice
+    await updateAppointmentCreatedInvoice(app.appointmentId, { session });
+    // lưu kết quả khuyến mãi
+    if (app.promotion.length > 0) {
+      for (let pro of app.promotion) {
+        await createPromotionResult(
+          { ...pro, invoice: result[0]._id },
+          {
+            session,
+          }
+        );
+      }
+    }
+    await session.commitTransaction();
+    return {
+      code: 200,
+      message: "Thành công",
+      data: null,
     };
   } catch (error) {
     await session.abortTransaction();
@@ -158,4 +240,5 @@ module.exports = {
   findInvoiceByAppointmentId,
   findInvoiceByCustId,
   refundInvoice,
+  createInvoiceByAppointmentId,
 };

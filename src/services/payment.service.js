@@ -1,10 +1,18 @@
 const { format } = require("express/lib/response");
-const { getAppointmentById } = require("./appointment.service");
+const {
+  getAppointmentById,
+  updateAppointmentCreatedInvoice,
+  getAppointmentByAppointmentId,
+} = require("./appointment.service");
 const crypto = require("crypto");
 const moment = require("moment");
 const axios = require("axios");
 const CryptoJS = require("crypto-js");
 const { default: mongoose } = require("mongoose");
+const {
+  createInvoiceFromAppointmentId,
+  createInvoiceByAppointmentId,
+} = require("./invoice.service");
 const createPaymentVNPayGate = async (id, vnp_IpAddr) => {
   try {
     const obj = await getAppointmentById(id);
@@ -104,7 +112,7 @@ const createPaymentZaloPay = async (id) => {
       amount: obj.final_total,
       description: `AK Auto - Payment for the order #${this.app_trans_id}`,
       callback_url:
-        "https://3a89-171-252-155-255.ngrok-free.app/v1/api/payment/callback",
+        "https://3587-171-252-155-255.ngrok-free.app/v1/api/payment/callback",
       // bank_code: "zalopayapp",
     };
     const data =
@@ -133,10 +141,7 @@ const createPaymentZaloPay = async (id) => {
   }
 };
 const callbackZaloPay = async (data) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
-    console.log(data); //log
     const dataStr = data.data;
     const reqMac = data.mac;
     const mac = CryptoJS.HmacSHA256(dataStr, config.key2).toString();
@@ -149,7 +154,19 @@ const callbackZaloPay = async (data) => {
     } else {
       let dataJson = JSON.parse(dataStr, config.key2);
       const orderId = dataJson.app_trans_id.slice(11);
-      const order = await getAppointmentById(order);
+      console.log(orderId);
+      const result = await createInvoiceByAppointmentId(orderId, "transfer");
+      if (result.code == 200) {
+        return {
+          return_code: 1,
+          return_message: "Success",
+        };
+      } else {
+        return {
+          return_code: 0,
+          return_message: "Success",
+        };
+      }
     }
   } catch (error) {
     console.log("Error in callbackZaloPay", error);

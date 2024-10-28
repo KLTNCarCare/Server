@@ -675,6 +675,8 @@ const findAllAppointment = async (page, limit, field, word) => {
   }
 };
 const getAppointmentById = async (id) => await Appointment.findOne({ _id: id });
+const getAppointmentByAppointmentId = async (appointmentId) =>
+  await Appointment.findOne({ appointmentId: appointmentId }).lean();
 const getAppointmentByServiceId = async (serviceId) =>
   await Appointment.findOne({ "items.serviceId": serviceId }).lean();
 const updateStatusCompletedServiceAppointment = async (
@@ -733,4 +735,5 @@ module.exports = {
   findAppointmentDashboard,
   findAllAppointment,
   updateStatusCompletedServiceAppointment,
+  getAppointmentByAppointmentId,
 };
