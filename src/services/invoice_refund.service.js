@@ -19,12 +19,10 @@ const createInvoiceRefund = async (id, data) => {
       await refundPromotion(rootInvoice._id, { session });
     }
     //tạo object invoice refund
-    delete rootInvoice._id;
-
     const invoiceRefund = {
       invoiceRefundId: "HDHT_" + moment().format("YYYYMMDDHHmmss"),
       reason: data.reason,
-      ...rootInvoice,
+      invoice: rootInvoice,
     };
     console.log(rootInvoice, invoiceRefund);
 
