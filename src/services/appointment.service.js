@@ -594,6 +594,13 @@ const updateStatusAppoinment = async (id, status) => {
     new: true,
   });
 };
+const updateStatusInProgressAppointment = async (id) => {
+  try {
+  } catch (error) {
+    console.log("Error in function updateStatusInProgressAppointment", error);
+    return status500;
+  }
+};
 const pushServiceToAppointment = async (id, service) =>
   await Appointment.findOneAndUpdate(
     { _id: id },

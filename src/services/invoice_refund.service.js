@@ -66,4 +66,35 @@ const createInvoiceRefund = async (id, data) => {
     session.endSession();
   }
 };
-module.exports = { createInvoiceRefund };
+const findAllInvoiceRefund = async (page, limit, field, word) => {
+  try {
+    const filter = { status: { $ne: "deleted" } };
+    if (field && word) {
+      filter[field] = RegExp(word, "iu");
+    }
+    const totalCount = await InvoiceRefund.countDocuments(filter);
+    const result = await InvoiceRefund.find(filter)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+    const totalPage = Math.ceil(totalCount / limit);
+    return {
+      code: 200,
+      message: "Thành công",
+      totalCount,
+      totalPage,
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in get all invoice refund", error);
+    return {
+      code: 500,
+      message: "Đã xảy ra lỗi máy chủ",
+      totalCount: 0,
+      totalPage: 0,
+      data: null,
+    };
+  }
+};
+
+module.exports = { createInvoiceRefund, findAllInvoiceRefund };
