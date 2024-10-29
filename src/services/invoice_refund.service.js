@@ -24,15 +24,13 @@ const createInvoiceRefund = async (id, data) => {
       reason: data.reason,
       invoice: rootInvoice,
     };
-    console.log(rootInvoice, invoiceRefund);
-
     const result = await InvoiceRefund.create([invoiceRefund], { session });
     await session.commitTransaction();
     return { code: 200, message: "Thành công", data: result[0] };
   } catch (error) {
     console.log("Error in create refund invoice ", error);
     await session.abortTransaction();
-    if (error.code == 11000) {
+    if (error.code == 11000 && error.keyValue["invoice.invoiceId"]) {
       return { code: 400, message: "Hoá đơn đã có hoá đơn trả", data: null };
     }
     if (error.name == "ValidationError" && error.errors) {
@@ -40,23 +38,6 @@ const createInvoiceRefund = async (id, data) => {
         return {
           code: 400,
           message: "Lý do hoàn trả quá ngắn",
-          data: null,
-        };
-      }
-      if (error.errors["payment.method"]) {
-        return {
-          code: 400,
-          message:
-            "Phương thức thanh toán không hợp lệ: " +
-            error.errors["payment.method"].value,
-          data: null,
-        };
-      }
-      if (error.errors["payment.e_invoice_code"]) {
-        return {
-          code: 400,
-          message:
-            "Cần mã hoá đơn điên tử cho phương thức thanh toán chuyển khoản",
           data: null,
         };
       }

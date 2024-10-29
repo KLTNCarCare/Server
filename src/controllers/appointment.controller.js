@@ -118,7 +118,7 @@ const inProgressAppointment = async (req, res) => {
   const items = req.body.items;
   const result = await updateStatusInProgressAppointment(id, items);
   if (result.code == 200) {
-    connection.sendMessageAllStaff(messageType.in_progress_app, result);
+    connection.sendMessageAllStaff(messageType.in_progress_app, result.data);
   }
   return res.status(result.code).json(result);
 };
@@ -127,7 +127,7 @@ const completeAppointment = async (req, res) => {
   const id = req.params.id;
   const result = await updateStatusCompletedAppointment(id);
   if (result.code == 200) {
-    connection.sendMessageAllStaff(messageType.complete_app, result);
+    connection.sendMessageAllStaff(messageType.complete_app, result.data);
   }
   return res.status(result.code).json(result);
 };
@@ -135,7 +135,7 @@ const cancelAppointment = async (req, res) => {
   const id = req.params.id;
   const result = await updateStatusCancelAppointment(id);
   if (result.code == 200) {
-    connection.sendMessageAllStaff(messageType.cancel_app, result);
+    connection.sendMessageAllStaff(messageType.cancel_app, result.data);
   }
   return res.status(result.code).json(result);
 };
