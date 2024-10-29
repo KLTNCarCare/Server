@@ -5,16 +5,18 @@ const {
   getAppointmentById,
   updateAppointmentCreatedInvoice,
   getAppointmentByAppointmentId,
+  getAppointmentLeanById,
 } = require("./appointment.service");
 const { createPromotionResult } = require("./promotion_result.service");
 const { generateInvoiceID } = require("./lastID.service");
 const { log } = require("console");
+const Appointment = require("../models/appointment.model");
 
 const createInvoiceFromAppointmentId = async (appId, paymentMethod) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const app = await getAppointmentById(appId);
+    const app = await getAppointmentLeanById(appId);
     // Không tìm thấy appointment
     if (!app) {
       return {
@@ -36,8 +38,6 @@ const createInvoiceFromAppointmentId = async (appId, paymentMethod) => {
     delete app._id;
     // lưu hoá đơn
     const result = await Invoice.create([app], { session });
-    console.log(result);
-
     // cập nhật appointment đã được tạo invoice
     await updateAppointmentCreatedInvoice(appId, { session });
     // lưu kết quả khuyến mãi

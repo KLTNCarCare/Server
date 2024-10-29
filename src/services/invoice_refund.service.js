@@ -1,15 +1,16 @@
 const { default: mongoose } = require("mongoose");
-const { findInvoiceById, refundInvoice } = require("./invoice.service");
+const { refundInvoice } = require("./invoice.service");
 const InvoiceRefund = require("../models/invoice_refund.model");
 const { refundPromotion } = require("./promotion_result.service");
+const moment = require("moment");
 
 const createInvoiceRefund = async (id, data) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
     // lấy thông tin hoá đơn đồng thời cập nhật hoá đơn là đã hoàn trả
-    const rootInvoice = await refundInvoice(id, { session });
-    console.log(rootInvoice);
+    let rootInvoice = await refundInvoice(id, { session });
+    rootInvoice = rootInvoice.toObject();
     if (!rootInvoice) {
       return { code: 400, message: "Hoá đơn không tồn tại", data: null };
     }
@@ -17,12 +18,16 @@ const createInvoiceRefund = async (id, data) => {
     if (rootInvoice.promotion && rootInvoice.promotion.length > 0) {
       await refundPromotion(rootInvoice._id, { session });
     }
+    //tạo object invoice refund
+    delete rootInvoice._id;
+
     const invoiceRefund = {
-      invoiceId: rootInvoice._id,
-      invoice: rootInvoice,
+      invoiceRefundId: "HDHT_" + moment().format("YYYYMMDDHHmmss"),
       reason: data.reason,
-      payment: data.payment,
+      ...rootInvoice,
     };
+    console.log(rootInvoice, invoiceRefund);
+
     const result = await InvoiceRefund.create([invoiceRefund], { session });
     await session.commitTransaction();
     return { code: 200, message: "Thành công", data: result[0] };

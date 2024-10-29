@@ -834,6 +834,8 @@ const findAllAppointment = async (page, limit, field, word) => {
   }
 };
 const getAppointmentById = async (id) => await Appointment.findOne({ _id: id });
+const getAppointmentLeanById = async (id) =>
+  await Appointment.findOne({ _id: id }).lean();
 const getAppointmentByAppointmentId = async (appointmentId) =>
   await Appointment.findOne({ appointmentId: appointmentId }).lean();
 const getAppointmentByServiceId = async (serviceId) =>
@@ -890,6 +892,7 @@ module.exports = {
   calEndtime,
   updateExpiresAppoinment,
   getAppointmentById,
+  getAppointmentLeanById,
   updateAppointmentCreatedInvoice,
   getAppointmentByServiceId,
   findAppointmentDashboard,

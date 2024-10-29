@@ -7,7 +7,7 @@ const refundPromotion = async (invoiceId, session) =>
   await PromotionResult.updateMany(
     { invoice: invoiceId },
     {
-      $set: { type: "refund" },
+      $set: { isRefund: true },
     },
     session
   );

@@ -4,7 +4,6 @@ const {
   findInvoiceByAppointmentId,
   findInvoiceByCustId,
 } = require("../services/invoice.service");
-const { createInvoiceRefund } = require("../services/invoice_refund.service");
 const connection = require("../services/sockjs_manager");
 const { messageType } = require("../utils/constants");
 const saveInvoice = async (req, res) => {
@@ -35,12 +34,6 @@ const payInvoice = async (req, res) => {
   }
   return res.status(result.code).json(result);
 };
-const saveInvoiceRefund = async (req, res) => {
-  const id = req.params.id;
-  const data = req.body;
-  const result = await createInvoiceRefund(id, data);
-  return res.status(result.code).json(result);
-};
 const getInvoiceByCustId = async (req, res) => {
   const id = req.params.id;
   const result = await findInvoiceByCustId(id);
@@ -51,6 +44,5 @@ module.exports = {
   getAllInvoice,
   getInvoiceByAppointmentId,
   payInvoice,
-  saveInvoiceRefund,
   getInvoiceByCustId,
 };
