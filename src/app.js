@@ -57,7 +57,6 @@ const startServer = async (port) => {
       },
     });
   });
-  cronJobExpiresAppointment.start();
   cronJobResetIdInvoice.start();
   cronRefreshPriceCatalog.start();
   cronRefreshPromotionLine.start();

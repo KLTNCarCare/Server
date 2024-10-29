@@ -1,17 +1,11 @@
 const validator = require("validator");
 const {
-  countAppointmentAtTime,
   createAppointment,
-  findAppointmentInRangeDate,
   pushServiceToAppointment,
   pullServiceToAppointment,
   updateStatusAppoinment,
-  getTimePointAvailableBooking,
-  groupSlotTimePoint,
   getAllSlotInDate,
-  getAppointmentInDate,
   getTimePointAvailableBooking_New,
-  calEndtime,
   createAppointmentOnSite,
   findAppointmentDashboard,
   findAllAppointment,

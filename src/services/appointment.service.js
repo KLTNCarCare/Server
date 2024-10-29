@@ -21,45 +21,21 @@ const statusPriority = {
   canceled: 7,
 };
 
-const countAppointmentAtTime = async (time) =>
-  await Appointment.countDocuments({
-    startTime: { $lte: time },
-    endTime: { $gte: time },
-  });
 const findAppointmentInRangeDate = async (d1, d2) =>
   await Appointment.aggregate([
     {
       $match: {
         $or: [
-          { startTime: { $gte: d1, $lt: d2 } },
-          { endtTime: { $gt: d1, $lte: d2 } },
-          { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
+          { startActual: { $gte: d1, $lt: d2 } },
+          { endActual: { $gt: d1, $lte: d2 } },
+          { startActual: { $lte: d1 }, endActual: { $gte: d2 } },
         ],
       },
     },
     {
       $sort: {
-        startTime: 1,
-        endTime: 1,
-      },
-    },
-  ]);
-const findAppointmentStatusNotCanceledInRangeDate = async (d1, d2) =>
-  await Appointment.aggregate([
-    {
-      $match: {
-        $or: [
-          { startTime: { $gte: d1, $lt: d2 } },
-          { endTime: { $gt: d1, $lte: d2 } },
-          { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
-        ],
-        status: { $nin: ["canceled", "missed"] },
-      },
-    },
-    {
-      $sort: {
-        startTime: 1,
-        endTime: 1,
+        startActual: 1,
+        endActual: 1,
       },
     },
   ]);
@@ -68,17 +44,17 @@ const findAppointmentStatusNotCanceledCompletedInRangeDate = async (d1, d2) =>
     {
       $match: {
         $or: [
-          { startTime: { $gte: d1, $lt: d2 } },
-          { endTime: { $gt: d1, $lte: d2 } },
-          { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
+          { startActual: { $gte: d1, $lt: d2 } },
+          { endActual: { $gt: d1, $lte: d2 } },
+          { startActual: { $lte: d1 }, endActual: { $gte: d2 } },
         ],
-        status: { $nin: ["canceled", "completed", "missed"] },
+        status: { $nin: ["canceled", "completed"] },
       },
     },
     {
       $sort: {
-        startTime: 1,
-        endTime: 1,
+        startActual: 1,
+        endActual: 1,
       },
     },
   ]);
@@ -88,9 +64,9 @@ const findAppointmentInRangeDatePriorityStatus = async (d1, d2) =>
       // Đầu tiên, lọc các document theo khoảng thời gian
       $match: {
         $or: [
-          { startTime: { $gte: d1, $lt: d2 } },
-          { endTime: { $gt: d1, $lte: d2 } },
-          { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
+          { startActual: { $gte: d1, $lt: d2 } },
+          { endActual: { $gt: d1, $lte: d2 } },
+          { startActual: { $lte: d1 }, endActual: { $gte: d2 } },
         ],
       },
     },
@@ -114,8 +90,8 @@ const findAppointmentInRangeDatePriorityStatus = async (d1, d2) =>
       // Sắp xếp theo thời gian và ưu tiên của status
       $sort: {
         sortPriority: 1, // Sắp xếp theo sortPriority trước
-        startTime: 1, // Sau đó sắp xếp theo startTime
-        endTime: 1, // Và endTime nếu cần
+        startActual: 1, // Sau đó sắp xếp theo startActual
+        endActual: 1, // Và endActual nếu cần
       },
     },
     {
@@ -147,7 +123,7 @@ const pipelineFindAppointmentDashboard = (d1) => [
       $or: [
         { status: { $in: ["in-progress", "confirmed", "pending"] } }, // hiện đơn hàng đang xử lý, đã được xác nhận
         { status: "completed", invoiceCreated: false }, // đơn hàng đã hoàn thành nhưng chưa thanh toán
-        { status: { $in: ["missed", "canceled"] }, startTime: { $gte: d1 } }, // đơn hàng bị huỷ và bỏ lỡ
+        { status: { $in: ["missed", "canceled"] }, startActual: { $gte: d1 } }, // đơn hàng bị huỷ và bỏ lỡ
       ],
     },
   },
@@ -169,9 +145,9 @@ const pipelineFindAppointmentDashboard = (d1) => [
   },
   {
     $project: {
-      day: { $dayOfMonth: "$startTime" },
-      month: { $month: "$startTime" },
-      year: { $year: "$startTime" },
+      day: { $dayOfMonth: "$startActual" },
+      month: { $month: "$startActual" },
+      year: { $year: "$startActual" },
       sortPriority: 1,
       appointment: "$$ROOT",
     },
@@ -211,70 +187,6 @@ const pipelineFindAppointmentDashboard = (d1) => [
     },
   },
 ];
-const createAppointment = async (data) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  try {
-    const start_time = new Date(data.startTime);
-    const total_duration = Number(data.total_duration);
-    const end_timestamp = calEndtime(start_time.getTime(), total_duration);
-    const end_time = new Date(end_timestamp);
-    // thêm endtime cho data
-    //Kiểm tra thời gian đặt lịch hẹn
-    const hour_start = start_time.getHours();
-    const min_start = start_time.getMinutes();
-    if (
-      hour_start < start_work ||
-      hour_start >= end_work ||
-      (min_start != 0 && min_start != 30)
-    ) {
-      return { code: 400, message: "Giờ đặt sai định dạng", data: null };
-    }
-    data.endTime = end_time;
-    const existing_apps = await findAppointmentStatusNotCanceledInRangeDate(
-      start_time,
-      end_time
-    );
-    const slot_booking = await groupSlotTimePoint(
-      existing_apps,
-      start_time.getTime(),
-      end_time.getTime()
-    );
-    if (slot_booking.some((num) => num >= Number(process.env.LIMIT_SLOT))) {
-      return {
-        code: 400,
-        message: "Khung giờ chọn đã đầy.Vui lòng chọn khung giờ khác",
-        data: null,
-      };
-    }
-    const result = await Appointment.create(data);
-    await session.commitTransaction();
-    return {
-      code: 200,
-      message: "Thành công",
-      data: result,
-    };
-  } catch (error) {
-    console.log("Error in saveAppointmet: ", error);
-    session.abortTransaction();
-    if (
-      (error.name = "ValidatorError" && error.errors && error.errors["items"])
-    ) {
-      return {
-        code: 400,
-        message: error.errors["items"].message,
-        data: null,
-      };
-    }
-    return {
-      code: 500,
-      message: "Đã xảy ra lỗi máy chủ",
-      data: null,
-    };
-  } finally {
-    session.endSession();
-  }
-};
 const createAppointmentOnSite = async (appointment, skipCond) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -300,10 +212,6 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
         start_time,
         end_time
       );
-    //Gán giờ bắt đầu dự kiến là giờ bắt đầu thực tế, giá trị mặc định cửa giờ bắt đầu thực tế nếu lịch chưa in-progress  = giờ dự kiến
-    existing_apps.forEach((item) => {
-      item.startTime = item.startActual;
-    });
     //Kiểm tra thời gian bắt đầu nếu 6 vị trí đang in-progress thì không cho đặt
     apps_inProgress = existing_apps.map((item) => item.status == "in-progress");
     if (apps_inProgress.length >= 6) {
@@ -450,10 +358,6 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
         start_time,
         end_time
       );
-    //Gán giờ bắt đầu dự kiến là giờ bắt đầu thực tế, giá trị mặc định cửa giờ bắt đầu thực tế nếu lịch chưa in-progress  = giờ dự kiến
-    existing_apps.forEach((item) => {
-      item.startTime = item.startActual;
-    });
     //Kiểm tra thời gian bắt đầu nếu 6 vị trí đang in-progress thì không cho đặt
     apps_inProgress = existing_apps.map((item) => item.status == "in-progress");
     if (apps_inProgress.length >= 6) {
@@ -630,8 +534,8 @@ const groupSlotTimePoint = async (list_booking, start, end) => {
     //đếm slot
     const slot_time_point = list_booking.filter(
       (ele) =>
-        new Date(setStartTime(ele.startTime)).getTime() <= time_point &&
-        new Date(ele.endTime).getTime() > time_point
+        new Date(setStartTime(ele.startActual)).getTime() <= time_point &&
+        new Date(ele.endActual).getTime() > time_point
     ).length;
     result.push(slot_time_point);
   }
@@ -775,18 +679,6 @@ const getAppointmentInDate = async (d) => {
   );
   return result;
 };
-const updateExpiresAppoinment = async (deadline) => {
-  const expires = await Appointment.find({
-    status: "pending",
-    startTime: { $lte: deadline },
-  });
-  const ids = expires.map((ele) => ele._id);
-  await Appointment.updateMany(
-    { _id: { $in: ids }, status: "pending" },
-    { $set: { status: "missed" } }
-  );
-  return await Appointment.find({ _id: { $in: ids } });
-};
 
 const updateAppointmentCreatedInvoice = async (id, session) => {
   const result = await Appointment.findOneAndUpdate(
@@ -883,10 +775,8 @@ const status500 = { code: 500, message: "Đã xảy ra lỗi máy chủ", data: 
 const status400 = (mess) => ({ code: 400, message: mess, data: null });
 const status200 = (data) => ({ code: 200, message: "Thành công", data: data });
 module.exports = {
-  createAppointment,
   createAppointmentOnSite,
   createAppointmentOnSiteFuture,
-  countAppointmentAtTime,
   findAppointmentInRangeDate,
   updateStatusAppoinment,
   pushServiceToAppointment,
