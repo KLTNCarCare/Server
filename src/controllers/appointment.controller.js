@@ -11,6 +11,9 @@ const {
   findAllAppointment,
   updateStatusCompletedServiceAppointment,
   createAppointmentOnSiteFuture,
+  updateStatusInProgressAppointment,
+  updateStatusCompletedAppointment,
+  updateStatusCancelAppointment,
 } = require("../services/appointment.service");
 const connection = require("../services/sockjs_manager");
 const { messageType } = require("../utils/constants");
@@ -111,66 +114,30 @@ const deleteServiceToAppointment = async (req, res) => {
 };
 // cập nhật trạng thái là in-progress khi xe đang được xử lý
 const inProgressAppointment = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await updateStatusAppoinment(id, "in-progress");
-    if (!result) {
-      return res.status(400).json({ message: "Cập nhật thất bại" });
-    }
+  const id = req.params.id;
+  const items = req.body.items;
+  const result = await updateStatusInProgressAppointment(id, items);
+  if (result.code == 200) {
     connection.sendMessageAllStaff(messageType.in_progress_app, result);
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in inProgressAppointment", error);
-
-    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
-};
-//cập nhật trạng thái là confirmed khi tiếp nhận xe của khách
-const confirmAppointment = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await updateStatusAppoinment(id, "confirmed");
-    if (!result) {
-      return res.status(400).json({ message: "Cập nhật thất bại" });
-    }
-    connection.sendMessageAllStaff(messageType.confirm_app, result);
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in inProgressAppointment", error);
-
-    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
-  }
+  return res.status(result.code).json(result);
 };
 //cập nhật trạng thái là completed khi xe đã xử lý xong
 const completeAppointment = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await updateStatusAppoinment(id, "completed");
-    if (!result) {
-      return res.status(400).json({ message: "Cập nhật thất bại" });
-    }
+  const id = req.params.id;
+  const result = await updateStatusCompletedAppointment(id);
+  if (result.code == 200) {
     connection.sendMessageAllStaff(messageType.complete_app, result);
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in inProgressAppointment", error);
-
-    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
+  return res.status(result.code).json(result);
 };
 const cancelAppointment = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await updateStatusAppoinment(id, "canceled");
-    if (!result) {
-      return res.status(400).json({ message: "Cập nhật thất bại" });
-    }
+  const id = req.params.id;
+  const result = await updateStatusCancelAppointment(id);
+  if (result.code == 200) {
     connection.sendMessageAllStaff(messageType.cancel_app, result);
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in cancelAppointment", error);
-
-    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
+  return res.status(result.code).json(result);
 };
 const getAllSlotInDay = async (req, res) => {
   try {
@@ -218,7 +185,6 @@ module.exports = {
   deleteServiceToAppointment,
   addServiceToAppointment,
   inProgressAppointment,
-  confirmAppointment,
   completeAppointment,
   cancelAppointment,
   getAllSlotInDay,

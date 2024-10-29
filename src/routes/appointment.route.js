@@ -5,7 +5,6 @@ const {
   addServiceToAppointment,
   deleteServiceToAppointment,
   inProgressAppointment,
-  confirmAppointment,
   completeAppointment,
   getAllSlotInDay,
   getAppointmentInDay,
@@ -50,7 +49,6 @@ router.put(
 );
 router.get("/get-all", auth(["admin", "staff"]), getAllAppointment);
 router.put("/in-progress/:id", auth(["admin", "staff"]), inProgressAppointment);
-router.put("/confirmed/:id", auth(["admin", "staff"]), confirmAppointment);
 router.put("/completed/:id", auth(["admin", "staff"]), completeAppointment);
 router.put("/canceled/:id", auth(["admin", "staff"]), cancelAppointment);
 router.put(

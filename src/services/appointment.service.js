@@ -498,13 +498,100 @@ const updateStatusAppoinment = async (id, status) => {
     new: true,
   });
 };
-const updateStatusInProgressAppointment = async (id) => {
+const updateStatusInProgressAppointment = async (id, itemsPriority) => {
   try {
+    //lấy lịch hẹn
+    const doc = await getAppointmentById(id);
+    const obj = doc ? doc.toObject() : null;
+    if (!obj) {
+      return status400("Không tìm thấy lịch hẹn");
+    }
+    //kiểm tra hiện tại có đang full vị trí xử lý không
+    const now = new Date();
+    const countInProgress = await Appointment.countDocuments({
+      startActual: { $lt: now },
+      endActual: { $gt: now },
+      status: "in-progress",
+    });
+    if (countInProgress >= 6) {
+      return status400("Đang đầy vị trí xử lý");
+    }
+    if (!Array.isArray(itemsPriority)) {
+      return status400("Bad request");
+    }
+    const ids = itemsPriority.map((item) => item.serviceId);
+    const checkMatchItems = obj.items.every((item) =>
+      ids.includes(item.serviceId)
+    );
+    if (!checkMatchItems) {
+      return status400("Bad request");
+    }
+    const itemsSort = [];
+    for (let item of itemsPriority) {
+      const service = obj.items.find((ele) => ele.serviceId == item.serviceId);
+      itemsSort.push(service);
+    }
+    const result = await Appointment.findOneAndUpdate(
+      { _id: id },
+      { $set: { status: "in-progress", items: itemsSort } },
+      { new: true }
+    );
+    return { code: 200, message: "Thành công", data: result };
   } catch (error) {
     console.log("Error in function updateStatusInProgressAppointment", error);
     return status500;
   }
 };
+const updateStatusCompletedAppointment = async (id) => {
+  try {
+    //lấy lịch hẹn
+    const doc = await getAppointmentById(id);
+    const obj = doc ? doc.toObject() : null;
+    if (!obj) {
+      return status400("Không tìm thấy lịch hẹn");
+    }
+    //kiểm tra các dịch vụ lịch hẹn đã hoàn tất hết chưa
+    const checkCompleted = obj.items.some((item) => item.status != "completed");
+    if (checkCompleted) {
+      return status400("Còn dịch vụ chưa hoàn thành trong đơn hàng");
+    } else {
+      const result = await Appointment.findOneAndUpdate(
+        { _id: id },
+        { $set: { status: "completed" } },
+        { new: true }
+      );
+      return { code: 200, message: "Thành công", data: result };
+    }
+  } catch (error) {
+    console.log("Error in function updateStatusInProgressAppointment", error);
+    return status500;
+  }
+};
+const updateStatusCancelAppointment = async (id) => {
+  try {
+    //lấy lịch hẹn
+    const doc = await getAppointmentById(id);
+    const obj = doc ? doc.toObject() : null;
+    if (!obj) {
+      return status400("Không tìm thấy lịch hẹn");
+    }
+    //Chỉ được phép huỷ lịch hẹn đang pending
+    if (obj.status != "pending") {
+      return status400("Chỉ được huỷ lịch hẹn đang chờ xử lý");
+    } else {
+      const result = await Appointment.findOneAndUpdate(
+        { _id: id },
+        { $set: { status: "canceled" } },
+        { new: true }
+      );
+      return { code: 200, message: "Thành công", data: result };
+    }
+  } catch (error) {
+    console.log("Error in function updateStatusInProgressAppointment", error);
+    return status500;
+  }
+};
+
 const pushServiceToAppointment = async (id, service) =>
   await Appointment.findOneAndUpdate(
     { _id: id },
@@ -787,7 +874,6 @@ module.exports = {
   getAppointmentInDate,
   getTimePointAvailableBooking_New,
   calEndtime,
-  updateExpiresAppoinment,
   getAppointmentById,
   getAppointmentLeanById,
   updateAppointmentCreatedInvoice,
@@ -796,4 +882,7 @@ module.exports = {
   findAllAppointment,
   updateStatusCompletedServiceAppointment,
   getAppointmentByAppointmentId,
+  updateStatusInProgressAppointment,
+  updateStatusCompletedAppointment,
+  updateStatusCancelAppointment,
 };
