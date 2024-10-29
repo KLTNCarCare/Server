@@ -13,6 +13,8 @@ const {
   createInvoiceFromAppointmentId,
   createInvoiceByAppointmentId,
 } = require("./invoice.service");
+const { sendMessageAllStaff } = require("./sockjs_manager");
+const { messageType } = require("../utils/constants");
 const createPaymentVNPayGate = async (id, vnp_IpAddr) => {
   try {
     const obj = await getAppointmentById(id);
@@ -100,19 +102,21 @@ const createPaymentZaloPay = async (id) => {
     if (obj.invoiceCreated) {
       return { code: 400, message: "Đơn hàng đã có hoá đơn", data: null };
     }
-    const embed_data = {};
+    const embed_data = { redirecturl: `${process.env.HOST_WEB}/invoice` };
+    const app_trans_id =
+      moment().format("YYMMDDmmss") + "_" + obj.appointmentId;
     const order = {
       app_id: config.app_id,
-      app_trans_id: `${moment().format("YYMMDDmmss")}_${obj.appointmentId}`, // translation missing: vi.docs.shared.sample_code.comments.app_trans_id
+      app_trans_id: app_trans_id, // translation missing: vi.docs.shared.sample_code.comments.app_trans_id
       app_user: "AK AUTO",
       app_time: Date.now(),
       expire_duration_seconds: 900, // miliseconds
       item: JSON.stringify(obj.items),
       embed_data: JSON.stringify(embed_data),
       amount: obj.final_total,
-      description: `AK Auto - Payment for the order #${this.app_trans_id}`,
+      description: `AK Auto - Thanh toán đơn hàng:${app_trans_id}`,
       callback_url:
-        "https://3587-171-252-155-255.ngrok-free.app/v1/api/payment/callback",
+        "https://8eb1-171-252-155-255.ngrok-free.app/v1/api/payment/callback",
       // bank_code: "zalopayapp",
     };
     const data =
@@ -161,6 +165,7 @@ const callbackZaloPay = async (data) => {
       console.log(orderId);
       const result = await createInvoiceByAppointmentId(orderId, "transfer");
       if (result.code == 200) {
+        sendMessageAllStaff(messageType.save_invoice, result);
         return {
           return_code: 1,
           return_message: "Success",

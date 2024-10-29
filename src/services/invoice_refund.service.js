@@ -49,7 +49,7 @@ const createInvoiceRefund = async (id, data) => {
 };
 const findAllInvoiceRefund = async (page, limit, field, word) => {
   try {
-    const filter = { status: { $ne: "deleted" } };
+    const filter = {};
     if (field && word) {
       filter[field] = RegExp(word, "iu");
     }

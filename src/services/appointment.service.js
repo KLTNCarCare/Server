@@ -360,7 +360,9 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
       );
     //Kiểm tra thời gian bắt đầu nếu 6 vị trí đang in-progress thì không cho đặt
     apps_inProgress = existing_apps.map((item) => item.status == "in-progress");
-    if (apps_inProgress.length >= 6) {
+    console.log(apps_inProgress);
+
+    if (apps_inProgress.every((item) => item == true)) {
       return {
         code: 500,
         message: "Thời gian bắt đầu đã đầy vị trí xử lý. Hãy lùi khung giờ lại",

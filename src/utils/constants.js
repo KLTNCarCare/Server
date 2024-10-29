@@ -10,5 +10,6 @@ const messageType = {
   pay_invoice: "PAID-INVOICE",
   update_process_app: "PROCESS-APPOINTMENT",
   save_invoice_refund: "SAVE-INVOICE-REFUND",
+  save_invoice: "SAVE-INVOICE-REFUND",
 };
 module.exports = { messageType };
