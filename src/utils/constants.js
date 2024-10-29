@@ -1,6 +1,7 @@
 const messageType = {
   save_app: "SAVE-APPOINTMENT",
   confirm_app: "CONFIRMED-APPOINTMENT",
+  pending_app: "PENDING-APPOINTMENT",
   in_progress_app: "IN-PROGRESS-APPOINTMENT",
   complete_app: "COMPLETED-APPOINTMENT",
   cancel_app: "CANCELED-APPOINTMENT",

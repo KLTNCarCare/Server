@@ -16,6 +16,7 @@ const {
   findAppointmentDashboard,
   findAllAppointment,
   updateStatusCompletedServiceAppointment,
+  createAppointmentOnSiteFuture,
 } = require("../services/appointment.service");
 const connection = require("../services/sockjs_manager");
 const { messageType } = require("../utils/constants");
@@ -69,6 +70,15 @@ const saveAppointmentOnSite = async (req, res) => {
   const result = await createAppointmentOnSite(data, skipCond);
   if (result.code == 200) {
     connection.sendMessageAllStaff(messageType.in_progress_app, result.data);
+  }
+  return res.status(result.code).json(result);
+};
+const saveAppointmentOnSiteFuture = async (req, res) => {
+  const data = req.body;
+  const skipCond = req.query.skipCond;
+  const result = await createAppointmentOnSiteFuture(data, skipCond);
+  if (result.code == 200) {
+    connection.sendMessageAllStaff(messageType.save_app, result.data);
   }
   return res.status(result.code).json(result);
 };
@@ -209,6 +219,7 @@ const updateProccessAppointment = async (req, res) => {
 module.exports = {
   saveAppointment,
   saveAppointmentOnSite,
+  saveAppointmentOnSiteFuture,
   getTimeAvailable,
   deleteServiceToAppointment,
   addServiceToAppointment,

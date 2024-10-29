@@ -71,7 +71,6 @@ const findAppointmentStatusNotCanceledCompletedInRangeDate = async (d1, d2) =>
           { startTime: { $gte: d1, $lt: d2 } },
           { endTime: { $gt: d1, $lte: d2 } },
           { startTime: { $lte: d1 }, endTime: { $gte: d2 } },
-          { status: "in-progress" },
         ],
         status: { $nin: ["canceled", "completed", "missed"] },
       },
@@ -292,25 +291,185 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
     appointment.startActual = start_time;
     appointment.endActual = end_time;
     appointment.status = "in-progress";
-    appointment.items[0].status = "in-progress";
+    if (appointment?.items?.[0]) {
+      appointment.items[0].status = "in-progress";
+    }
+    //Lấy ra những lịch hẹn ảnh hưởng đến khung giờ đặt lịch
+    const existing_apps =
+      await findAppointmentStatusNotCanceledCompletedInRangeDate(
+        start_time,
+        end_time
+      );
+    //Gán giờ bắt đầu dự kiến là giờ bắt đầu thực tế, giá trị mặc định cửa giờ bắt đầu thực tế nếu lịch chưa in-progress  = giờ dự kiến
+    existing_apps.forEach((item) => {
+      item.startTime = item.startActual;
+    });
+    //Kiểm tra thời gian bắt đầu nếu 6 vị trí đang in-progress thì không cho đặt
+    apps_inProgress = existing_apps.map((item) => item.status == "in-progress");
+    if (apps_inProgress.length >= 6) {
+      return {
+        code: 500,
+        message: "Thời gian bắt đầu đã đầy vị trí xử lý. Hãy lùi khung giờ lại",
+        data: null,
+      };
+    }
     if (!skipCond || !validator.toBoolean(skipCond, true)) {
-      const existing_apps =
-        await findAppointmentStatusNotCanceledCompletedInRangeDate(
-          start_time,
-          end_time
-        );
-      existing_apps.forEach((item) => {
-        if ((item.status = "in-progress")) {
-          item.startTime = item.startActual;
-        }
-      });
       const slot_booking = await groupSlotTimePoint(
         existing_apps,
         start_time.getTime(),
         end_time.getTime()
       );
-      console.log(slot_booking); //log
+      for (const [index, value] of slot_booking.entries()) {
+        if (value < 6) {
+          continue;
+        }
+        const time_full = setStartTime(
+          calEndtime(start_time.getTime(), index * interval)
+        );
+        return {
+          code: 400,
+          message: `Đã đầy lịch hẹn tại khung giờ ${getStringClockToDate(
+            time_full
+          )}.Thời gian còn lại chỉ phù hợp cho dịch vụ từ dưới ${
+            index * interval
+          } giờ`,
+          data: null,
+        };
+      }
+    }
+    const time_promotion = new Date();
+    const items = appointment.items.map((item) => item.serviceId);
+    // áp dụng loại khuyến mãi dịch vụ
+    const promotion_result = [];
+    const list_pro_service = await getProService(time_promotion, items);
+    if (list_pro_service.length > 0) {
+      appointment.items.forEach((item) => {
+        const pro = list_pro_service.find(
+          (pro) => pro.itemGiftId == item.serviceId
+        );
+        if (pro) {
+          item.discount = pro.discount;
+          promotion_result.push({
+            promotion_line: pro.lineId,
+            code: pro.code,
+            description: pro.description,
+            value: (item.price * pro.discount) / 100,
+          });
+        } else {
+          item.discount = 0;
+        }
+      });
+    }
+    //áp dụng loại khuyến mãi hoá đơn
+    const sub_total = appointment.items.reduce(
+      (total, item) => (total += (item.price * item.discount) / 100),
+      0
+    );
+    const pro_bill = await getProBill(time_promotion, sub_total);
 
+    if (pro_bill) {
+      appointment.discount = {
+        per: pro_bill.discount,
+        value_max: pro_bill.limitDiscount,
+      };
+      promotion_result.push({
+        promotion_line: pro_bill.lineId,
+        code: pro_bill.code,
+        description: pro_bill.description,
+        value:
+          (sub_total * pro_bill.discount) / 100 > pro_bill.limitDiscount
+            ? pro_bill.limitDiscount
+            : (sub_total * pro_bill.discount) / 100,
+      });
+    }
+    //tạo thông tin khách hàng
+    let customer = await findCustByPhone(appointment.customer.phone);
+    if (!customer) {
+      customerResult = await createCustomer(appointment.customer);
+      if (customerResult.code == 200) {
+        customer = customerResult.data;
+      } else {
+        return customerResult;
+      }
+    }
+    appointment.customer = customer;
+    // tạo object hoá đơn
+    appointment.promotion = promotion_result;
+    appointment.appointmentId = await generateAppointmentID({ session });
+    const appointment_result = await Appointment.create([appointment], {
+      session,
+    });
+    await session.commitTransaction();
+    const data_response = await Appointment.findById(appointment_result[0]._id);
+    return {
+      code: 200,
+      message: "Thành công",
+      data: data_response,
+    };
+  } catch (error) {
+    console.log("Error in saveAppointmetOnSite: ", error);
+    await session.abortTransaction();
+    if (
+      (error.name = "ValidatorError" && error.errors && error.errors["items"])
+    ) {
+      return {
+        code: 400,
+        message: error.errors["items"].message,
+        data: null,
+      };
+    }
+    return {
+      code: 500,
+      message: "Đã xảy ra lỗi máy chủ",
+      data: null,
+    };
+  } finally {
+    session.endSession();
+  }
+};
+const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const start_timestamp = setStartTime(appointment.startTime);
+    const start_time = new Date(start_timestamp);
+    const total_duration = Number(appointment.total_duration);
+    const end_timestamp = calEndtime(
+      new Date(appointment.startTime).getTime(),
+      total_duration
+    );
+    const end_time = new Date(setEndTime(end_timestamp));
+    appointment.endTime = end_time;
+    appointment.startActual = start_time;
+    appointment.endActual = end_time;
+    appointment.status = "pending";
+
+    //Lấy ra những lịch hẹn ảnh hưởng đến khung giờ đặt lịch
+    const existing_apps =
+      await findAppointmentStatusNotCanceledCompletedInRangeDate(
+        start_time,
+        end_time
+      );
+    //Gán giờ bắt đầu dự kiến là giờ bắt đầu thực tế, giá trị mặc định cửa giờ bắt đầu thực tế nếu lịch chưa in-progress  = giờ dự kiến
+    existing_apps.forEach((item) => {
+      item.startTime = item.startActual;
+    });
+    //Kiểm tra thời gian bắt đầu nếu 6 vị trí đang in-progress thì không cho đặt
+    apps_inProgress = existing_apps.map((item) => item.status == "in-progress");
+    if (apps_inProgress.length >= 6) {
+      return {
+        code: 500,
+        message: "Thời gian bắt đầu đã đầy vị trí xử lý. Hãy lùi khung giờ lại",
+        data: null,
+      };
+    }
+    //Kiểm tra khung giờ đầy
+    if (!skipCond || !validator.toBoolean(skipCond, true)) {
+      const slot_booking = await groupSlotTimePoint(
+        existing_apps,
+        start_time.getTime(),
+        end_time.getTime()
+      );
       for (const [index, value] of slot_booking.entries()) {
         if (value < 6) {
           continue;
@@ -717,6 +876,7 @@ const status200 = (data) => ({ code: 200, message: "Thành công", data: data })
 module.exports = {
   createAppointment,
   createAppointmentOnSite,
+  createAppointmentOnSiteFuture,
   countAppointmentAtTime,
   findAppointmentInRangeDate,
   updateStatusAppoinment,

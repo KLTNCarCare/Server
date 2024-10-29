@@ -13,10 +13,16 @@ const {
   saveAppointmentOnSite,
   getAllAppointment,
   updateProccessAppointment,
+  saveAppointmentOnSiteFuture,
 } = require("../controllers/appointment.controller");
 const auth = require("../middlewares/auth.middleware");
 router.post("/create", auth(["admin", "staff", "customer"]), saveAppointment);
 router.post("/create-on-site", auth(["admin", "staff"]), saveAppointmentOnSite);
+router.post(
+  "/create-on-site-future",
+  auth(["admin", "staff"]),
+  saveAppointmentOnSiteFuture
+);
 router.get(
   "/get-available-time",
   auth(["admin", "staff", "customer"]),
