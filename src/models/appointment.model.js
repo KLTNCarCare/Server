@@ -56,6 +56,22 @@ const serviceSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    startTime: {
+      type: Date,
+      default: null,
+    },
+    endTime: {
+      type: Date,
+      default: null,
+    },
+    startActual: {
+      type: Date,
+      default: null,
+    },
+    startEndActual: {
+      type: Date,
+      default: null,
+    },
     typeName: { type: String, required: true },
     serviceId: { type: String, required: true },
     serviceName: {

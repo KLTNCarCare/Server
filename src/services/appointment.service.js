@@ -198,6 +198,8 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
       new Date(appointment.startTime).getTime(),
       total_duration
     );
+    console.log(new Date(end_timestamp)); //log
+
     const end_time = new Date(setEndTime(end_timestamp));
     appointment.endTime = end_time;
     appointment.startActual = start_time;
@@ -307,7 +309,7 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
     const appointment_result = await Appointment.create([appointment], {
       session,
     });
-    await session.commitTransaction();
+    //await session.commitTransaction(); //log
     const data_response = await Appointment.findById(appointment_result[0]._id);
     return {
       code: 200,
@@ -660,11 +662,15 @@ const calEndtime = (startTime, duration) => {
   let endTime = startTime;
   let count = 0;
   while (count < duration) {
-    const temp = new Date(endTime);
-    if (temp.getHours() + temp.getMinutes() / 60 > end_work - interval) {
-      endTime += (24 - (end_work - start_work) + interval) * 60 * 60 * 1000;
+    if (duration - count < interval) {
+      endTime += (duration - count) * 60 * 60 * 1000;
     } else {
-      endTime += interval * 60 * 60 * 1000;
+      const temp = new Date(endTime);
+      if (temp.getHours() + temp.getMinutes() / 60 > end_work - interval) {
+        endTime += (24 - (end_work - start_work) + interval) * 60 * 60 * 1000;
+      } else {
+        endTime += interval * 60 * 60 * 1000;
+      }
     }
     count += interval;
   }
@@ -856,7 +862,7 @@ const updateStatusCompletedServiceAppointment = async (
     );
     return status200(result);
   } catch (error) {
-    console.log("Error in updateStatusInProgressServiceAppointment", error);
+    console.log("Error in updateStatusCompletedServiceAppointment", error);
     return status500;
   }
 };
