@@ -191,6 +191,8 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
+    delete appointment.createdAt;
+    delete appointment.updatedAt;
     const start_timestamp = setStartTime(appointment.startTime);
     const start_time = new Date(start_timestamp);
     const total_duration = Number(appointment.total_duration);
@@ -370,6 +372,8 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
+    delete appointment.createdAt;
+    delete appointment.updatedAt;
     const start_timestamp = setStartTime(appointment.startTime);
     const start_time = new Date(start_timestamp);
     const total_duration = Number(appointment.total_duration);
