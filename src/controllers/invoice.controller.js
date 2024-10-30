@@ -11,7 +11,7 @@ const saveInvoice = async (req, res) => {
   const paymentMethod = req.body.paymentMethod;
   const result = await createInvoiceFromAppointmentId(id, paymentMethod);
   if (result.code == 200) {
-    connection.sendMessageAllStaff(messageType.save_invoice, data);
+    connection.sendMessageAllStaff(messageType.save_invoice, result.data);
   }
   return res.status(result.code).json(result.data);
 };
