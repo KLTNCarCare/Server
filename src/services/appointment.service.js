@@ -341,7 +341,7 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
     });
     console.log(appointment); //log
 
-    //await session.commitTransaction();
+    await session.commitTransaction();
     const data_response = await Appointment.findById(appointment_result[0]._id);
     return {
       code: 200,

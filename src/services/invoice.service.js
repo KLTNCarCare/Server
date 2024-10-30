@@ -52,7 +52,7 @@ const createInvoiceFromAppointmentId = async (appId, paymentMethod) => {
       }
     }
     await session.commitTransaction();
-    const invoice = await findInvoiceById(result[0]._id);
+    const invoice = new Invoice(result[0]);
     return {
       code: 200,
       message: "Thành công",
