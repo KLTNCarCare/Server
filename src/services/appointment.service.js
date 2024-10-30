@@ -252,7 +252,10 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
     const ids = appointment.items.map((item) => item.serviceId);
     const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
     const { findServiceAppointment } = require("./service.service");
-    const services = await findServiceAppointment(objectIds);
+    const services = await findServiceAppointment(
+      objectIds,
+      new Date(appointment.startTime)
+    );
     const checkMatchItems = services.every((service) =>
       ids.includes(service.serviceId.toString())
     );
@@ -437,7 +440,10 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
     const ids = appointment.items.map((item) => item.serviceId);
     const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
     const { findServiceAppointment } = require("./service.service");
-    const services = await findServiceAppointment(objectIds);
+    const services = await findServiceAppointment(
+      objectIds,
+      new Date(appointment.startTime)
+    );
     const checkMatchItems = services.every((service) =>
       ids.includes(service.serviceId.toString())
     );

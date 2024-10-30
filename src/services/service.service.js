@@ -309,7 +309,7 @@ const findOneSerivceByCategoryId = async (categoryId) =>
     categoryId: categoryId,
     status: { $ne: "deleted" },
   }).lean();
-const findServiceAppointment = async (ids) => {
+const findServiceAppointment = async (ids, startTime) => {
   const now = new Date();
   const pipline = [
     {
@@ -345,15 +345,15 @@ const findServiceAppointment = async (ids) => {
         let: {
           itemId: "$_id",
           day: {
-            $toDate: now,
+            $toDate: startTime,
           },
         },
         pipeline: [
           {
             $match: {
               status: "active",
-              startDate: { $lte: now },
-              endDate: { $gte: now },
+              startDate: { $lte: startTime },
+              endDate: { $gte: startTime },
             },
           },
           {
