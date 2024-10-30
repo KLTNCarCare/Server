@@ -198,12 +198,10 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
       new Date(appointment.startTime).getTime(),
       total_duration
     );
-    console.log(new Date(end_timestamp)); //log
-
     const end_time = new Date(setEndTime(end_timestamp));
-    appointment.endTime = end_time;
-    appointment.startActual = start_time;
-    appointment.endActual = end_time;
+    appointment.endTime = new Date(end_timestamp);
+    appointment.startActual = new Date(appointment.startTime);
+    appointment.endActual = new Date(end_timestamp);
     appointment.status = "in-progress";
     if (appointment?.items?.[0]) {
       appointment.items[0].status = "in-progress";
@@ -247,6 +245,33 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
         };
       }
     }
+    //Xử lý items
+    if (!Array.isArray(appointment.items)) {
+      return status400("Bad request");
+    }
+    const ids = appointment.items.map((item) => item.serviceId);
+    const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
+    const { findServiceAppointment } = require("./service.service");
+    const services = await findServiceAppointment(objectIds);
+    const checkMatchItems = services.every((service) =>
+      ids.includes(service.serviceId.toString())
+    );
+    if (!checkMatchItems) {
+      return status400("Hệ thống không lấy được thông tin dịch vụ");
+    }
+    const itemsSort = [];
+    for (let id of ids) {
+      services.forEach((service) => {
+        if (service.serviceId == id) {
+          itemsSort.push(service);
+        }
+      });
+    }
+    appointment.items = addTimeInitService(
+      itemsSort,
+      new Date(appointment.startTime)
+    );
+    // Xử lý thông tin khuyến mãi
     const time_promotion = new Date();
     const items = appointment.items.map((item) => item.serviceId);
     // áp dụng loại khuyến mãi dịch vụ
@@ -309,6 +334,7 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
     const appointment_result = await Appointment.create([appointment], {
       session,
     });
+    console.log(appointment); //log
     //await session.commitTransaction(); //log
     const data_response = await Appointment.findById(appointment_result[0]._id);
     return {
@@ -349,9 +375,9 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
       total_duration
     );
     const end_time = new Date(setEndTime(end_timestamp));
-    appointment.endTime = end_time;
-    appointment.startActual = start_time;
-    appointment.endActual = end_time;
+    appointment.endTime = new Date(end_timestamp);
+    appointment.startActual = new Date(appointment.startTime);
+    appointment.endActual = new Date(end_timestamp);
     appointment.status = "pending";
 
     //Lấy ra những lịch hẹn ảnh hưởng đến khung giờ đặt lịch
@@ -371,7 +397,15 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
         data: null,
       };
     }
-    //Kiểm tra khung giờ đầy
+    //Kiểm tra thời gian bắt đầu nếu 6 vị trí đang in-progress thì không cho đặt
+    apps_inProgress = existing_apps.map((item) => item.status == "in-progress");
+    if (apps_inProgress.length >= 6) {
+      return {
+        code: 500,
+        message: "Thời gian bắt đầu đã đầy vị trí xử lý. Hãy lùi khung giờ lại",
+        data: null,
+      };
+    }
     if (!skipCond || !validator.toBoolean(skipCond, true)) {
       const slot_booking = await groupSlotTimePoint(
         existing_apps,
@@ -396,6 +430,33 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
         };
       }
     }
+    //Xử lý items
+    if (!Array.isArray(appointment.items)) {
+      return status400("Bad request");
+    }
+    const ids = appointment.items.map((item) => item.serviceId);
+    const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
+    const { findServiceAppointment } = require("./service.service");
+    const services = await findServiceAppointment(objectIds);
+    const checkMatchItems = services.every((service) =>
+      ids.includes(service.serviceId.toString())
+    );
+    if (!checkMatchItems) {
+      return status400("Hệ thống không lấy được thông tin dịch vụ");
+    }
+    const itemsSort = [];
+    for (let id of ids) {
+      services.forEach((service) => {
+        if (service.serviceId == id) {
+          itemsSort.push(service);
+        }
+      });
+    }
+    appointment.items = addTimeInitService(
+      itemsSort,
+      new Date(appointment.startTime)
+    );
+    // Xử lý thông tin khuyến mãi
     const time_promotion = new Date();
     const items = appointment.items.map((item) => item.serviceId);
     // áp dụng loại khuyến mãi dịch vụ
@@ -458,7 +519,9 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
     const appointment_result = await Appointment.create([appointment], {
       session,
     });
-    await session.commitTransaction();
+    console.log(appointment);
+
+    //await session.commitTransaction(); //log
     const data_response = await Appointment.findById(appointment_result[0]._id);
     return {
       code: 200,
@@ -666,7 +729,18 @@ const calEndtime = (startTime, duration) => {
       endTime += (duration - count) * 60 * 60 * 1000;
     } else {
       const temp = new Date(endTime);
-      if (temp.getHours() + temp.getMinutes() / 60 > end_work - interval) {
+      if (
+        temp.getHours() + temp.getMinutes() / 60 > end_work - interval &&
+        temp.getHours() + temp.getMinutes() / 60 < end_work
+      ) {
+        endTime +=
+          (24 -
+            (end_work - start_work) +
+            (interval - temp.getHours() - temp.getMinutes() / 60)) *
+          60 *
+          60 *
+          1000;
+      } else if (temp.getHours() + temp.getMinutes() / 60 > end_work) {
         endTime += (24 - (end_work - start_work) + interval) * 60 * 60 * 1000;
       } else {
         endTime += interval * 60 * 60 * 1000;
@@ -675,6 +749,32 @@ const calEndtime = (startTime, duration) => {
     count += interval;
   }
   return endTime;
+};
+const addTimeInitService = (items, start) => {
+  const startTime = new Date(start);
+  for (let i = 0; i < items.length; i++) {
+    if (i == 0) {
+      items[i].startTime = new Date(startTime);
+      items[i].startActual = new Date(startTime);
+      items[i].endTime = new Date(
+        calEndtime(startTime.getTime(), items[i].duration)
+      );
+      items[i].endActual = new Date(
+        calEndtime(startTime.getTime(), items[i].duration)
+      );
+    } else {
+      const preEndTime = new Date(items[i - 1].endTime);
+      items[i].startTime = new Date(preEndTime);
+      items[i].startActual = new Date(preEndTime);
+      items[i].endTime = new Date(
+        calEndtime(preEndTime.getTime(), items[i].duration)
+      );
+      items[i].endActual = new Date(
+        calEndtime(preEndTime.getTime(), items[i].duration)
+      );
+    }
+  }
+  return items;
 };
 const setStartTime = (startTime) => {
   if (60 % (interval * 60) != 0) {

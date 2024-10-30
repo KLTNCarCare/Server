@@ -68,9 +68,14 @@ const serviceSchema = mongoose.Schema(
       type: Date,
       default: null,
     },
-    startEndActual: {
+    endActual: {
       type: Date,
       default: null,
+    },
+    duration: {
+      type: Number,
+      required: true,
+      min: 0,
     },
     typeName: { type: String, required: true },
     serviceId: { type: String, required: true },

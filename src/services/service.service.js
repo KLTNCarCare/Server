@@ -309,6 +309,108 @@ const findOneSerivceByCategoryId = async (categoryId) =>
     categoryId: categoryId,
     status: { $ne: "deleted" },
   }).lean();
+const findServiceAppointment = async (ids) => {
+  const now = new Date();
+  const pipline = [
+    {
+      $match: {
+        _id: { $in: ids },
+        status: "active",
+      },
+    },
+    {
+      $addFields: {
+        packObj: {
+          $toObjectId: "$categoryId",
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "service_packages",
+        localField: "packObj",
+        foreignField: "_id",
+        as: "service_package",
+      },
+    },
+    {
+      $unwind: {
+        path: "$service_package",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "pricecatalogs",
+        let: {
+          itemId: "$_id",
+          day: {
+            $toDate: now,
+          },
+        },
+        pipeline: [
+          {
+            $match: {
+              status: "active",
+              startDate: { $lte: now },
+              endDate: { $gte: now },
+            },
+          },
+          {
+            $unwind: "$items",
+          },
+          {
+            $addFields: {
+              objId: {
+                $toObjectId: "$items.itemId",
+              },
+            },
+          },
+          {
+            $match: {
+              $expr: {
+                $eq: ["$objId", "$$itemId"],
+              },
+            },
+          },
+          {
+            $project: {
+              price: "$items.price",
+              _id: 0,
+            },
+          },
+        ],
+        as: "price",
+      },
+    },
+    {
+      $unwind: {
+        path: "$price",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $replaceRoot: {
+        newRoot: {
+          serviceId: "$_id",
+          serviceName: "$serviceName",
+          typeId: "$service_package._id",
+          typeName: "$service_package.categoryName",
+          duration: "$duration",
+          price: "$price.price",
+        },
+      },
+    },
+    {
+      $match: {
+        price: {
+          $ne: null,
+        },
+      },
+    },
+  ];
+  return await Service.aggregate(pipline);
+};
 module.exports = {
   createService,
   deleteService,
@@ -321,4 +423,5 @@ module.exports = {
   findServicesByListId,
   findAllServiceToPick,
   findOneSerivceByCategoryId,
+  findServiceAppointment,
 };
