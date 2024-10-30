@@ -199,9 +199,9 @@ const findAllInvoice = async (page, limit, field, word) => {
       filter[field] = RegExp(word, "iu");
     }
     const result = await Invoice.find(filter)
-      .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
+      .sort({ createdAt: -1 });
     const totalCount = await Invoice.countDocuments(filter);
     return {
       code: 200,
