@@ -9,8 +9,11 @@ const { messageType } = require("../utils/constants");
 const saveInvoice = async (req, res) => {
   const id = req.params.appointmentId;
   const paymentMethod = req.body.paymentMethod;
-  const data = await createInvoiceFromAppointmentId(id, paymentMethod);
-  return res.status(200).json(data);
+  const result = await createInvoiceFromAppointmentId(id, paymentMethod);
+  if (result.code == 200) {
+    connection.sendMessageAllStaff(messageType.save_invoice, data);
+  }
+  return res.status(result.code).json(result.data);
 };
 const getAllInvoice = async (req, res) => {
   const page = Number(req.query.page) || 1;
