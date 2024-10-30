@@ -278,7 +278,7 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
     );
     // Xử lý thông tin khuyến mãi
     const time_promotion = new Date();
-    const items = appointment.items.map((item) => item.serviceId);
+    const items = appointment.items.map((item) => item.serviceId.toString());
     // áp dụng loại khuyến mãi dịch vụ
     const promotion_result = [];
     const list_pro_service = await getProService(time_promotion, items);
@@ -468,7 +468,7 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
     );
     // Xử lý thông tin khuyến mãi
     const time_promotion = new Date();
-    const items = appointment.items.map((item) => item.serviceId);
+    const items = appointment.items.map((item) => item.serviceId.toString());
     // áp dụng loại khuyến mãi dịch vụ
     const promotion_result = [];
     const list_pro_service = await getProService(time_promotion, items);
