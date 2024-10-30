@@ -205,9 +205,6 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
     appointment.startActual = new Date(appointment.startTime);
     appointment.endActual = new Date(end_timestamp);
     appointment.status = "in-progress";
-    if (appointment?.items?.[0]) {
-      appointment.items[0].status = "in-progress";
-    }
     //Lấy ra những lịch hẹn ảnh hưởng đến khung giờ đặt lịch
     const existing_apps =
       await findAppointmentStatusNotCanceledCompletedInRangeDate(
@@ -276,6 +273,9 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
       itemsSort,
       new Date(appointment.startTime)
     );
+    if (appointment?.items?.[0]) {
+      appointment.items[0].status = "in-progress";
+    }
     // Xử lý thông tin khuyến mãi
     const time_promotion = new Date();
     const items = appointment.items.map((item) => item.serviceId.toString());
@@ -340,7 +340,7 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
       session,
     });
     console.log(appointment); //log
-    await session.commitTransaction(); //log
+    //await session.commitTransaction(); //log
     const data_response = await Appointment.findById(appointment_result[0]._id);
     return {
       code: 200,
