@@ -727,6 +727,10 @@ const calEndtime = (startTime, duration) => {
   while (count < duration) {
     if (duration - count < interval) {
       endTime += (duration - count) * 60 * 60 * 1000;
+      const overDate = new Date(endTime);
+      if (overDate.getHours() + overDate.getMinutes() / 60 > end_work) {
+        endTime += (24 - (end_work - start_work) + interval) * 60 * 60 * 1000;
+      }
     } else {
       const temp = new Date(endTime);
       if (
@@ -746,6 +750,7 @@ const calEndtime = (startTime, duration) => {
         endTime += interval * 60 * 60 * 1000;
       }
     }
+
     count += interval;
   }
   return endTime;
@@ -763,7 +768,7 @@ const addTimeInitService = (items, start) => {
         calEndtime(startTime.getTime(), items[i].duration)
       );
     } else {
-      const preEndTime = new Date(items[i - 1].endTime);
+      const preEndTime = new Date(items[i - 1].endActual);
       items[i].startTime = new Date(preEndTime);
       items[i].startActual = new Date(preEndTime);
       items[i].endTime = new Date(
@@ -939,25 +944,33 @@ const updateStatusCompletedServiceAppointment = async (
   serviceId
 ) => {
   try {
-    const obj = await Appointment.findOne({
+    let obj = await Appointment.findOne({
       _id: appointmentId,
       "items.serviceId": serviceId,
     });
     if (!obj) {
       return status400("Không tìm thấy lịch hẹn");
     }
-    const items = obj.items;
+    let items = obj.items;
+    const now = Date.now();
     const index = items.findIndex((item) => item.serviceId == serviceId);
     if (index < items.length - 1) {
       items[index].status = "completed";
       items[index + 1].status = "in-progress";
+      items[index].endActual = new Date(now);
+      items = addTimeInitService(items, new Date(obj.startActual));
+      obj.endTime = new Date(items[items.length - 1].endTime);
     } else {
       //Xử lý khi cập nhật dịch vụ cuối
       items[index].status = "completed";
+      obj.status = "completed";
+      items[index].endActual = new Date(now);
+      obj.endActual = new Date(now);
     }
+    delete obj._id;
     const result = await Appointment.findOneAndUpdate(
       { _id: appointmentId },
-      { $set: { items: items } },
+      { $set: obj },
       { new: true }
     );
     return status200(result);

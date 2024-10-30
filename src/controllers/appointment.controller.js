@@ -173,7 +173,11 @@ const updateProccessAppointment = async (req, res) => {
   );
   if (result.code == 200) {
     const app = new Appointment(result.data);
-    connection.sendMessageAllStaff(messageType.update_process_app, app);
+    if (result.data.status == "completed") {
+      connection.sendMessageAllStaff(messageType.complete_app, app);
+    } else {
+      connection.sendMessageAllStaff(messageType.update_process_app, app);
+    }
   }
   return res.status(result.code).json(result);
 };
