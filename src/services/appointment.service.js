@@ -597,21 +597,53 @@ const updateStatusInProgressAppointment = async (id, itemsPriority) => {
     if (!Array.isArray(itemsPriority)) {
       return status400("Bad request");
     }
-    const ids = itemsPriority.map((item) => item.serviceId);
-    const checkMatchItems = obj.items.every((item) =>
-      ids.includes(item.serviceId)
-    );
-    if (!checkMatchItems) {
-      return status400("Bad request");
-    }
-    const itemsSort = [];
-    for (let item of itemsPriority) {
-      const service = obj.items.find((ele) => ele.serviceId == item.serviceId);
-      itemsSort.push(service);
-    }
+
+    // const ids = itemsPriority.map((item) => item.serviceId);
+    // const checkMatchItems = obj.items.every((item) =>
+    //   ids.includes(item.serviceId)
+    // );
+    // if (!checkMatchItems) {
+    //   return status400("Bad request");
+    // }
+    // const itemsSort = [];
+    // for (let item of itemsPriority) {
+    //   const service = obj.items.find((ele) => ele.serviceId == item.serviceId);
+    //   itemsSort.push(service);
+    // }
     const result = await Appointment.findOneAndUpdate(
       { _id: id },
       { $set: { status: "in-progress", items: itemsSort } },
+      { new: true }
+    );
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in function updateStatusInProgressAppointment", error);
+    return status500;
+  }
+};
+const updateStatusInProgressAppointmentNew = async (id) => {
+  try {
+    //lấy lịch hẹn
+    const doc = await getAppointmentById(id);
+    const obj = doc ? doc.toObject() : null;
+    if (!obj) {
+      return status400("Không tìm thấy lịch hẹn");
+    }
+    //kiểm tra hiện tại có đang full vị trí xử lý không
+    const now = new Date();
+    const countInProgress = await Appointment.countDocuments({
+      startActual: { $lt: now },
+      endActual: { $gt: now },
+      status: "in-progress",
+    });
+    if (countInProgress >= 6) {
+      return status400("Đang đầy vị trí xử lý");
+    }
+    let items = obj.items;
+    items[0].status = "in-progress";
+    const result = await Appointment.findOneAndUpdate(
+      { _id: id },
+      { $set: { status: "in-progress", items: items } },
       { new: true }
     );
     return { code: 200, message: "Thành công", data: result };
@@ -1017,4 +1049,5 @@ module.exports = {
   updateStatusInProgressAppointment,
   updateStatusCompletedAppointment,
   updateStatusCancelAppointment,
+  updateStatusInProgressAppointmentNew,
 };

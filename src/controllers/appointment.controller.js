@@ -14,6 +14,7 @@ const {
   updateStatusInProgressAppointment,
   updateStatusCompletedAppointment,
   updateStatusCancelAppointment,
+  updateStatusInProgressAppointmentNew,
 } = require("../services/appointment.service");
 const connection = require("../services/sockjs_manager");
 const { messageType } = require("../utils/constants");
@@ -116,7 +117,7 @@ const deleteServiceToAppointment = async (req, res) => {
 const inProgressAppointment = async (req, res) => {
   const id = req.params.id;
   const items = req.body.items;
-  const result = await updateStatusInProgressAppointment(id, items);
+  const result = await updateStatusInProgressAppointmentNew(id);
   if (result.code == 200) {
     connection.sendMessageAllStaff(messageType.in_progress_app, result.data);
   }
