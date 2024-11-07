@@ -409,18 +409,7 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
         end_time
       );
     //Kiểm tra thời gian bắt đầu nếu 6 vị trí đang in-progress thì không cho đặt
-    apps_inProgress = existing_apps.map((item) => item.status == "in-progress");
-    console.log(apps_inProgress);
-
-    if (apps_inProgress.every((item) => item == true)) {
-      return {
-        code: 500,
-        message: "Thời gian bắt đầu đã đầy vị trí xử lý. Hãy lùi khung giờ lại",
-        data: null,
-      };
-    }
-    //Kiểm tra thời gian bắt đầu nếu 6 vị trí đang in-progress thì không cho đặt
-    apps_inProgress = [];
+    const apps_inProgress = [];
     existing_apps.forEach((item) => {
       if (item.status == "in-progress") {
         apps_inProgress.push(item);
@@ -532,7 +521,7 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
       });
     }
     //tạo thông tin khách hàng
-    let customer = await findCustByPhone(appointment.customer.phone);
+    let customer = await getCustByPhone(appointment.customer.phone);
     if (!customer) {
       customerResult = await createCustomer(appointment.customer);
       if (customerResult.code == 200) {
@@ -542,6 +531,8 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
       }
     }
     appointment.customer = customer;
+    console.log("appointment = ", appointment);
+
     // tạo object hoá đơn
     appointment.promotion = promotion_result;
     appointment.appointmentId = await generateAppointmentID({ session });
@@ -558,7 +549,7 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
       data: data_response,
     };
   } catch (error) {
-    console.log("Error in saveAppointmetOnSite: ", error);
+    console.log("Error in saveAppointmetOnSiteFuture: ", error);
     await session.abortTransaction();
     if (
       (error.name = "ValidatorError" && error.errors && error.errors["items"])
@@ -887,6 +878,7 @@ const setEndTime = (endTime) => {
 };
 const getTimePointAvailableBooking_New = async (date, duration) => {
   const date_booking = new Date(date);
+  const now = new Date();
   date_booking.setHours(0, 0, 0, 0);
   const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
   const start = date_booking.getTime() + end_work * 60 * 60 * 1000;
@@ -907,6 +899,17 @@ const getTimePointAvailableBooking_New = async (date, duration) => {
     )
       continue;
     time_available.push((i + 14) / 2);
+  }
+  if (
+    now.getFullYear() == date_booking.getFullYear() &&
+    now.getMonth() == date_booking.getMonth() &&
+    now.getDate() == date_booking.getDate()
+  ) {
+    const time_available_now = time_available.filter(
+      (time) => time - (now.getHours() + now.getMinutes() / 60) > 0.5 // chỉ cho đặt sau giờ hiện tại 30p
+    );
+    console.log(time_available_now);
+    return time_available_now;
   }
   return time_available;
 };
@@ -1066,8 +1069,12 @@ const createInfoAppointment = async (data) => {
     const temp = promotionServices.findIndex(
       (promotion) => promotion.itemGiftId === service.serviceId
     );
-    service.discount = temp >= 0 ? promotionServices[temp].discount : 0;
-    promotionServices[temp].value = (service.price * service.discount) / 100;
+    if (temp >= 0) {
+      service.discount = promotionServices[temp].discount;
+      promotionServices[temp].value = (service.price * service.discount) / 100;
+    } else {
+      service.discount = 0;
+    }
   });
   obj.items = services;
   obj.promotion = [...promotionServices];
