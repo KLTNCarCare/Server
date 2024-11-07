@@ -1,7 +1,10 @@
 // const { signInService } = require("../services/auth.service");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
-const { getAccountByUsernamePassword } = require("../services/account.service");
+const {
+  getAccountByUsernamePassword,
+  getAccountMapCustomer,
+} = require("../services/account.service");
 const {
   getSecondLeftToken,
   verifyOTP,
@@ -90,10 +93,16 @@ const sendOTP = async (req, res) => {
     return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
+const signInMobile = async (req, res) => {
+  const { username, password } = req.body;
+  const result = await getAccountMapCustomer(username, password);
+  return res.status(result.code).json(result);
+};
 module.exports = {
   signIn,
   refreshToken,
   getTimeLeft,
   checkOTP,
   sendOTP,
+  signInMobile,
 };

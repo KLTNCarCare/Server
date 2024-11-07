@@ -304,6 +304,138 @@ const findAllServiceToPick = async (textSearch) => {
   const result = await Service.aggregate(pipeline);
   return { code: 200, message: "Thành công", data: result };
 };
+const findAllPriceServicesMobile = async (textSearch) => {
+  const now = new Date();
+  const pipeline = [
+    {
+      $match: {
+        status: "active",
+      },
+    },
+    {
+      $addFields: {
+        packObj: {
+          $toObjectId: "$categoryId",
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "service_packages",
+        localField: "packObj",
+        foreignField: "_id",
+        as: "service_package",
+      },
+    },
+    {
+      $unwind: {
+        path: "$service_package",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "pricecatalogs",
+        let: {
+          itemId: "$_id",
+          day: {
+            $toDate: now,
+          },
+        },
+        pipeline: [
+          {
+            $match: {
+              status: "active",
+              startDate: { $lte: now },
+              endDate: { $gte: now },
+            },
+          },
+          {
+            $unwind: "$items",
+          },
+          {
+            $addFields: {
+              objId: {
+                $toObjectId: "$items.itemId",
+              },
+            },
+          },
+          {
+            $match: {
+              $expr: {
+                $eq: ["$objId", "$$itemId"],
+              },
+            },
+          },
+          {
+            $project: {
+              price: "$items.price",
+              _id: 0,
+            },
+          },
+        ],
+        as: "price",
+      },
+    },
+    {
+      $unwind: {
+        path: "$price",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $replaceRoot: {
+        newRoot: {
+          itemId: "$_id",
+          itemName: "$serviceName",
+          categoryId: "$service_package._id",
+          categoryName: "$service_package.categoryName",
+          duration: "$duration",
+          price: "$price.price",
+        },
+      },
+    },
+    {
+      $match: {
+        price: {
+          $ne: null,
+        },
+      },
+    },
+    {
+      $group: {
+        _id: { packageId: "$categoryId", packageName: "$categoryName" },
+        services: {
+          $push: {
+            serviceId: "$itemId",
+            serviceName: "$itemName",
+            duration: "$duration",
+            price: "$price",
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        packageId: "$_id.packageId",
+        packageName: "$_id.packageName",
+        services: 1,
+      },
+    },
+  ];
+  if (textSearch != "") {
+    pipeline.push({
+      $match: {
+        "services.serivceName": {
+          $regex: RegExp(textSearch, "iu"),
+        },
+      },
+    });
+  }
+  const result = await Service.aggregate(pipeline);
+  return { code: 200, message: "Thành công", data: result };
+};
 const findOneSerivceByCategoryId = async (categoryId) =>
   await Service.findOne({
     categoryId: categoryId,
@@ -424,4 +556,5 @@ module.exports = {
   findAllServiceToPick,
   findOneSerivceByCategoryId,
   findServiceAppointment,
+  findAllPriceServicesMobile,
 };

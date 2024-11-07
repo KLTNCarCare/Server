@@ -2,6 +2,7 @@ const { default: mongoose, ConnectionStates } = require("mongoose");
 
 const { generateID, increaseLastId } = require("./lastID.service");
 const Customer = require("../models/customer.model");
+const { findAccountByUseranme } = require("./account.service");
 
 const createCustomer = async (cust) => {
   const session = await mongoose.startSession();
@@ -36,11 +37,23 @@ const createCustomer = async (cust) => {
     session.endSession();
   }
 };
+const getCustByPhone = async (phone) =>
+  await Customer.findOne({ phone: phone });
 const findCustById = async (id) => await Customer.findById(id);
 const findCustByCustId = async (custId) =>
   await Customer.findOne({ custId: custId });
-const findCustByPhone = async (phone) =>
-  await Customer.findOne({ phone: phone }).lean();
+const findCustByPhone = async (phone) => {
+  try {
+    const result = await Customer.findOne({ phone: phone });
+    if (!result) {
+      return { code: 400, message: "Không tìm thấy người dùng", data: null };
+    }
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in findCustByPhone", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
 const pushVehicle = async (id, vehicle) =>
   await Customer.findOneAndUpdate(
     { _id: id, "vehicles.licensePlate": { $ne: vehicle.licensePlate } },
@@ -94,6 +107,17 @@ const findAllCustomer = async (page, limit, k, v, sort, sortOrder) => {
 const updateCustomer = async (id, custUpdate) => {
   try {
     const obj = await Customer.findById(id).lean();
+    if (!obj) {
+      return { code: 400, message: "Không tìm thấy khách hàng", data: null };
+    }
+    const existingAccount = await findAccountByUseranme(obj.phone);
+    if (existingAccount) {
+      return {
+        code: 400,
+        message: "Khách hàng đã có tài khoản không thể đổi thông tin",
+        data: null,
+      };
+    }
     const newCustomer = new Customer({ ...obj, ...custUpdate });
     await newCustomer.validate();
     const result = await Customer.findOneAndUpdate(
@@ -158,4 +182,5 @@ module.exports = {
   findAllCustomer,
   updateCustomer,
   deleteCustomer,
+  getCustByPhone,
 };

@@ -1,8 +1,6 @@
-const { format } = require("express/lib/response");
 const {
   getAppointmentById,
-  updateAppointmentCreatedInvoice,
-  getAppointmentByAppointmentId,
+  createInfoAppointment,
 } = require("./appointment.service");
 const crypto = require("crypto");
 const moment = require("moment");
@@ -10,8 +8,8 @@ const axios = require("axios");
 const CryptoJS = require("crypto-js");
 const { default: mongoose } = require("mongoose");
 const {
-  createInvoiceFromAppointmentId,
   createInvoiceByAppointmentId,
+  createInfoOrderMobile,
 } = require("./invoice.service");
 const { sendMessageAllStaff } = require("./sockjs_manager");
 const { messageType } = require("../utils/constants");
@@ -86,9 +84,9 @@ function jsonToQueryString(jsonObject) {
   return new URLSearchParams(jsonObject).toString();
 }
 const config = {
-  app_id: "2553",
-  key1: "PcY4iZIKFCIdgZvA6ueMcMHHUbRLYjPL",
-  key2: "kLtgPl8HHhfvMuDHPwKfgfsY4Ydm9eIz",
+  app_id: "2554",
+  key1: "sdngKKJmqEMzvh5QQcdD2A9XBSKUNaYn",
+  key2: "trMrHtvjo6myautxDUiAcYsVtaeQ8nhf",
   pay_endpoint: "https://sb-openapi.zalopay.vn/v2/create",
   query_endpoint: "https://sb-openapi.zalopay.vn/v2/query",
 };
@@ -102,7 +100,10 @@ const createPaymentZaloPay = async (id) => {
     if (obj.invoiceCreated) {
       return { code: 400, message: "Đơn hàng đã có hoá đơn", data: null };
     }
-    const embed_data = { redirecturl: `${process.env.HOST_WEB}/invoice` };
+    const embed_data = {
+      redirecturl: `${process.env.HOST_WEB}/invoice`,
+      order: obj,
+    };
     const app_trans_id =
       moment().format("YYMMDDmmss") + "_" + obj.appointmentId;
     const order = {
@@ -115,9 +116,8 @@ const createPaymentZaloPay = async (id) => {
       embed_data: JSON.stringify(embed_data),
       amount: obj.final_total,
       description: `AK Auto - Thanh toán đơn hàng:${app_trans_id}`,
-      callback_url:
-        "https://8eb1-171-252-155-255.ngrok-free.app/v1/api/payment/callback",
-      // bank_code: "zalopayapp",
+      callback_url: process.env.HOST_NGROK + "/v1/api/payment/callback",
+      bank_code: "zalopayapp",
     };
     const data =
       config.app_id +
@@ -148,6 +148,7 @@ const createPaymentZaloPay = async (id) => {
     return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
+
 const callbackZaloPay = async (data) => {
   try {
     const dataStr = data.data;
@@ -156,13 +157,10 @@ const callbackZaloPay = async (data) => {
     if (reqMac != mac) {
       console.log("mac khong khop");
 
-      // return {return_code:-1,
-      //   return_message:"mac not equal"
-      // }
+      return { return_code: -1, return_message: "mac not equal" };
     } else {
       let dataJson = JSON.parse(dataStr, config.key2);
       const orderId = dataJson.app_trans_id.slice(11);
-      console.log(orderId);
       const result = await createInvoiceByAppointmentId(orderId, "transfer");
       if (result.code == 200) {
         sendMessageAllStaff(messageType.save_invoice, result);
@@ -173,7 +171,7 @@ const callbackZaloPay = async (data) => {
       } else {
         return {
           return_code: 0,
-          return_message: "Success",
+          return_message: "failed",
         };
       }
     }
@@ -186,8 +184,105 @@ const callbackZaloPay = async (data) => {
     };
   }
 };
+const callbackZaloPayAppToApp = async (data) => {
+  try {
+    const dataStr = data.data;
+    const reqMac = data.mac;
+    const mac = CryptoJS.HmacSHA256(dataStr, config.key2).toString();
+    if (reqMac != mac) {
+      console.log("mac khong khop");
+      return { return_code: -1, return_message: "mac not equal" };
+    } else {
+      let dataJson = JSON.parse(dataStr, config.key2);
+      const embed_data = JSON.parse(dataJson.embed_data);
+      const data = embed_data["data"];
+      const result = await createInfoOrderMobile(data);
+      if (result.code == 200) {
+        console.log("Đã tạo đơn hàng thành công trên ứng dụng mobile");
+        return {
+          return_code: 1,
+          return_message: "Success",
+        };
+      } else {
+        return {
+          return_code: 0,
+          return_message: "Failed",
+        };
+      }
+    }
+  } catch (error) {
+    console.log("Error in callbackZaloPay", error);
+    await session.abortTransaction();
+    return {
+      return_code: 0,
+      return_message: "Internal server merchant error",
+    };
+  }
+};
+const createZaloPayAppToApp = async (input) => {
+  try {
+    const info = await createInfoAppointment(input);
+    const embed_data = {
+      data: info,
+    };
+    //xử lý thông tin hoá đơn
+    const app_trans_id = moment().format("YYMMDDmmss");
+    const order = {
+      app_id: config.app_id,
+      app_trans_id: app_trans_id, // translation missing: vi.docs.shared.sample_code.comments.app_trans_id
+      app_user: "AK AUTO",
+      app_time: Date.now(),
+      expire_duration_seconds: 900, // miliseconds
+      item: JSON.stringify(input.items),
+      embed_data: JSON.stringify(embed_data),
+      amount: 10000,
+      description: `AK Auto - Thanh toán đơn hàng:${app_trans_id}`,
+      callback_url:
+        process.env.HOST_NGROK + "/v1/api/payment/callback/app-to-app",
+      // bank_code: "zalopayapp",
+    };
+    const data =
+      config.app_id +
+      "|" +
+      order.app_trans_id +
+      "|" +
+      order.app_user +
+      "|" +
+      order.amount +
+      "|" +
+      order.app_time +
+      "|" +
+      order.embed_data +
+      "|" +
+      order.item;
+    order.mac = CryptoJS.HmacSHA256(data, config.key1).toString();
+    order.expire_duration_seconds = 900;
+    const result = await axios.post(config.pay_endpoint, null, {
+      params: order,
+    });
+    if (result.return_code == 2) {
+      return { code: 500, message: "Không tạo được token", data: null };
+    }
+    const dataRes = {
+      order_url: result.data.order_url,
+      zp_trans_token: result.data.zp_trans_token,
+      order_token: result.data.order_token,
+      ...info,
+    };
+    return {
+      code: 200,
+      message: "Thành công",
+      data: dataRes,
+    };
+  } catch (error) {
+    console.log("Error in createRequestPaymentAppToApp", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
 module.exports = {
   createPaymentVNPayGate,
   createPaymentZaloPay,
   callbackZaloPay,
+  createZaloPayAppToApp,
+  callbackZaloPayAppToApp,
 };

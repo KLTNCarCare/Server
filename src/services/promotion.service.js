@@ -497,13 +497,13 @@ const removePromotionDetail = async (idLine, idDetail) =>
     { new: true }
   );
 const getProBill = async (time, sub_total) => {
-  const data = await PromotionLine.aggregate([
+  const pipeline = [
     {
       $match: {
         status: "active",
+        type: "discount-bill",
         startDate: { $lte: time },
         endDate: { $gte: time },
-        type: "discount-bill",
       },
     },
     {
@@ -514,7 +514,7 @@ const getProBill = async (time, sub_total) => {
             as: "detailItem",
             cond: {
               $and: [
-                { $lt: ["$$detailItem.bill", sub_total] }, // Điều kiện cho discount-bill: bill < sub_total
+                { $lte: ["$$detailItem.bill", 200000] }, // Điều kiện cho discount-bill: bill < sub_total
               ],
             },
           },
@@ -537,17 +537,19 @@ const getProBill = async (time, sub_total) => {
         newRoot: "$detail", // Thay đổi root thành detail
       },
     },
-  ]);
-
-  const maxDiscountBill =
-    data.length > 0
-      ? data.reduce(
-          (max, item) => (item.discount > max.discount ? item : max),
-          { discount: 0 }
-        )
-      : null; // Nếu rỗng trả về null hoặc giá trị mặc định
-
-  return maxDiscountBill;
+  ];
+  let data = await PromotionLine.aggregate(pipeline);
+  if (data.length == 0) {
+    return null;
+  }
+  data.forEach((ele) => {
+    ele.value =
+      (sub_total * ele.discount) / 100 > ele.limitDiscount
+        ? ele.limitDiscount
+        : (sub_total * ele.discount) / 100;
+  });
+  data.sort((a, b) => b.value - a.value);
+  return data[0];
 };
 
 const getProService = async (time, listItemId) => {
@@ -608,7 +610,6 @@ const getProService = async (time, listItemId) => {
       $replaceRoot: { newRoot: "$highestDiscountDoc" },
     },
   ]);
-
   return data;
 };
 const addDescriptionPromotionDetail = async (

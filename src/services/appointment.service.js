@@ -6,7 +6,11 @@ const { messageType } = require("../utils/constants");
 const { generateAppointmentID } = require("./lastID.service");
 const { getProBill, getProService } = require("./promotion.service");
 const { getStringClockToDate } = require("../utils/convert");
-const { findCustByPhone, createCustomer } = require("./customer.service");
+const {
+  findCustByPhone,
+  createCustomer,
+  getCustByPhone,
+} = require("./customer.service");
 const start_work = Number(process.env.START_WORK);
 const end_work = Number(process.env.END_WORK);
 const interval = Number(process.env.INTERVAL);
@@ -244,7 +248,6 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
         };
       }
     }
-    //Xử lý items
     if (!Array.isArray(appointment.items)) {
       return status400("Bad request");
     }
@@ -260,6 +263,19 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
     );
     if (!checkMatchItems) {
       return status400("Hệ thống không lấy được thông tin dịch vụ");
+    }
+    //check dịch vụ trùng
+    console.log(services);
+    if (services.length == 0) {
+      return status400("Chưa có dịch vụ");
+    }
+    const idServiceSet = new Set(services.map((item) => item.serviceId));
+    const idTypeSet = new Set(services.map((item) => item.typeId));
+    if (
+      idServiceSet.size < services.lenght ||
+      idTypeSet.size < services.lenght
+    ) {
+      return status400("Dịch vụ không hợp lệ");
     }
     const itemsSort = [];
     for (let id of ids) {
@@ -282,27 +298,25 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
     // áp dụng loại khuyến mãi dịch vụ
     const promotion_result = [];
     const list_pro_service = await getProService(time_promotion, items);
-    if (list_pro_service.length > 0) {
-      appointment.items.forEach((item) => {
-        const pro = list_pro_service.find(
-          (pro) => pro.itemGiftId == item.serviceId
-        );
-        if (pro) {
-          item.discount = pro.discount;
-          promotion_result.push({
-            promotion_line: pro.lineId,
-            code: pro.code,
-            description: pro.description,
-            value: (item.price * pro.discount) / 100,
-          });
-        } else {
-          item.discount = 0;
-        }
-      });
-    }
+    appointment.items.forEach((item) => {
+      const pro = list_pro_service.find(
+        (pro) => pro.itemGiftId == item.serviceId
+      );
+      if (pro) {
+        item.discount = pro.discount;
+        promotion_result.push({
+          promotion_line: pro.lineId,
+          code: pro.code,
+          description: pro.description,
+          value: (item.price * pro.discount) / 100,
+        });
+      } else {
+        item.discount = 0;
+      }
+    });
     //áp dụng loại khuyến mãi hoá đơn
     const sub_total = appointment.items.reduce(
-      (total, item) => (total += (item.price * item.discount) / 100),
+      (total, item) => (total += item.price * (1 - item.discount / 100)),
       0
     );
     const pro_bill = await getProBill(time_promotion, sub_total);
@@ -406,7 +420,12 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
       };
     }
     //Kiểm tra thời gian bắt đầu nếu 6 vị trí đang in-progress thì không cho đặt
-    apps_inProgress = existing_apps.map((item) => item.status == "in-progress");
+    apps_inProgress = [];
+    existing_apps.forEach((item) => {
+      if (item.status == "in-progress") {
+        apps_inProgress.push(item);
+      }
+    });
     if (apps_inProgress.length >= 6) {
       return {
         code: 500,
@@ -473,27 +492,26 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
     // áp dụng loại khuyến mãi dịch vụ
     const promotion_result = [];
     const list_pro_service = await getProService(time_promotion, items);
-    if (list_pro_service.length > 0) {
-      appointment.items.forEach((item) => {
-        const pro = list_pro_service.find(
-          (pro) => pro.itemGiftId == item.serviceId
-        );
-        if (pro) {
-          item.discount = pro.discount;
-          promotion_result.push({
-            promotion_line: pro.lineId,
-            code: pro.code,
-            description: pro.description,
-            value: (item.price * pro.discount) / 100,
-          });
-        } else {
-          item.discount = 0;
-        }
-      });
-    }
+    appointment.items.forEach((item) => {
+      const pro = list_pro_service.find(
+        (pro) => pro.itemGiftId == item.serviceId
+      );
+      if (pro) {
+        item.discount = pro.discount;
+        promotion_result.push({
+          promotion_line: pro.lineId,
+          code: pro.code,
+          description: pro.description,
+          value: (item.price * pro.discount) / 100,
+        });
+      } else {
+        item.discount = 0;
+      }
+    });
+
     //áp dụng loại khuyến mãi hoá đơn
     const sub_total = appointment.items.reduce(
-      (total, item) => (total += (item.price * item.discount) / 100),
+      (total, item) => (total += item.price * (1 - item.discount / 100)),
       0
     );
     const pro_bill = await getProBill(time_promotion, sub_total);
@@ -1022,6 +1040,66 @@ const updateStatusCompletedServiceAppointment = async (
     return status500;
   }
 };
+const createInfoAppointment = async (data) => {
+  //thêm thông tin đơn hàng vào obj
+  let obj = {};
+  const cust = await getCustByPhone(data.phone);
+  if (!cust) {
+    throw new Error("Không tìm thấy khách hàng");
+  }
+  obj.customer = cust;
+  obj.total_duration = data.items.reduce(
+    (acc, item) => (acc += item.duration),
+    0
+  );
+  obj.vehicle = data.vehicle;
+  obj.startTime = new Date(data.startTime);
+  obj.startActual = new Date(data.startTime);
+  obj.endTime = new Date(calEndtime(data.startTime, obj.total_duration));
+  obj.endActual = new Date(obj.endTime);
+  const services = data.items;
+  const now = new Date();
+  const serviceIds = services.map((sv) => sv.serviceId);
+  // thêm discount vào dịch vụ
+  const promotionServices = await getProService(now, serviceIds);
+  services.forEach((service) => {
+    const temp = promotionServices.findIndex(
+      (promotion) => promotion.itemGiftId === service.serviceId
+    );
+    service.discount = temp >= 0 ? promotionServices[temp].discount : 0;
+    promotionServices[temp].value = (service.price * service.discount) / 100;
+  });
+  obj.items = services;
+  obj.promotion = [...promotionServices];
+  //lấy khuyến mãi hoá đơn
+  const sub_total = services.reduce(
+    (acc, service) => (acc += (service.price * (100 - service.discount)) / 100),
+    0
+  );
+  obj.sub_total = sub_total;
+  const promotionBill = await getProBill(now, sub_total);
+  if (promotionBill != null) {
+    obj.promotion.push(promotionBill);
+    obj.discount = {
+      per: promotionBill.discount,
+      value_max: promotionBill.limitDiscount,
+    };
+    obj.final_total = sub_total - promotionBill.value;
+  } else {
+    obj.discount = {
+      per: 0,
+      value_max: 0,
+    };
+    obj.final_total = sub_total;
+  }
+  obj.status = "confirmed";
+  obj.invoiceCreated = true;
+  return obj;
+};
+const createAppointmentRaw = async (app, session) => {
+  const result = await Appointment.create([app], session);
+  return result[0];
+};
 const status500 = { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
 const status400 = (mess) => ({ code: 400, message: mess, data: null });
 const status200 = (data) => ({ code: 200, message: "Thành công", data: data });
@@ -1050,4 +1128,6 @@ module.exports = {
   updateStatusCompletedAppointment,
   updateStatusCancelAppointment,
   updateStatusInProgressAppointmentNew,
+  createInfoAppointment,
+  createAppointmentRaw,
 };

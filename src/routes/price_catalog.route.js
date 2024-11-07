@@ -11,6 +11,7 @@ const {
   getPriceCurrent,
   editPriceCatalog,
   changeStatusPriceCatalog,
+  getServicesPickMobile,
 } = require("../controllers/price_catalog.controller");
 const auth = require("../middlewares/auth.middleware");
 
@@ -33,4 +34,9 @@ router.get("/get-all", auth(["admin"]), getAll);
 router.get("/get-current", auth(["admin"]), getCurrent);
 router.get("/get-active", auth(["admin"]), getActive);
 router.get("/get-all-price-current", auth(["admin", "staff"]), getPriceCurrent);
+router.get(
+  "/get-price-services-current",
+  auth(["admin", "staff", "customer"]),
+  getServicesPickMobile
+);
 module.exports = router;

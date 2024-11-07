@@ -15,6 +15,7 @@ const {
   updateStatusCompletedAppointment,
   updateStatusCancelAppointment,
   updateStatusInProgressAppointmentNew,
+  createInfoAppointment,
 } = require("../services/appointment.service");
 const connection = require("../services/sockjs_manager");
 const { messageType } = require("../utils/constants");
@@ -182,6 +183,11 @@ const updateProccessAppointment = async (req, res) => {
   }
   return res.status(result.code).json(result);
 };
+const getInfoAppointment = async (req, res) => {
+  const data = req.body;
+  const result = await createInfoAppointment(data);
+  return res.status(result.code).json(result);
+};
 module.exports = {
   saveAppointment,
   saveAppointmentOnSite,
@@ -196,4 +202,5 @@ module.exports = {
   getAppointmentInDay,
   getAllAppointment,
   updateProccessAppointment,
+  getInfoAppointment,
 };

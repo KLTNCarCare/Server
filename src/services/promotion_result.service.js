@@ -3,6 +3,9 @@ const PromotionResult = require("../models/promotion_result");
 const createPromotionResult = async (data, session) => {
   return await PromotionResult.create([data], session);
 };
+const createManyPromotionResult = async (data, session) => {
+  return await PromotionResult.insertMany(data, session);
+};
 const refundPromotion = async (invoiceId, session) =>
   await PromotionResult.updateMany(
     { invoice: invoiceId },
@@ -12,4 +15,8 @@ const refundPromotion = async (invoiceId, session) =>
     session
   );
 
-module.exports = { createPromotionResult, refundPromotion };
+module.exports = {
+  createPromotionResult,
+  refundPromotion,
+  createManyPromotionResult,
+};

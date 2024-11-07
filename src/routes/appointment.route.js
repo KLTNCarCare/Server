@@ -13,6 +13,7 @@ const {
   getAllAppointment,
   updateProccessAppointment,
   saveAppointmentOnSiteFuture,
+  getInfoAppointment,
 } = require("../controllers/appointment.controller");
 const auth = require("../middlewares/auth.middleware");
 router.post("/create", auth(["admin", "staff", "customer"]), saveAppointment);
@@ -54,5 +55,10 @@ router.put("/canceled/:id", auth(["admin", "staff"]), cancelAppointment);
 router.put(
   "/update-process/:appointmentId/:serviceId",
   updateProccessAppointment
+);
+router.post(
+  "/get-info-order",
+  auth(["admin", "staff", "customer"]),
+  getInfoAppointment
 );
 module.exports = router;

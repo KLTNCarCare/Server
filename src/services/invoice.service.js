@@ -6,11 +6,20 @@ const {
   updateAppointmentCreatedInvoice,
   getAppointmentByAppointmentId,
   getAppointmentLeanById,
+  createAppointmentRaw,
 } = require("./appointment.service");
-const { createPromotionResult } = require("./promotion_result.service");
-const { generateInvoiceID } = require("./lastID.service");
+const {
+  createPromotionResult,
+  createManyPromotionResult,
+} = require("./promotion_result.service");
+const {
+  generateInvoiceID,
+  generateAppointmentID,
+} = require("./lastID.service");
 const { log } = require("console");
 const Appointment = require("../models/appointment.model");
+const { sendMessageAllStaff } = require("./sockjs_manager");
+const { messageType } = require("../utils/constants");
 
 const createInvoiceFromAppointmentId = async (appId, paymentMethod) => {
   const session = await mongoose.startSession();
@@ -233,6 +242,41 @@ const findInvoiceByCustId = async (custId) => {
     return { code: 500, messasge: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
+const createInfoOrderMobile = async (data) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    data.appointmentId = await generateAppointmentID({ session });
+    data.invoiceId = await generateInvoiceID({ session });
+    data.payment_method = "transfer";
+    data.promotion.forEach((element) => {
+      element.promotion_line = element.lineId;
+    });
+    const appointmentResult = await createAppointmentRaw(data, { session });
+    const invoiceResult = await Invoice.create([data], { session });
+    if (!appointmentResult || !invoiceResult[0]) {
+      throw new Error("create appointment, invoice mobile fail");
+    }
+    data.promotion.forEach((element) => {
+      element.invoice = invoiceResult[0]._id;
+    });
+    await createManyPromotionResult(data.promotion, { session });
+    sendMessageAllStaff(messageType.save_app, appointmentResult);
+    sendMessageAllStaff(messageType.save_invoice, invoiceResult[0]);
+    await session.commitTransaction();
+    return { code: 200, message: "Thành công", data: appointmentResult };
+  } catch (error) {
+    console.log("Error in createInfoOrderMobile", error);
+    await session.abortTransaction();
+    return {
+      code: 500,
+      message: "Đã xảy ra lỗi máy chủ",
+      data: null,
+    };
+  } finally {
+    await session.endSession();
+  }
+};
 module.exports = {
   createInvoiceFromAppointmentId,
   findAllInvoice,
@@ -241,4 +285,5 @@ module.exports = {
   findInvoiceByCustId,
   refundInvoice,
   createInvoiceByAppointmentId,
+  createInfoOrderMobile,
 };

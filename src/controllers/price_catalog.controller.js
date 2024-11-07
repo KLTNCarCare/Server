@@ -16,7 +16,10 @@ const {
   updatePriceCatalog,
   updateStatusPriceCatalog,
 } = require("../services/price_catalog.service");
-const { findAllServiceToPick } = require("../services/service.service");
+const {
+  findAllServiceToPick,
+  findAllPriceServicesMobile,
+} = require("../services/service.service");
 const createPriceCatalog = async (req, res) => {
   const priceCatalog = req.body;
   const result = await createCatalog(priceCatalog);
@@ -91,6 +94,11 @@ const changeStatusPriceCatalog = async (req, res) => {
   const result = await updateStatusPriceCatalog(id);
   return res.status(result.code).json(result);
 };
+const getServicesPickMobile = async (req, res) => {
+  const textSearch = req.query.textSearch || "";
+  const result = await findAllPriceServicesMobile(textSearch);
+  return res.status(result.code).json(result);
+};
 module.exports = {
   createPriceCatalog,
   editPriceCatalog,
@@ -103,4 +111,5 @@ module.exports = {
   getActive,
   getPriceCurrent,
   changeStatusPriceCatalog,
+  getServicesPickMobile,
 };

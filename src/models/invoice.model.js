@@ -70,9 +70,9 @@ const serviceSchema = mongoose.Schema(
   {
     typeId: {
       type: String,
-      required: true,
+      required: false,
     },
-    typeName: { type: String, required: true },
+    typeName: { type: String, required: false },
     serviceId: { type: String, required: true },
     serviceName: {
       type: String,

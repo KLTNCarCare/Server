@@ -50,10 +50,16 @@ const saveCustomer = async (req, res) => {
   const result = await createCustomer(data);
   return res.status(result.code).json(result);
 };
+const getCustomerByPhone = async (req, res) => {
+  const phone = req.params.phone;
+  const result = await findCustByPhone(phone);
+  return res.status(result.code).json(result);
+};
 module.exports = {
   getCustomerByTextPhone,
   getAllCustomer,
   editCustomer,
   removeCustomer,
   saveCustomer,
+  getCustomerByPhone,
 };

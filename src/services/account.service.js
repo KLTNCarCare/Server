@@ -1,6 +1,8 @@
 const Account = require("../models/account.model");
 const bcrypt = require("bcrypt");
 const { generateID } = require("./lastID.service");
+const { findCustByPhone } = require("./customer.service");
+const jwt = require("jsonwebtoken");
 const saltRounds = 10;
 const createAccountService = async (username, password, role, userId) => {
   // Hash password
@@ -49,8 +51,57 @@ const getAccountByUsernamePassword = async (username, password) => {
     };
   }
 };
+const findAccountByUseranme = async (username) => {
+  return await Account.findOne({ username: username });
+};
+const getAccountMapCustomer = async (username, password) => {
+  try {
+    const acc = await Account.findOne({ username: username }).lean();
+    if (!acc) {
+      return {
+        code: 400,
+        message: "Thông tin đăng nhập không chính xác",
+        data: null,
+      };
+    }
+    const isMatch = await bcrypt.compare(password, acc.password);
+    if (!isMatch) {
+      return {
+        code: 400,
+        message: "Thông tin đăng nhập không chính xác",
+        data: null,
+      };
+    }
+    const userInfo = await findCustByPhone(username);
+    if (userInfo.code != 200) {
+      return userInfo;
+    }
+    const payload = {
+      username: acc.username,
+      role: acc.role,
+    };
+    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
+      expiresIn: process.env.ACCESS_TOKEN_LIFE,
+    });
+    const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
+      expiresIn: process.env.REFRESH_TOKEN_LIFE,
+    });
+    const objUser = userInfo.data.toObject();
+    const result = {
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      ...objUser,
+    };
+    return { code: 200, message: "Đăng nhập thành công", data: result };
+  } catch (error) {
+    console.log("Error in getAccountMapCustomer", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
 module.exports = {
   createAccountService,
   getAccountByUsernamePassword,
   checkAccountExist,
+  getAccountMapCustomer,
+  findAccountByUseranme,
 };

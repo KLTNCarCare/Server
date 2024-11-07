@@ -54,7 +54,7 @@ const serviceSchema = mongoose.Schema(
   {
     typeId: {
       type: String,
-      required: true,
+      required: false,
     },
     startTime: {
       type: Date,
@@ -77,7 +77,7 @@ const serviceSchema = mongoose.Schema(
       required: true,
       min: 0,
     },
-    typeName: { type: String, required: true },
+    typeName: { type: String, required: false },
     serviceId: { type: String, required: true },
     serviceName: {
       type: String,
