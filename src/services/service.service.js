@@ -423,6 +423,11 @@ const findAllPriceServicesMobile = async (textSearch) => {
         services: 1,
       },
     },
+    {
+      $sort: {
+        packageName: 1,
+      },
+    },
   ];
   if (textSearch != "") {
     pipeline.push({
@@ -543,6 +548,19 @@ const findServiceAppointment = async (ids, startTime) => {
   ];
   return await Service.aggregate(pipline);
 };
+const getCategoryIdsByServiceIds = async (serviceIds) =>
+  await Service.aggregate([
+    {
+      $match: {
+        _id: { $in: serviceIds },
+      },
+    },
+    {
+      $project: {
+        categoryId: 1,
+      },
+    },
+  ]);
 module.exports = {
   createService,
   deleteService,
@@ -557,4 +575,5 @@ module.exports = {
   findOneSerivceByCategoryId,
   findServiceAppointment,
   findAllPriceServicesMobile,
+  getCategoryIdsByServiceIds,
 };

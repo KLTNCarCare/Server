@@ -216,7 +216,9 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
         end_time
       );
     //Kiểm tra thời gian bắt đầu nếu 6 vị trí đang in-progress thì không cho đặt
-    apps_inProgress = existing_apps.map((item) => item.status == "in-progress");
+    const apps_inProgress = existing_apps.filter(
+      (item) => item.status == "in-progress"
+    );
     if (apps_inProgress.length >= 6) {
       return {
         code: 500,
@@ -265,7 +267,6 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
       return status400("Hệ thống không lấy được thông tin dịch vụ");
     }
     //check dịch vụ trùng
-    console.log(services);
     if (services.length == 0) {
       return status400("Chưa có dịch vụ");
     }
@@ -353,8 +354,6 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
     const appointment_result = await Appointment.create([appointment], {
       session,
     });
-    console.log(appointment); //log
-
     await session.commitTransaction();
     const data_response = await Appointment.findById(appointment_result[0]._id);
     return {
@@ -531,16 +530,12 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
       }
     }
     appointment.customer = customer;
-    console.log("appointment = ", appointment);
-
     // tạo object hoá đơn
     appointment.promotion = promotion_result;
     appointment.appointmentId = await generateAppointmentID({ session });
     const appointment_result = await Appointment.create([appointment], {
       session,
     });
-    console.log(appointment);
-
     await session.commitTransaction(); //log
     const data_response = await Appointment.findById(appointment_result[0]._id);
     return {
@@ -908,7 +903,6 @@ const getTimePointAvailableBooking_New = async (date, duration) => {
     const time_available_now = time_available.filter(
       (time) => time - (now.getHours() + now.getMinutes() / 60) > 0.5 // chỉ cho đặt sau giờ hiện tại 30p
     );
-    console.log(time_available_now);
     return time_available_now;
   }
   return time_available;
@@ -1050,7 +1044,12 @@ const createInfoAppointment = async (data) => {
   if (!cust) {
     throw new Error("Không tìm thấy khách hàng");
   }
-  obj.customer = cust;
+  obj.customer = {
+    _id: cust._id,
+    custId: cust.custId,
+    phone: cust.phone,
+    name: cust.name,
+  };
   obj.total_duration = data.items.reduce(
     (acc, item) => (acc += item.duration),
     0
@@ -1060,9 +1059,24 @@ const createInfoAppointment = async (data) => {
   obj.startActual = new Date(data.startTime);
   obj.endTime = new Date(calEndtime(data.startTime, obj.total_duration));
   obj.endActual = new Date(obj.endTime);
-  const services = data.items;
   const now = new Date();
-  const serviceIds = services.map((sv) => sv.serviceId);
+  const serviceIds = data.items.map((sv) => sv.serviceId);
+  const { getCategoryIdsByServiceIds } = require("./service.service");
+  const categoryIds = await getCategoryIdsByServiceIds(
+    serviceIds.map((id) => new mongoose.Types.ObjectId(id))
+  );
+  if (categoryIds.length != serviceIds.length) {
+    throw new Error("Không tìm thấy dịch vụ");
+  }
+  const services = data.items;
+  //them typeId vao
+  services.forEach((service) => {
+    const temp = categoryIds.find(
+      (ele) => ele._id.toString() == service.serviceId
+    );
+    service.typeId = temp.categoryId;
+  });
+
   // thêm discount vào dịch vụ
   const promotionServices = await getProService(now, serviceIds);
   services.forEach((service) => {

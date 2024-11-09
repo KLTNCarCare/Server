@@ -6,7 +6,6 @@ const crypto = require("crypto");
 const moment = require("moment");
 const axios = require("axios");
 const CryptoJS = require("crypto-js");
-const { default: mongoose } = require("mongoose");
 const {
   createInvoiceByAppointmentId,
   createInfoOrderMobile,
@@ -196,6 +195,8 @@ const callbackZaloPayAppToApp = async (data) => {
       let dataJson = JSON.parse(dataStr, config.key2);
       const embed_data = JSON.parse(dataJson.embed_data);
       const data = embed_data["data"];
+      data.items = JSON.parse(dataJson.item);
+
       const result = await createInfoOrderMobile(data);
       if (result.code == 200) {
         console.log("Đã tạo đơn hàng thành công trên ứng dụng mobile");
@@ -223,7 +224,17 @@ const createZaloPayAppToApp = async (input) => {
   try {
     const info = await createInfoAppointment(input);
     const embed_data = {
-      data: info,
+      data: {
+        customer: info.customer,
+        vehicle: info.vehicle,
+        startTime: info.startTime,
+        endTime: info.endTime,
+        startActual: info.startActual,
+        endActual: info.endActual,
+        total_duration: info.total_duration,
+        promotion: info.promotion,
+        discount: info.discount,
+      },
     };
     //xử lý thông tin hoá đơn
     const app_trans_id = moment().format("YYMMDDmmss");
@@ -233,7 +244,7 @@ const createZaloPayAppToApp = async (input) => {
       app_user: "AK AUTO",
       app_time: Date.now(),
       expire_duration_seconds: 900, // miliseconds
-      item: JSON.stringify(input.items),
+      item: JSON.stringify(info.items),
       embed_data: JSON.stringify(embed_data),
       amount: 10000,
       description: `AK Auto - Thanh toán đơn hàng:${app_trans_id}`,

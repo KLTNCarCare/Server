@@ -218,10 +218,10 @@ const appointmentSchema = mongoose.Schema(
       required: true,
       validate: {
         validator: function (items) {
-          const itemIds = items.map((item) => item.serviceId);
+          const itemIds = items.map((item) => item.typeId);
           return itemIds.length === new Set(itemIds).size;
         },
-        message: "Dịch vụ trong một đơn hàng phải là duy nhất",
+        message: "Không thể đặt cùng một loại dịch vụ",
       },
     },
   },
