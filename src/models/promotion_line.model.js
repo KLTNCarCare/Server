@@ -138,7 +138,7 @@ lineSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
   }
   next();
 });
-// inscrease Last id
+
 lineSchema.plugin(mongooseDelete, { deletedAt: true, overrideMethods: true });
 const PromotionLine = mongoose.model("Promotion_line", lineSchema);
 module.exports = PromotionLine;

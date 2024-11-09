@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const { phoneNumberRegex } = require("../utils/regex");
 const { increaseLastId } = require("../services/lastID.service");
+const MongooseDelete = require("mongoose-delete");
 const accountSchema = mongoose.Schema({
   accountId: {
     type: String,
@@ -47,6 +48,10 @@ accountSchema.post("save", async (doc) => {
   } catch (error) {
     console.log("Error in increase last id", error);
   }
+});
+accountSchema.plugin(MongooseDelete, {
+  deletedAt: true,
+  overrideMethods: true,
 });
 const Account = mongoose.model("Account", accountSchema);
 module.exports = Account;
