@@ -2,7 +2,6 @@ const { default: mongoose } = require("mongoose");
 const { generateID, increaseLastId } = require("./lastID.service");
 const Staff = require("../models/staff.model");
 const Account = require("../models/account.model");
-const { createAccountService } = require("./account.service");
 
 const createStaff = async (staff) => {
   const session = await mongoose.startSession();
@@ -123,6 +122,7 @@ const grantAccount = async (id, password) => {
       { $set: { isAccount: true } },
       { new: true, session }
     );
+    const { createAccountService } = require("./account.service");
     await createAccountService(obj.phone, password, "staff", obj._id);
     await session.commitTransaction();
     return status200(null);

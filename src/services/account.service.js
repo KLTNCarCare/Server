@@ -45,6 +45,7 @@ const getAccountByUsernamePassword = async (username, password) => {
         data: null,
       };
     }
+
     const staff = await findStaffById(obj.userId);
     if (!staff) {
       return {

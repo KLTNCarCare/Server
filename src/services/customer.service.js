@@ -2,7 +2,6 @@ const { default: mongoose, ConnectionStates } = require("mongoose");
 
 const { generateID, increaseLastId } = require("./lastID.service");
 const Customer = require("../models/customer.model");
-const { findAccountByUseranme } = require("./account.service");
 
 const createCustomer = async (cust) => {
   const session = await mongoose.startSession();
@@ -110,6 +109,7 @@ const updateCustomer = async (id, custUpdate) => {
     if (!obj) {
       return { code: 400, message: "Không tìm thấy khách hàng", data: null };
     }
+    const { findAccountByUseranme } = require("./account.service");
     const existingAccount = await findAccountByUseranme(obj.phone);
     if (existingAccount) {
       return {

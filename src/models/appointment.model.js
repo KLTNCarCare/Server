@@ -22,6 +22,23 @@ const customerSchema = mongoose.Schema(
   },
   { _id: false }
 );
+const staffSchema = mongoose.Schema(
+  {
+    _id: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: false,
+    },
+    staffId: { type: String, required: true },
+    phone: {
+      type: String,
+      required: true,
+      match: [phoneNumberRegex, "Số điện thoại không hợp lệ"],
+    },
+
+    name: { type: String, required: true },
+  },
+  { _id: false }
+);
 const vehicleSchema = mongoose.Schema(
   {
     licensePlate: {
@@ -147,6 +164,10 @@ const appointmentSchema = mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+    },
+    staff: {
+      type: staffSchema,
+      required: false,
     },
     customer: {
       type: customerSchema,

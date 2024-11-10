@@ -1,6 +1,22 @@
 const mongoose = require("mongoose");
 const { phoneNumberRegex } = require("../utils/regex");
+const staffSchema = mongoose.Schema(
+  {
+    _id: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: false,
+    },
+    staffId: { type: String, required: true },
+    phone: {
+      type: String,
+      required: true,
+      match: [phoneNumberRegex, "Số điện thoại không hợp lệ"],
+    },
 
+    name: { type: String, required: true },
+  },
+  { _id: false }
+);
 const customerSchema = mongoose.Schema(
   {
     _id: {
@@ -107,6 +123,10 @@ const invoiceSchema = mongoose.Schema(
     appointmentId: {
       type: String,
       default: null,
+    },
+    staff: {
+      type: staffSchema,
+      required: false,
     },
     customer: {
       type: customerSchema,
