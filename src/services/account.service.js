@@ -87,7 +87,10 @@ const findAccountByUseranme = async (username) => {
 };
 const getAccountMapCustomer = async (username, password) => {
   try {
-    const acc = await Account.findOne({ username: username }).lean();
+    const acc = await Account.findOne({
+      username: username,
+      role: "customer",
+    }).lean();
     if (!acc) {
       return {
         code: 400,

@@ -164,25 +164,69 @@ const findAllStaff = async (page, limit, field, word) => {
       filter[field] = RegExp(word, "ui");
     }
     const totalCount = await Staff.countDocuments(filter);
-    const result = await Staff.find(filter)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({ createdAt: -1 });
+    const pipeline = [
+      { $skip: (page - 1) * limit },
+      { $limit: limit },
+      {
+        $sort: {
+          createdAt: -1,
+        },
+      },
+      {
+        $addFields: {
+          userId: { $toString: "$_id" },
+        },
+      },
 
+      {
+        $lookup: {
+          from: "accounts",
+          localField: "userId",
+          foreignField: "userId",
+          as: "account",
+        },
+      },
+      {
+        $unwind: {
+          path: "$account",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          role: { $ifNull: ["$account.role", "staff"] },
+        },
+      },
+      {
+        $project: {
+          account: 0,
+          deleted: 0,
+          deletedAt: 0,
+          __v: 0,
+          userId: 0,
+        },
+      },
+    ];
+    const result = await Staff.aggregate(pipeline);
     return {
       code: 200,
       message: "Thành công",
-      totalCount: totalCount,
-      totalPage: Math.ceil(totalCount / limit),
-      data: result,
+      data: {
+        totalCount: totalCount,
+        totalPage: Math.ceil(totalCount / limit),
+        data: result,
+      },
     };
   } catch (error) {
     console.log("Error in findAllStaff", error);
     return {
       code: 500,
       message: "Đã xảy ra lỗi máy chủ",
-      totalCount: 0,
-      totalPage: 0,
+      data: {
+        totalCount: totalCount,
+        totalPage: Math.ceil(totalCount / limit),
+        data: null,
+      },
     };
   }
 };
