@@ -146,7 +146,7 @@ const revokeAccount = async (id) => {
     if (!result) {
       return status400("Không tìm thấy nhân viên");
     }
-    await Account.delete({ username: result.phone }, { session });
+    await Account.deleteOne({ username: result.phone }, { session });
     await session.commitTransaction();
     return status200(null);
   } catch (error) {

@@ -36,7 +36,7 @@ const staffSchema = mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["active", "inactive,deleted"],
+    enum: ["active", "inactive"],
     default: "active",
   },
   createdAt: { type: Date, default: Date.now, immutable: true },
