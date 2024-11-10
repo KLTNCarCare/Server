@@ -338,7 +338,7 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
       });
     }
     //tạo thông tin khách hàng
-    let customer = await findCustByPhone(appointment.customer.phone);
+    let customer = await getCustByPhone(appointment.customer.phone);
     if (!customer) {
       customerResult = await createCustomer(appointment.customer);
       if (customerResult.code == 200) {
@@ -348,6 +348,8 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
       }
     }
     appointment.customer = customer;
+    console.log(appointment);
+
     // tạo object hoá đơn
     appointment.promotion = promotion_result;
     appointment.appointmentId = await generateAppointmentID({ session });
@@ -1121,6 +1123,49 @@ const createAppointmentRaw = async (app, session) => {
   const result = await Appointment.create([app], session);
   return result[0];
 };
+const findAppointmentStatusConfirmedInProgressByCustId = async (custId) => {
+  try {
+    const result = await Appointment.find({
+      "customer.custId": custId,
+      status: { $in: ["confirmed", "in-progress"] },
+    });
+    return status200(result);
+  } catch (error) {
+    console.log(
+      "Error in findAppointmentStatusConfirmedInProgressByCustId",
+      error
+    );
+    return status500;
+  }
+};
+const findAppointmentStatusCompletedByCustId = async (custId) => {
+  try {
+    const result = await Appointment.find({
+      "custtomer.custId": custId,
+      status: "completed",
+    });
+
+    return status200(result);
+  } catch (error) {
+    console.log("Error in findAppointmentStatusCompletedByCustId", error);
+    return status500;
+  }
+};
+const findAppointmentStatusCaneledByCustId = async (custId) => {
+  try {
+    const result = await Appointment.find({
+      "custtomer.custId": custId,
+      status: "canceled",
+    });
+    return status200(result);
+  } catch (error) {
+    console.log(
+      "Error in findAppointmentStatusConfirmedInProgressByCustId",
+      error
+    );
+    return status500;
+  }
+};
 const status500 = { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
 const status400 = (mess) => ({ code: 400, message: mess, data: null });
 const status200 = (data) => ({ code: 200, message: "Thành công", data: data });
@@ -1151,4 +1196,7 @@ module.exports = {
   updateStatusInProgressAppointmentNew,
   createInfoAppointment,
   createAppointmentRaw,
+  findAppointmentStatusConfirmedInProgressByCustId,
+  findAppointmentStatusCompletedByCustId,
+  findAppointmentStatusCaneledByCustId,
 };

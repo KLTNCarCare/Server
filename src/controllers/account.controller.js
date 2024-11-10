@@ -1,7 +1,7 @@
 const {
   createAccountService,
   checkAccountExist,
-  getAccountByUsername,
+  changePassword,
 } = require("../services/account.service");
 const validator = require("validator");
 const { phoneNumberRegex } = require("../utils/regex");
@@ -51,4 +51,15 @@ const checkUsernameExist = async (req, res) => {
     return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
-module.exports = { sendHello, createAccountEmp, checkUsernameExist };
+const changePasswordAccount = async (req, res) => {
+  const username = req.params.username;
+  const { oldPass, newPass, otp } = req.body;
+  const result = await changePassword(username, oldPass, newPass, otp);
+  return res.status(result.code).json(result);
+};
+module.exports = {
+  sendHello,
+  createAccountEmp,
+  checkUsernameExist,
+  changePasswordAccount,
+};

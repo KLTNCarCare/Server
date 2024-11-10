@@ -14,6 +14,7 @@ const {
   updateProccessAppointment,
   saveAppointmentOnSiteFuture,
   getInfoAppointment,
+  getAppointmentStatutsConfirmedInProgress,
 } = require("../controllers/appointment.controller");
 const auth = require("../middlewares/auth.middleware");
 router.post("/create", auth(["admin", "staff", "customer"]), saveAppointment);
@@ -60,5 +61,10 @@ router.post(
   "/get-info-order",
   auth(["admin", "staff", "customer"]),
   getInfoAppointment
+);
+router.get(
+  "/get-order-confirmed-inprogress/:custId",
+  auth(["customer"]),
+  getAppointmentStatutsConfirmedInProgress
 );
 module.exports = router;

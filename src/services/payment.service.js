@@ -196,7 +196,7 @@ const callbackZaloPayAppToApp = async (data) => {
       const embed_data = JSON.parse(dataJson.embed_data);
       const data = embed_data["data"];
       data.items = JSON.parse(dataJson.item);
-
+      data.status = "confirmed";
       const result = await createInfoOrderMobile(data);
       if (result.code == 200) {
         console.log("Đã tạo đơn hàng thành công trên ứng dụng mobile");

@@ -4,6 +4,7 @@ const { generateID } = require("./lastID.service");
 const { findCustByPhone } = require("./customer.service");
 const jwt = require("jsonwebtoken");
 const { findStaffById } = require("./staff.services");
+const { Otp } = require("../models/otp.model");
 const saltRounds = 10;
 const createAccountService = async (username, password, role, userId) => {
   // Hash password
@@ -133,10 +134,35 @@ const getAccountMapCustomer = async (username, password) => {
     return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
+const changePassword = async (username, oldPass, newPass, otp) => {
+  try {
+    const obj = await Account.findOne({ username: username }).lean();
+    if (!obj) {
+      return { code: 400, message: "Không tìm thấy tài khoản", data: null };
+    }
+    const isMatch = bcrypt.compare(oldPass, obj.password);
+    if (!isMatch) {
+      return { code: 400, message: "Sai mật khẩu", data: null };
+    }
+    if (otp != "111111") {
+      return { code: 400, message: "OTP không hợp lệ", data: null };
+    }
+    const hashPass = await bcrypt.hash(newPass, saltRounds);
+    await Account.findOneAndUpdate(
+      { username: username },
+      { $set: { password: hashPass } }
+    );
+    return { code: 200, message: "Thành công", data: null };
+  } catch (error) {
+    console.log("Error in changePassword", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
 module.exports = {
   createAccountService,
   getAccountByUsernamePassword,
   checkAccountExist,
   getAccountMapCustomer,
   findAccountByUseranme,
+  changePassword,
 };
