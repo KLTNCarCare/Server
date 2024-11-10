@@ -165,6 +165,7 @@ const findAllStaff = async (page, limit, field, word) => {
     }
     const totalCount = await Staff.countDocuments(filter);
     const pipeline = [
+      { $match: filter },
       { $skip: (page - 1) * limit },
       { $limit: limit },
       {

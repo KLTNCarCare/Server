@@ -40,8 +40,8 @@ const revokeAccountStaff = async (req, res) => {
   return res.status(result.code).json(result);
 };
 const getAllStaff = async (req, res) => {
-  const page = req.query.page || 1;
-  const limit = req.query.limit || 10;
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
   const field = req.query.field;
   const word = req.query.word;
   const result = await findAllStaff(page, limit, field, word);
