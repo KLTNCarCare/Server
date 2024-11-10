@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const { generateID } = require("./lastID.service");
 const { findCustByPhone } = require("./customer.service");
 const jwt = require("jsonwebtoken");
+const { findStaffById } = require("./staff.services");
 const saltRounds = 10;
 const createAccountService = async (username, password, role, userId) => {
   // Hash password
@@ -23,32 +24,62 @@ const checkAccountExist = async (username) =>
 const getAccountByUsernamePassword = async (username, password) => {
   try {
     //check username
-    const account = await Account.findOne({ username });
-    if (account) {
-      //check password
-      const isMatch = await bcrypt.compare(password, account.password);
-      return isMatch
-        ? {
-            message: "Login success",
-            account,
-            statusCode: 200,
-          }
-        : {
-            message: "Bad request",
-            statusCode: 400,
-          };
-    }
+    const obj = await Account.findOne({
+      username,
+      role: { $in: ["admin", "staff"] },
+    }).lean();
+    console.log(obj);
 
-    return {
-      message: "Bad request",
-      statusCode: 400,
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Thông tin tài khoản hoặc mật khẩu không chính xác",
+        data: null,
+      };
+    }
+    const isMatch = await bcrypt.compare(password, obj.password);
+    if (!isMatch) {
+      return {
+        code: 400,
+        message: "Thông tin tài khoản hoặc mật khẩu không chính xác",
+        data: null,
+      };
+    }
+    const staff = await findStaffById(obj.userId);
+    if (!staff) {
+      return {
+        code: 500,
+        message: "Không tìm thấy thông tin nhân viên",
+        data: null,
+      };
+    }
+    const payload = {
+      username: obj.username,
+      role: obj.role,
     };
+    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
+      expiresIn: process.env.ACCESS_TOKEN_LIFE,
+    });
+    const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
+      expiresIn: process.env.REFRESH_TOKEN_LIFE,
+    });
+    const data = {
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      role: obj.role,
+      username: obj.username,
+      _id: staff._id,
+      staffId: staff.staffId,
+      phone: staff.phone,
+      name: staff.name,
+      dob: staff.dob,
+      email: staff.email,
+      address: staff.address,
+    };
+    return { code: 200, message: "Thành công", data: data };
   } catch (error) {
     console.log(error);
-    return {
-      message: "Đã xảy ra lỗi máy chủ",
-      statusCode: 500,
-    };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const findAccountByUseranme = async (username) => {

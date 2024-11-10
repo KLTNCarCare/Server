@@ -186,6 +186,7 @@ const findAllStaff = async (page, limit, field, word) => {
     };
   }
 };
+const findStaffById = async (id) => await Staff.findById(id).lean();
 const status500 = { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
 const status400 = (mess) => ({ code: 400, message: mess, data: null });
 const status200 = (data) => ({ code: 200, message: "Thành công", data: data });
@@ -197,4 +198,5 @@ module.exports = {
   grantAccount,
   revokeAccount,
   findAllStaff,
+  findStaffById,
 };
