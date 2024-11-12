@@ -14,6 +14,8 @@ const invoiceRouter = require("./invoice.route");
 const customerRouter = require("./customer.route");
 const paymentRouter = require("./payment.route");
 const staffRouter = require("./staff.route");
+const otpRouter = require("./otp.route"); 
+
 //delayMiddleware return response
 router.all("*", delayMiddleware);
 router.use("/account", accountRouter);
@@ -32,4 +34,6 @@ router.use("/invoice", invoiceRouter);
 router.use("/customer", customerRouter);
 router.use("/payment", paymentRouter);
 router.use("/staff", staffRouter);
+router.use("/otp", otpRouter);
+
 module.exports = router;
