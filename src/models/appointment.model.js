@@ -3,6 +3,7 @@ const {
   findCustByPhone,
   pushVehicle,
   createCustomer,
+  getCustByPhone,
 } = require("../services/customer.service");
 const { phoneNumberRegex } = require("../utils/regex");
 const customerSchema = mongoose.Schema(
@@ -265,7 +266,7 @@ appointmentSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
 });
 appointmentSchema.post("save", async function (doc) {
   try {
-    const result = await findCustByPhone(doc.customer.phone);
+    const result = await getCustByPhone(doc.customer.phone);
     if (result) {
       await pushVehicle(result._id, doc.vehicle);
     } else {

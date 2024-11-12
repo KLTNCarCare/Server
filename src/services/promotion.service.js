@@ -514,7 +514,7 @@ const getProBill = async (time, sub_total) => {
             as: "detailItem",
             cond: {
               $and: [
-                { $lte: ["$$detailItem.bill", 200000] }, // Điều kiện cho discount-bill: bill < sub_total
+                { $lte: ["$$detailItem.bill", sub_total] }, // Điều kiện cho discount-bill: bill < sub_total
               ],
             },
           },

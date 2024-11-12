@@ -52,7 +52,11 @@ router.put(
 router.get("/get-all", auth(["admin", "staff"]), getAllAppointment);
 router.put("/in-progress/:id", auth(["admin", "staff"]), inProgressAppointment);
 router.put("/completed/:id", auth(["admin", "staff"]), completeAppointment);
-router.put("/canceled/:id", auth(["admin", "staff"]), cancelAppointment);
+router.put(
+  "/canceled/:id",
+  auth(["admin", "staff", "customer"]),
+  cancelAppointment
+);
 router.put(
   "/update-process/:appointmentId/:serviceId",
   updateProccessAppointment

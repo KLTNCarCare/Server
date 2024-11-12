@@ -197,6 +197,7 @@ const callbackZaloPayAppToApp = async (data) => {
       const data = embed_data["data"];
       data.items = JSON.parse(dataJson.item);
       data.status = "confirmed";
+      data.invoiceCreated = true;
       const result = await createInfoOrderMobile(data);
       if (result.code == 200) {
         console.log("Đã tạo đơn hàng thành công trên ứng dụng mobile");
@@ -246,7 +247,7 @@ const createZaloPayAppToApp = async (input) => {
       expire_duration_seconds: 900, // miliseconds
       item: JSON.stringify(info.items),
       embed_data: JSON.stringify(embed_data),
-      amount: 10000,
+      amount: info.final_total,
       description: `AK Auto - Thanh toán đơn hàng:${app_trans_id}`,
       callback_url:
         process.env.HOST_NGROK + "/v1/api/payment/callback/app-to-app",

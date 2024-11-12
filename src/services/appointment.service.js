@@ -6,23 +6,17 @@ const { messageType } = require("../utils/constants");
 const { generateAppointmentID } = require("./lastID.service");
 const { getProBill, getProService } = require("./promotion.service");
 const { getStringClockToDate } = require("../utils/convert");
-const {
-  findCustByPhone,
-  createCustomer,
-  getCustByPhone,
-} = require("./customer.service");
+const { createCustomer, getCustByPhone } = require("./customer.service");
 const start_work = Number(process.env.START_WORK);
 const end_work = Number(process.env.END_WORK);
 const interval = Number(process.env.INTERVAL);
 const limit_slot = Number(process.env.LIMIT_SLOT);
 const statusPriority = {
-  confirmed: 1,
-  pending: 2,
-  "in-progress": 3,
-  completed: 4,
-  rescheduled: 5,
-  missed: 6,
-  canceled: 7,
+  "in-progress": 1,
+  completed: 2,
+  confirmed: 3,
+  pending: 4,
+  canceled: 5,
 };
 
 const findAppointmentInRangeDate = async (d1, d2) =>
@@ -692,7 +686,7 @@ const updateStatusCancelAppointment = async (id) => {
       return status400("Không tìm thấy lịch hẹn");
     }
     //Chỉ được phép huỷ lịch hẹn đang pending
-    if (obj.status != "pending") {
+    if (obj.status != "pending" && obj.status != "confirmed") {
       return status400("Chỉ được huỷ lịch hẹn đang chờ xử lý");
     } else {
       const result = await Appointment.findOneAndUpdate(
@@ -1123,12 +1117,18 @@ const createAppointmentRaw = async (app, session) => {
   const result = await Appointment.create([app], session);
   return result[0];
 };
-const findAppointmentStatusConfirmedInProgressByCustId = async (custId) => {
+const findAppointmentStatusConfirmedInProgressByCustId = async (
+  page,
+  limit,
+  custId
+) => {
   try {
     const result = await Appointment.find({
       "customer.custId": custId,
-      status: { $in: ["confirmed", "in-progress"] },
-    });
+    })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
     return status200(result);
   } catch (error) {
     console.log(

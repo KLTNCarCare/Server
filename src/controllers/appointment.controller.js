@@ -191,7 +191,13 @@ const getInfoAppointment = async (req, res) => {
 };
 const getAppointmentStatutsConfirmedInProgress = async (req, res) => {
   const custId = req.params.custId;
-  const result = await findAppointmentStatusConfirmedInProgressByCustId(custId);
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 6;
+  const result = await findAppointmentStatusConfirmedInProgressByCustId(
+    page,
+    limit,
+    custId
+  );
   return res.status(result.code).json(result);
 };
 module.exports = {
