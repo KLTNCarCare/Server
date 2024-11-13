@@ -14,7 +14,6 @@ const sendOTP = async (phoneNumber, recaptchaToken) => {
         },
       }
     );
-
     if (!recaptchaResponse.data.success || recaptchaResponse.data.score < 0.5) {
       throw new Error("Failed reCAPTCHA verification");
     }
@@ -23,7 +22,6 @@ const sendOTP = async (phoneNumber, recaptchaToken) => {
 
     const otpEntry = new Otp({ phoneNumber, code: otp });
     await otpEntry.save();
-
     return {
       code: 200,
       message: "OTP đã được gửi !!",

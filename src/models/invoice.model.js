@@ -116,7 +116,10 @@ const invoiceSchema = mongoose.Schema(
     },
     staff: {
       type: staffSchema,
-      required: false,
+      default: {
+        staffId: "NV000",
+        name: "App",
+      },
     },
     customer: {
       type: customerSchema,
