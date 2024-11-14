@@ -2,6 +2,8 @@ const router = require("express").Router();
 const {
   statisticsByCustomer,
   statisticsByCustomerExportCSV,
+  statisticsByStaff,
+  statisticsByStaffExportCSV,
 } = require("../controllers/statistic.controller");
 const auth = require("../middlewares/auth.middleware");
 
@@ -10,5 +12,11 @@ router.get(
   "/customer/export",
   auth(["admin", "staff"]),
   statisticsByCustomerExportCSV
+);
+router.get("/staff", auth(["admin", "staff"]), statisticsByStaff);
+router.get(
+  "/staff/export",
+  auth(["admin", "staff"]),
+  statisticsByStaffExportCSV
 );
 module.exports = router;
