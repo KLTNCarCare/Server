@@ -7,14 +7,14 @@ const statisticsByCustomerService = async (fromDate, toDate, page, limit) => {
     t1.setHours(0, 0, 0, 0);
     t2.setDate(t2.getDate() + 1);
     t2.setHours(0, 0, 0, 0);
-    console.log(t1, t2);
+
     const count = await Invoice.aggregate([
-      // {
-      //   $match: {
-      //     createdAt: { $gte: t1 },
-      //     createdAt: { $lte: t2 },
-      //   },
-      // },
+      {
+        $match: {
+          createdAt: { $gte: t1 },
+          createdAt: { $lte: t2 },
+        },
+      },
       {
         $group: {
           _id: "$customer.custId",
@@ -146,8 +146,8 @@ const statisticsByCustomerService = async (fromDate, toDate, page, limit) => {
           },
           items: {
             $push: {
-              custId: "$custId",
-              custName: "$custName",
+              // custId: "$custId",
+              // custName: "$custName",
               serviceId: "$serviceId",
               serviceName: "$serviceName",
               sale_before: "$sale_before",
@@ -331,8 +331,8 @@ const statisticsByCustomerExportCSVService = async (fromDate, toDate) => {
           },
           items: {
             $push: {
-              custId: "$custId",
-              custName: "$custName",
+              // custId: "$custId",
+              // custName: "$custName",
               serviceId: "$serviceId",
               serviceName: "$serviceName",
               sale_before: "$sale_before",
@@ -372,7 +372,6 @@ const statisticsByStaffService = async (fromDate, toDate, page, limit) => {
     t1.setHours(0, 0, 0, 0);
     t2.setDate(t2.getDate() + 1);
     t2.setHours(0, 0, 0, 0);
-    console.log(t1, t2);
     const count = await Invoice.aggregate([
       {
         $match: {
@@ -530,7 +529,12 @@ const statisticsByStaffService = async (fromDate, toDate, page, limit) => {
           total_discount: { $sum: "$total_discount" },
           total_sale_after: { $sum: "$total_sale_after" },
           items: {
-            $push: "$$ROOT",
+            $push: {
+              date: "$date",
+              total_sale_before: "$total_sale_before",
+              total_discount: "$total_discount",
+              total_sale_after: "$total_sale_after",
+            },
           },
         },
       },
@@ -542,7 +546,7 @@ const statisticsByStaffService = async (fromDate, toDate, page, limit) => {
           total_sale_before: "$total_sale_before",
           total_discount: "$total_discount",
           total_sale_after: "$total_sale_after",
-          itemsDate: "$items",
+          items: "$items",
         },
       },
       {
@@ -551,7 +555,7 @@ const statisticsByStaffService = async (fromDate, toDate, page, limit) => {
           total_sale_before: { $sum: "$total_sale_before" },
           total_discount: { $sum: "$total_discount" },
           total_sale_after: { $sum: "$total_sale_after" },
-          itemsStaff: { $push: "$$ROOT" },
+          items: { $push: "$$ROOT" },
         },
       },
       {
@@ -560,12 +564,12 @@ const statisticsByStaffService = async (fromDate, toDate, page, limit) => {
         },
       },
 
-      { $unwind: "$itemsStaff" },
-      { $unwind: "$itemsStaff.itemsDate" },
+      { $unwind: "$items" },
+      { $unwind: "$items.items" },
       {
         $sort: {
-          "itemsStaff.itemsDate.staffId": 1,
-          "itemsStaff.itemsDate.date": 1,
+          "items.staffId": 1,
+          "items.items.date": 1,
         },
       },
       { $skip: (page - 1) * limit },
@@ -575,15 +579,16 @@ const statisticsByStaffService = async (fromDate, toDate, page, limit) => {
       {
         $group: {
           _id: {
-            staffId: "$itemsStaff.itemsDate.staffId",
+            staffId: "$items.staffId",
+            staffName: "$items.staffName",
           },
-          total_sale_before: { $first: "$itemsStaff.total_sale_before" },
-          total_discount: { $first: "$itemsStaff.total_discount" },
-          total_sale_after: { $first: "$itemsStaff.total_sale_after" },
+          total_sale_before: { $first: "$items.total_sale_before" },
+          total_discount: { $first: "$items.total_discount" },
+          total_sale_after: { $first: "$items.total_sale_after" },
           total_sale_before_all_staff: { $first: "$total_sale_before" },
           total_discount_all_staff: { $first: "$total_discount" },
           total_sale_after_all_staff: { $first: "$total_sale_after" },
-          items: { $push: "$itemsStaff.itemsDate" },
+          items: { $push: "$items.items" },
         },
       },
       {
@@ -594,6 +599,8 @@ const statisticsByStaffService = async (fromDate, toDate, page, limit) => {
           total_sale_after: { $first: "$total_sale_after_all_staff" },
           items: {
             $push: {
+              staffId: "$_id.staffId",
+              staffName: "$_id.staffName",
               total_sale_before: "$total_sale_before",
               total_discount: "$total_discount",
               total_after: "$total_sale_after",
@@ -750,7 +757,12 @@ const statisticsByStaffExportCSVService = async (fromDate, toDate) => {
           total_discount: { $sum: "$total_discount" },
           total_sale_after: { $sum: "$total_sale_after" },
           items: {
-            $push: "$$ROOT",
+            $push: {
+              date: "$date",
+              total_sale_before: "$total_sale_before",
+              total_discount: "$total_discount",
+              total_sale_after: "$total_sale_after",
+            },
           },
         },
       },

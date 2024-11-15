@@ -2,6 +2,7 @@ const {
   statisticsByCustomerService,
   statisticsByCustomerExportCSVService,
   statisticsByStaffService,
+  statisticsByStaffExportCSVService,
 } = require("../services/statistical.service");
 
 const statisticsByCustomer = async (req, res) => {
@@ -34,7 +35,7 @@ const statisticsByStaff = async (req, res) => {
 const statisticsByStaffExportCSV = async (req, res) => {
   const fromDate = Number(req.query.fromDate);
   const toDate = Number(req.query.toDate);
-  const result = await statisticsByStaffExportCSV(fromDate, toDate);
+  const result = await statisticsByStaffExportCSVService(fromDate, toDate);
   return res.status(result.code).json(result);
 };
 module.exports = {
