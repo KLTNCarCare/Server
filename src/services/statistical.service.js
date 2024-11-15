@@ -1,6 +1,6 @@
 const { Invoice } = require("../models/invoice.model");
 const InvoiceRefund = require("../models/invoice_refund.model");
-
+const Promotion = require("../models/promotion.model");
 const statisticsByCustomerService = async (fromDate, toDate, page, limit) => {
   try {
     let t1 = new Date(fromDate);
@@ -1161,6 +1161,409 @@ const statisticsServiceRefundExportCSVService = async (fromDate, toDate) => {
     };
   }
 };
+const statisticsPromotionResultService = async (
+  fromDate,
+  toDate,
+  page,
+  limit
+) => {
+  try {
+    let t1 = new Date(fromDate);
+    let t2 = new Date(toDate);
+    t1.setHours(0, 0, 0, 0);
+    t2.setDate(t2.getDate() + 1);
+    t2.setHours(0, 0, 0, 0);
+    const count = await Promotion.aggregate([
+      {
+        $match: {
+          $or: [
+            { startDate: { $lte: t1 }, endDate: { $gte: t2 } },
+            { endDate: { $gte: t1 }, endDate: { $lte: t2 } },
+            { startDate: { $gte: t1 }, endDate: { $lte: t2 } },
+          ],
+        },
+      },
+
+      {
+        $addFields: {
+          parentId: { $toString: "$_id" },
+        },
+      },
+      {
+        $lookup: {
+          from: "promotion_lines",
+          localField: "parentId",
+          foreignField: "parentId",
+          as: "lines",
+        },
+      },
+      {
+        $unwind: {
+          path: "$lines",
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $unwind: {
+          path: "$lines.detail",
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      { $count: "totalCount" },
+    ]);
+    const pipeline = [
+      {
+        $match: {
+          $or: [
+            { startDate: { $lte: t1 }, endDate: { $gte: t2 } },
+            { endDate: { $gte: t1 }, endDate: { $lte: t2 } },
+            { startDate: { $gte: t1 }, endDate: { $lte: t2 } },
+          ],
+        },
+      },
+
+      {
+        $addFields: {
+          parentId: { $toString: "$_id" },
+        },
+      },
+      {
+        $lookup: {
+          from: "promotion_lines",
+          localField: "parentId",
+          foreignField: "parentId",
+          as: "lines",
+        },
+      },
+      {
+        $unwind: {
+          path: "$lines",
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $unwind: {
+          path: "$lines.detail",
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          promotionId: "$promotionId",
+          promotionName: "$promotionName",
+          startDate: {
+            $concat: [
+              { $toString: { $dayOfMonth: "$startDate" } },
+              "/",
+              { $toString: { $month: "$startDate" } },
+              "/",
+              { $toString: { $year: "$startDate" } },
+            ],
+          },
+          endDate: {
+            $concat: [
+              { $toString: { $dayOfMonth: "$endDate" } },
+              "/",
+              { $toString: { $month: "$endDate" } },
+              "/",
+              { $toString: { $year: "$endDate" } },
+            ],
+          },
+          lineId: { $toString: "$lines._id" },
+          detailId: "$lines.detail.code",
+          type: "$lines.type",
+          itemGiftId: { $toObjectId: "$lines.detail.itemGiftId" },
+        },
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "itemGiftId",
+          foreignField: "_id",
+          as: "service",
+        },
+      },
+      {
+        $unwind: {
+          path: "$service",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "promotion_results",
+          localField: "detailId",
+          foreignField: "code",
+          as: "results",
+        },
+      },
+      {
+        $project: {
+          promotionId: "$promotionId",
+          promotionName: "$promotionName",
+          startDate: "$startDate",
+          endDate: "$endDate",
+          type: "$type",
+          serviceId: "$service.serviceId",
+          serviceName: "$service.serviceName",
+          total_apply: { $size: "$results" },
+          total_amount: {
+            $reduce: {
+              input: "$results",
+              initialValue: 0,
+              in: { $add: ["$$value", "$$this.value"] },
+            },
+          },
+        },
+      },
+      {
+        $sort: {
+          promotionId: 1,
+        },
+      },
+      {
+        $group: {
+          _id: {
+            promotionId: "$promotionId",
+            promotionName: "$promotionName",
+            startDate: "$startDate",
+            endDate: "$endDate",
+          },
+
+          items: {
+            $push: {
+              type: "$type",
+              serviceId: "$serviceId",
+              serviceName: "$serviceName",
+              total_apply: "$total_apply",
+              total_amount: "$total_amount",
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          promotionId: "$_id.promotionId",
+          promotionName: "$_id.promotionName",
+          startDate: "$_id.startDate",
+          endDate: "$_id.endDate",
+          items: "$items",
+        },
+      },
+      { $unwind: "$items" },
+      {
+        $sort: {
+          promotionId: 1,
+        },
+      },
+      { $skip: (page - 1) * limit },
+      { $limit: limit },
+      {
+        $group: {
+          _id: {
+            promotionId: "$promotionId",
+            promotionName: "$promotionName",
+            startDate: "$startDate",
+            endDate: "$endDate",
+          },
+          items: { $push: "$items" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          promotionId: "$_id.promotionId",
+          promotionName: "$_id.promotionName",
+          startDate: "$_id.startDate",
+          endDate: "$_id.endDate",
+          items: "$items",
+        },
+      },
+    ];
+    const result = await Promotion.aggregate(pipeline);
+    return {
+      code: 200,
+      message: "Thành công",
+      totalCount: count[0].totalCount,
+      totalPage: Math.ceil(count[0].totalCount / limit),
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in statisticsByCustomerService", error);
+    return {
+      code: 500,
+      message: "Đã xảy ra lỗi máy chủ",
+      totalCount: 0,
+      totalPage: 0,
+      data: null,
+    };
+  }
+};
+const statisticsPromotionResultExportCSVService = async (fromDate, toDate) => {
+  try {
+    let t1 = new Date(fromDate);
+    let t2 = new Date(toDate);
+    t1.setHours(0, 0, 0, 0);
+    t2.setDate(t2.getDate() + 1);
+    t2.setHours(0, 0, 0, 0);
+    const pipeline = [
+      {
+        $match: {
+          $or: [
+            { startDate: { $lte: t1 }, endDate: { $gte: t2 } },
+            { endDate: { $gte: t1 }, endDate: { $lte: t2 } },
+            { startDate: { $gte: t1 }, endDate: { $lte: t2 } },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          parentId: { $toString: "$_id" },
+        },
+      },
+      {
+        $lookup: {
+          from: "promotion_lines",
+          localField: "parentId",
+          foreignField: "parentId",
+          as: "lines",
+        },
+      },
+      {
+        $unwind: {
+          path: "$lines",
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $unwind: {
+          path: "$lines.detail",
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          promotionId: "$promotionId",
+          promotionName: "$promotionName",
+          startDate: {
+            $concat: [
+              { $toString: { $dayOfMonth: "$startDate" } },
+              "/",
+              { $toString: { $month: "$startDate" } },
+              "/",
+              { $toString: { $year: "$startDate" } },
+            ],
+          },
+          endDate: {
+            $concat: [
+              { $toString: { $dayOfMonth: "$endDate" } },
+              "/",
+              { $toString: { $month: "$endDate" } },
+              "/",
+              { $toString: { $year: "$endDate" } },
+            ],
+          },
+          lineId: { $toString: "$lines._id" },
+          detailId: "$lines.detail.code",
+          type: "$lines.type",
+          itemGiftId: { $toObjectId: "$lines.detail.itemGiftId" },
+        },
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "itemGiftId",
+          foreignField: "_id",
+          as: "service",
+        },
+      },
+      {
+        $unwind: {
+          path: "$service",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "promotion_results",
+          localField: "detailId",
+          foreignField: "code",
+          as: "results",
+        },
+      },
+      {
+        $project: {
+          promotionId: "$promotionId",
+          promotionName: "$promotionName",
+          startDate: "$startDate",
+          endDate: "$endDate",
+          type: "$type",
+          serviceId: "$service.serviceId",
+          serviceName: "$service.serviceName",
+          total_apply: { $size: "$results" },
+          total_amount: {
+            $reduce: {
+              input: "$results",
+              initialValue: 0,
+              in: { $add: ["$$value", "$$this.value"] },
+            },
+          },
+        },
+      },
+      {
+        $sort: {
+          promotionId: 1,
+        },
+      },
+      {
+        $group: {
+          _id: {
+            promotionId: "$promotionId",
+            promotionName: "$promotionName",
+            startDate: "$startDate",
+            endDate: "$endDate",
+          },
+
+          items: {
+            $push: {
+              type: "$type",
+              serviceId: "$serviceId",
+              serviceName: "$serviceName",
+              total_apply: "$total_apply",
+              total_amount: "$total_amount",
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          promotionId: "$_id.promotionId",
+          promotionName: "$_id.promotionName",
+          startDate: "$_id.startDate",
+          endDate: "$_id.endDate",
+          items: "$items",
+        },
+      },
+    ];
+    const result = await Promotion.aggregate(pipeline);
+    return {
+      code: 200,
+      message: "Thành công",
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in statisticsByCustomerService", error);
+    return {
+      code: 500,
+      message: "Đã xảy ra lỗi máy chủ",
+      data: null,
+    };
+  }
+};
 module.exports = {
   statisticsByCustomerService,
   statisticsByCustomerExportCSVService,
@@ -1168,4 +1571,6 @@ module.exports = {
   statisticsByStaffExportCSVService,
   statisticsServiceRefundService,
   statisticsServiceRefundExportCSVService,
+  statisticsPromotionResultService,
+  statisticsPromotionResultExportCSVService,
 };

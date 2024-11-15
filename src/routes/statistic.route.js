@@ -6,6 +6,8 @@ const {
   statisticsByStaffExportCSV,
   statisticsServiceRefund,
   statisticsServiceRefundExportCSV,
+  statisticsPromotionResult,
+  statisticsPromotionResultExportCSV,
 } = require("../controllers/statistic.controller");
 const auth = require("../middlewares/auth.middleware");
 
@@ -30,5 +32,15 @@ router.get(
   "/service-refund/export",
   auth(["admin", "staff"]),
   statisticsServiceRefundExportCSV
+);
+router.get(
+  "/promotion-result",
+  auth(["admin", "staff"]),
+  statisticsPromotionResult
+);
+router.get(
+  "/promotion-result/export",
+  auth(["admin", "staff"]),
+  statisticsPromotionResultExportCSV
 );
 module.exports = router;
