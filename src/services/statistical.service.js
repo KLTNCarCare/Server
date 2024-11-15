@@ -1,4 +1,5 @@
 const { Invoice } = require("../models/invoice.model");
+const InvoiceRefund = require("../models/invoice_refund.model");
 
 const statisticsByCustomerService = async (fromDate, toDate, page, limit) => {
   try {
@@ -655,7 +656,7 @@ const statisticsByStaffExportCSVService = async (fromDate, toDate) => {
     t1.setHours(0, 0, 0, 0);
     t2.setDate(t2.getDate() + 1);
     t2.setHours(0, 0, 0, 0);
-    console.log(t1, t2);
+
     const pipeline = [
       {
         $match: {
@@ -821,9 +822,350 @@ const statisticsByStaffExportCSVService = async (fromDate, toDate) => {
     };
   }
 };
+const statisticsServiceRefundService = async (
+  fromDate,
+  toDate,
+  page,
+  limit
+) => {
+  try {
+    let t1 = new Date(fromDate);
+    let t2 = new Date(toDate);
+    t1.setHours(0, 0, 0, 0);
+    t2.setDate(t2.getDate() + 1);
+    t2.setHours(0, 0, 0, 0);
+    const count = await InvoiceRefund.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: t1 },
+          createdAt: { $lte: t2 },
+        },
+      },
+
+      {
+        $unwind: "$invoice.items",
+      },
+      { $count: "totalCount" },
+    ]);
+    const pipeline = [
+      {
+        $match: {
+          createdAt: { $gte: t1 },
+          createdAt: { $lte: t2 },
+        },
+      },
+
+      {
+        $unwind: "$invoice.items",
+      },
+
+      {
+        $addFields: {
+          serviceObjectId: { $toObjectId: "$invoice.items.serviceId" },
+        },
+      },
+
+      {
+        $lookup: {
+          from: "services",
+          localField: "serviceObjectId",
+          foreignField: "_id",
+          as: "service",
+        },
+      },
+      {
+        $unwind: "$service",
+      },
+      {
+        $project: {
+          _id: 0,
+          saleInvoiceId: "$invoice.invoiceId",
+          saleInvoiceCreatedAt: {
+            $concat: [
+              { $toString: { $dayOfMonth: "$invoice.createdAt" } },
+              "/",
+              { $toString: { $month: "$invoice.createdAt" } },
+              "/",
+              { $toString: { $year: "$invoice.createdAt" } },
+            ],
+          },
+          refundInvoiceId: "$invoiceRefundId",
+          refundInvoiceCreatedAt: {
+            $concat: [
+              { $toString: { $dayOfMonth: "$createdAt" } },
+              "/",
+              { $toString: { $month: "$createdAt" } },
+              "/",
+              { $toString: { $year: "$createdAt" } },
+            ],
+          },
+          serviceId: "$service.serviceId",
+          serviceName: "$service.serviceName",
+          amount: {
+            $subtract: [
+              "$invoice.items.price",
+              {
+                $multiply: [
+                  "$invoice.items.price",
+                  { $divide: ["$invoice.items.discount", 100] },
+                ],
+              },
+            ],
+          },
+        },
+      },
+
+      {
+        $group: {
+          _id: {
+            saleInvoiceId: "$saleInvoiceId",
+            saleInvoiceCreatedAt: "$saleInvoiceCreatedAt",
+            refundInvoiceId: "$refundInvoiceId",
+            refundInvoiceCreatedAt: "$refundInvoiceCreatedAt",
+          },
+          total_amount: { $sum: "$amount" },
+          items: {
+            $push: {
+              serviceId: "$serviceId",
+              serviceName: "$serviceName",
+              amount: "$amount",
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          saleInvoiceId: "$_id.saleInvoiceId",
+          saleInvoiceCreatedAt: "$_id.saleInvoiceCreatedAt",
+          refundInvoiceId: "$_id.refundInvoiceId",
+          refundInvoiceCreatedAt: "$_id.refundInvoiceCreatedAt",
+          total_amount: "$total_amount",
+          items: "$items",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total_amount: { $sum: "$total_amount" },
+          items: {
+            $push: {
+              saleInvoiceId: "$saleInvoiceId",
+              saleInvoiceCreatedAt: "$saleInvoiceCreatedAt",
+              refundInvoiceId: "$refundInvoiceId",
+              refundInvoiceCreatedAt: "$refundInvoiceCreatedAt",
+              items: "$items",
+            },
+          },
+        },
+      },
+
+      { $unwind: "$items" },
+      { $unwind: "$items.items" },
+      {
+        $skip: (page - 1) * limit,
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $group: {
+          _id: {
+            saleInvoiceId: "$items.saleInvoiceId",
+            saleInvoiceCreatedAt: "$items.saleInvoiceCreatedAt",
+            refundInvoiceId: "$items.refundInvoiceId",
+            refundInvoiceCreatedAt: "$items.refundInvoiceCreatedAt",
+          },
+          total_amount: { $first: "$total_amount" },
+          items: { $push: "$items.items" },
+        },
+      },
+
+      {
+        $group: {
+          _id: null,
+          total_amount: { $first: "$total_amount" },
+          items: {
+            $push: {
+              saleInvoiceId: "$_id.saleInvoiceId",
+              saleInvoiceCreatedAt: "$_id.saleInvoiceCreatedAt",
+              refundInvoiceId: "$_id.refundInvoiceId",
+              refundInvoiceCreatedAt: "$_id.refundInvoiceCreatedAt",
+              items: "$items",
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+        },
+      },
+    ];
+    const result = await InvoiceRefund.aggregate(pipeline);
+    return {
+      code: 200,
+      message: "Thành công",
+      totalCount: count[0].totalCount,
+      totalPage: Math.ceil(count[0].totalCount / limit),
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in statisticsByCustomerService", error);
+    return {
+      code: 500,
+      message: "Đã xảy ra lỗi máy chủ",
+      totalCount: 0,
+      totalPage: 0,
+      data: null,
+    };
+  }
+};
+const statisticsServiceRefundExportCSVService = async (fromDate, toDate) => {
+  try {
+    let t1 = new Date(fromDate);
+    let t2 = new Date(toDate);
+    t1.setHours(0, 0, 0, 0);
+    t2.setDate(t2.getDate() + 1);
+    t2.setHours(0, 0, 0, 0);
+    const pipeline = [
+      {
+        $match: {
+          createdAt: { $gte: t1 },
+          createdAt: { $lte: t2 },
+        },
+      },
+
+      {
+        $unwind: "$invoice.items",
+      },
+
+      {
+        $addFields: {
+          serviceObjectId: { $toObjectId: "$invoice.items.serviceId" },
+        },
+      },
+
+      {
+        $lookup: {
+          from: "services",
+          localField: "serviceObjectId",
+          foreignField: "_id",
+          as: "service",
+        },
+      },
+      {
+        $unwind: "$service",
+      },
+      {
+        $project: {
+          _id: 0,
+          saleInvoiceId: "$invoice.invoiceId",
+          saleInvoiceCreatedAt: {
+            $concat: [
+              { $toString: { $dayOfMonth: "$invoice.createdAt" } },
+              "/",
+              { $toString: { $month: "$invoice.createdAt" } },
+              "/",
+              { $toString: { $year: "$invoice.createdAt" } },
+            ],
+          },
+          refundInvoiceId: "$invoiceRefundId",
+          refundInvoiceCreatedAt: {
+            $concat: [
+              { $toString: { $dayOfMonth: "$createdAt" } },
+              "/",
+              { $toString: { $month: "$createdAt" } },
+              "/",
+              { $toString: { $year: "$createdAt" } },
+            ],
+          },
+          serviceId: "$service.serviceId",
+          serviceName: "$service.serviceName",
+          amount: {
+            $subtract: [
+              "$invoice.items.price",
+              {
+                $multiply: [
+                  "$invoice.items.price",
+                  { $divide: ["$invoice.items.discount", 100] },
+                ],
+              },
+            ],
+          },
+        },
+      },
+
+      {
+        $group: {
+          _id: {
+            saleInvoiceId: "$saleInvoiceId",
+            saleInvoiceCreatedAt: "$saleInvoiceCreatedAt",
+            refundInvoiceId: "$refundInvoiceId",
+            refundInvoiceCreatedAt: "$refundInvoiceCreatedAt",
+          },
+          total_amount: { $sum: "$amount" },
+          items: {
+            $push: {
+              serviceId: "$serviceId",
+              serviceName: "$serviceName",
+              amount: "$amount",
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          saleInvoiceId: "$_id.saleInvoiceId",
+          saleInvoiceCreatedAt: "$_id.saleInvoiceCreatedAt",
+          refundInvoiceId: "$_id.refundInvoiceId",
+          refundInvoiceCreatedAt: "$_id.refundInvoiceCreatedAt",
+          total_amount: "$total_amount",
+          items: "$items",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total_amount: { $sum: "$total_amount" },
+          items: {
+            $push: {
+              saleInvoiceId: "$saleInvoiceId",
+              saleInvoiceCreatedAt: "$saleInvoiceCreatedAt",
+              refundInvoiceId: "$refundInvoiceId",
+              refundInvoiceCreatedAt: "$refundInvoiceCreatedAt",
+              items: "$items",
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+        },
+      },
+    ];
+    const result = await InvoiceRefund.aggregate(pipeline);
+    return {
+      code: 200,
+      message: "Thành công",
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in statisticsByCustomerService", error);
+    return {
+      code: 500,
+      message: "Đã xảy ra lỗi máy chủ",
+      data: null,
+    };
+  }
+};
 module.exports = {
   statisticsByCustomerService,
   statisticsByCustomerExportCSVService,
   statisticsByStaffService,
   statisticsByStaffExportCSVService,
+  statisticsServiceRefundService,
+  statisticsServiceRefundExportCSVService,
 };
