@@ -6,6 +6,7 @@ const {
   statisticsServiceRefundService,
   statisticsServiceRefundExportCSVService,
   statisticsPromotionResultService,
+  statisticsPromotionResultExportCSVService,
 } = require("../services/statistical.service");
 
 const statisticsByCustomer = async (req, res) => {
@@ -79,7 +80,7 @@ const statisticsPromotionResult = async (req, res) => {
 const statisticsPromotionResultExportCSV = async (req, res) => {
   const fromDate = Number(req.query.fromDate);
   const toDate = Number(req.query.toDate);
-  const result = await statisticsServiceRefundExportCSVService(
+  const result = await statisticsPromotionResultExportCSVService(
     fromDate,
     toDate
   );

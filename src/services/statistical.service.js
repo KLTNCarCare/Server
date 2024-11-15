@@ -1330,7 +1330,8 @@ const statisticsPromotionResultService = async (
             startDate: "$startDate",
             endDate: "$endDate",
           },
-
+          total_apply: { $sum: "$total_apply" },
+          total_amount: { $sum: "$total_amount" },
           items: {
             $push: {
               type: "$type",
@@ -1349,6 +1350,8 @@ const statisticsPromotionResultService = async (
           promotionName: "$_id.promotionName",
           startDate: "$_id.startDate",
           endDate: "$_id.endDate",
+          total_apply: "$total_apply",
+          total_amount: "$total_amount",
           items: "$items",
         },
       },
@@ -1368,6 +1371,8 @@ const statisticsPromotionResultService = async (
             startDate: "$startDate",
             endDate: "$endDate",
           },
+          total_apply: { $first: "$total_apply" },
+          total_amount: { $first: "$total_amount" },
           items: { $push: "$items" },
         },
       },
@@ -1378,6 +1383,8 @@ const statisticsPromotionResultService = async (
           promotionName: "$_id.promotionName",
           startDate: "$_id.startDate",
           endDate: "$_id.endDate",
+          total_apply: "$total_apply",
+          total_amount: "$total_amount",
           items: "$items",
         },
       },
@@ -1418,6 +1425,7 @@ const statisticsPromotionResultExportCSVService = async (fromDate, toDate) => {
           ],
         },
       },
+
       {
         $addFields: {
           parentId: { $toString: "$_id" },
@@ -1526,7 +1534,8 @@ const statisticsPromotionResultExportCSVService = async (fromDate, toDate) => {
             startDate: "$startDate",
             endDate: "$endDate",
           },
-
+          total_apply: { $sum: "$total_apply" },
+          total_amount: { $sum: "$total_amount" },
           items: {
             $push: {
               type: "$type",
@@ -1545,6 +1554,8 @@ const statisticsPromotionResultExportCSVService = async (fromDate, toDate) => {
           promotionName: "$_id.promotionName",
           startDate: "$_id.startDate",
           endDate: "$_id.endDate",
+          total_apply: "$total_apply",
+          total_amount: "$total_amount",
           items: "$items",
         },
       },
