@@ -160,12 +160,39 @@ const statisticsByCustomerService = async (fromDate, toDate, page, limit) => {
       {
         $project: {
           _id: 0,
-          cust: "$_id",
+          custId: "$_id.custId",
+          custName: "$_id.custName",
           items: "$items",
+        },
+      },
+
+      {
+        $unwind: "$items",
+      },
+      {
+        $sort: {
+          custId: 1,
         },
       },
       { $skip: (page - 1) * limit },
       { $limit: limit },
+      {
+        $group: {
+          _id: {
+            custId: "$custId",
+            custName: "$custName",
+          },
+          items: { $push: "$items" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          custId: "$_id.custId",
+          custName: "$_id.custName",
+          items: "$items",
+        },
+      },
     ];
     const result = await Invoice.aggregate(pipeline);
     return {
@@ -193,20 +220,6 @@ const statisticsByCustomerExportCSVService = async (fromDate, toDate) => {
     t1.setHours(0, 0, 0, 0);
     t2.setDate(t2.getDate() + 1);
     t2.setHours(0, 0, 0, 0);
-    const count = await Invoice.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: t1 },
-          createdAt: { $lte: t2 },
-        },
-      },
-      {
-        $group: {
-          _id: "$customer.custId",
-        },
-      },
-      { $count: "totalCount" },
-    ]);
     const pipeline = [
       {
         $match: {
@@ -345,7 +358,8 @@ const statisticsByCustomerExportCSVService = async (fromDate, toDate) => {
       {
         $project: {
           _id: 0,
-          cust: "$_id",
+          custId: "$_id.custId",
+          custName: "$_id.custName",
           items: "$items",
         },
       },
