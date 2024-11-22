@@ -5,6 +5,7 @@ const {
   findAccountByUseranme,
   createAccountCustomer,
   updatePasswordMobile,
+  updatePasswordAuthByOldPassMobile,
 } = require("../services/account.service");
 const validator = require("validator");
 const { phoneNumberRegex } = require("../utils/regex");
@@ -75,6 +76,15 @@ const changePasswordMobile = async (req, res) => {
   const result = await updatePasswordMobile(username, newPass);
   return res.status(result.code).json();
 };
+const changePasswordAuthByOldPassMobile = async (req, res) => {
+  const { username, newPass, oldPass } = req.body;
+  const result = await updatePasswordAuthByOldPassMobile(
+    username,
+    oldPass,
+    newPass
+  );
+  return res.status(result.code).json();
+};
 module.exports = {
   sendHello,
   createAccountEmp,
@@ -83,4 +93,5 @@ module.exports = {
   checkPhoneRegister,
   createAccountMobile,
   changePasswordMobile,
+  changePasswordAuthByOldPassMobile,
 };
