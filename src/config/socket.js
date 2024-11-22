@@ -13,7 +13,6 @@ sockjs_server.installHandlers(server, { prefix: "/sockjs/staff" });
 sockjs_server.on("connection", (conn) => {
   conn.write("Kết nối với server sockjs thành công!");
   console.log("A Connecting with Id =", conn.id);
-  console.log("conn =", conn);
   // lưu id client kết nối
   connect.addConnection(conn.id, conn);
 

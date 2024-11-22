@@ -4,6 +4,7 @@ const {
   updateCustomer,
   deleteCustomer,
   createCustomer,
+  updateCustomerRoleCustomer,
 } = require("../services/customer.service");
 
 const getCustomerByTextPhone = async (req, res) => {
@@ -40,6 +41,12 @@ const editCustomer = async (req, res) => {
   const result = await updateCustomer(id, newCust);
   return res.status(result.code).json(result);
 };
+const editCustomerRoleCustomer = async (req, res) => {
+  const newCust = req.body;
+  const id = req.params.id;
+  const result = await updateCustomerRoleCustomer(id, newCust);
+  return res.status(result.code).json(result);
+};
 const removeCustomer = async (req, res) => {
   const id = req.params.id;
   const result = await deleteCustomer(id);
@@ -62,4 +69,5 @@ module.exports = {
   removeCustomer,
   saveCustomer,
   getCustomerByPhone,
+  editCustomerRoleCustomer,
 };

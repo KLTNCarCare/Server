@@ -10,23 +10,36 @@ const getSecondLeftToken = (token) => {
   }
 };
 const createOTP = async (phone) => {
-  const otp = _generateOTP();
-  console.log(otp);
-
-  //send otp
-  //save otp to database
-  return await Otp.create({
-    phoneNumber: phone,
-    code: otp,
-  });
+  try {
+    const obj = await Otp.findOne({ phoneNumber: phone }).lean();
+    if (!obj) {
+      const otp = _generateOTP();
+      console.log(`OTP: ${phone} - ${otp}`);
+      await Otp.create({
+        phoneNumber: phone,
+        code: otp,
+      });
+    }
+    return { code: 200, message: "", data: null };
+  } catch (error) {
+    console.log("Error in createOTP", error);
+    return { code: 500, message: "", data: null };
+  }
 };
 const verifyOTP = async (phone, otpFE) => {
-  const otpBE = await Otp.findOne({ phoneNumber: phone });
-  if (otpFE == 111111) {
-    return { code: 200, message: "Xác thực thành công." };
+  try {
+    if (otpFE == "111111") {
+      return { code: 200, message: "", data: null };
+    }
+    const otpBE = await Otp.findOne({ phoneNumber: phone });
+    if (!otpBE || otpBE.code != otpFE) {
+      return { code: 400, message: "", data: null };
+    }
+    return { code: 200, message: "", data: null };
+  } catch (error) {
+    console.log("Error in verifyOTP", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ" };
   }
-  if (!otpBE) return { code: 404, message: "Mã OTP hết hạn." };
-  if (otpBE.code != otpFE) return { code: 400, message: "Mã OTP không khớp." };
 };
 const _generateOTP = () => Math.floor(100000 + Math.random() * 900000);
 module.exports = { getSecondLeftToken, createOTP, verifyOTP };

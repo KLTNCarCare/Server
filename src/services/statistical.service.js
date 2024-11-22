@@ -8,12 +8,12 @@ const statisticsByCustomerService = async (fromDate, toDate, page, limit) => {
     t1.setHours(0, 0, 0, 0);
     t2.setDate(t2.getDate() + 1);
     t2.setHours(0, 0, 0, 0);
+    console.log(t1, t2);
 
     const count = await Invoice.aggregate([
       {
         $match: {
-          createdAt: { $gte: t1 },
-          createdAt: { $lte: t2 },
+          createdAt: { $gte: t1, $lte: t2 },
         },
       },
       {
@@ -23,11 +23,11 @@ const statisticsByCustomerService = async (fromDate, toDate, page, limit) => {
       },
       { $count: "totalCount" },
     ]);
+    const totalCount = count.length > 0 ? count[0].totalCount : 0;
     const pipeline = [
       {
         $match: {
-          createdAt: { $gte: t1 },
-          createdAt: { $lte: t2 },
+          createdAt: { $gte: t1, $lte: t2 },
         },
       },
       {
@@ -199,8 +199,8 @@ const statisticsByCustomerService = async (fromDate, toDate, page, limit) => {
     return {
       code: 200,
       message: "Thành công",
-      totalCount: count[0].totalCount,
-      totalPage: Math.ceil(count[0].totalCount / limit),
+      totalCount: totalCount,
+      totalPage: Math.ceil(totalCount / limit),
       data: result,
     };
   } catch (error) {
@@ -224,8 +224,7 @@ const statisticsByCustomerExportCSVService = async (fromDate, toDate) => {
     const pipeline = [
       {
         $match: {
-          createdAt: { $gte: t1 },
-          createdAt: { $lte: t2 },
+          createdAt: { $gte: t1, $lte: t2 },
         },
       },
       {
@@ -390,8 +389,7 @@ const statisticsByStaffService = async (fromDate, toDate, page, limit) => {
     const count = await Invoice.aggregate([
       {
         $match: {
-          createdAt: { $gte: t1 },
-          createdAt: { $lte: t2 },
+          createdAt: { $gte: t1, $lte: t2 },
         },
       },
       {
@@ -429,11 +427,11 @@ const statisticsByStaffService = async (fromDate, toDate, page, limit) => {
       },
       { $count: "totalCount" },
     ]);
+    const totalCount = count.length > 0 ? count[0].totalCount : 0;
     const pipeline = [
       {
         $match: {
-          createdAt: { $gte: t1 },
-          createdAt: { $lte: t2 },
+          createdAt: { $gte: t1, $lte: t2 },
         },
       },
       {
@@ -634,8 +632,8 @@ const statisticsByStaffService = async (fromDate, toDate, page, limit) => {
     return {
       code: 200,
       message: "Thành công",
-      totalCount: count[0].totalCount,
-      totalPage: Math.ceil(count[0].totalCount / limit),
+      totalCount: totalCount,
+      totalPage: Math.ceil(totalCount / limit),
       data: result,
     };
   } catch (error) {
@@ -660,8 +658,7 @@ const statisticsByStaffExportCSVService = async (fromDate, toDate) => {
     const pipeline = [
       {
         $match: {
-          createdAt: { $gte: t1 },
-          createdAt: { $lte: t2 },
+          createdAt: { $gte: t1, $lte: t2 },
         },
       },
       {
@@ -837,8 +834,7 @@ const statisticsServiceRefundService = async (
     const count = await InvoiceRefund.aggregate([
       {
         $match: {
-          createdAt: { $gte: t1 },
-          createdAt: { $lte: t2 },
+          createdAt: { $gte: t1, $lte: t2 },
         },
       },
 
@@ -847,11 +843,11 @@ const statisticsServiceRefundService = async (
       },
       { $count: "totalCount" },
     ]);
+    const totalCount = count.length > 0 ? count[0].totalCount : 0;
     const pipeline = [
       {
         $match: {
-          createdAt: { $gte: t1 },
-          createdAt: { $lte: t2 },
+          createdAt: { $gte: t1, $lte: t2 },
         },
       },
 
@@ -1006,8 +1002,8 @@ const statisticsServiceRefundService = async (
     return {
       code: 200,
       message: "Thành công",
-      totalCount: count[0].totalCount,
-      totalPage: Math.ceil(count[0].totalCount / limit),
+      totalCount: totalCount,
+      totalPage: Math.ceil(totalCount / limit),
       data: result,
     };
   } catch (error) {
@@ -1031,8 +1027,7 @@ const statisticsServiceRefundExportCSVService = async (fromDate, toDate) => {
     const pipeline = [
       {
         $match: {
-          createdAt: { $gte: t1 },
-          createdAt: { $lte: t2 },
+          createdAt: { $gte: t1, $lte: t2 },
         },
       },
 
@@ -1177,8 +1172,8 @@ const statisticsPromotionResultService = async (
       {
         $match: {
           $or: [
-            { startDate: { $lte: t1 }, endDate: { $gte: t2 } },
-            { endDate: { $gte: t1 }, endDate: { $lte: t2 } },
+            { startDate: { $lte: t1, $gte: t2 } },
+            { endDate: { $gte: t1, $lte: t2 } },
             { startDate: { $gte: t1 }, endDate: { $lte: t2 } },
           ],
         },
@@ -1211,12 +1206,13 @@ const statisticsPromotionResultService = async (
       },
       { $count: "totalCount" },
     ]);
+    const totalCount = count.length > 0 ? count[0].totalCount : 0;
     const pipeline = [
       {
         $match: {
           $or: [
-            { startDate: { $lte: t1 }, endDate: { $gte: t2 } },
-            { endDate: { $gte: t1 }, endDate: { $lte: t2 } },
+            { startDate: { $lte: t1, $gte: t2 } },
+            { endDate: { $gte: t1, $lte: t2 } },
             { startDate: { $gte: t1 }, endDate: { $lte: t2 } },
           ],
         },
@@ -1393,8 +1389,8 @@ const statisticsPromotionResultService = async (
     return {
       code: 200,
       message: "Thành công",
-      totalCount: count[0].totalCount,
-      totalPage: Math.ceil(count[0].totalCount / limit),
+      totalCount: totalCount,
+      totalPage: Math.ceil(totalCount / limit),
       data: result,
     };
   } catch (error) {
@@ -1419,8 +1415,8 @@ const statisticsPromotionResultExportCSVService = async (fromDate, toDate) => {
       {
         $match: {
           $or: [
-            { startDate: { $lte: t1 }, endDate: { $gte: t2 } },
-            { endDate: { $gte: t1 }, endDate: { $lte: t2 } },
+            { startDate: { $lte: t1, $gte: t2 } },
+            { endDate: { $gte: t1, $lte: t2 } },
             { startDate: { $gte: t1 }, endDate: { $lte: t2 } },
           ],
         },
