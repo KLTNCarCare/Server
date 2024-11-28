@@ -14,6 +14,7 @@ const {
   activePromotionLine,
   inactivePromotionLine,
   changeStatusPromotionLine,
+  getPromotionCurrentMobile,
 } = require("../controllers/promotion.controller");
 const auth = require("../middlewares/auth.middleware");
 router.post("/create-promotion", auth(["admin"]), savePromotion);
@@ -49,5 +50,10 @@ router.put(
   "/change-status-line/:id",
   auth(["admin", "staff"]),
   changeStatusPromotionLine
+);
+router.get(
+  "/get-promotion-current",
+  auth(["admin", "staff", "customer"]),
+  getPromotionCurrentMobile
 );
 module.exports = router;

@@ -39,7 +39,6 @@ const getAccountByUsernamePassword = async (username, password) => {
       username,
       role: { $in: ["admin", "staff"] },
     }).lean();
-    console.log(obj);
 
     if (!obj) {
       return {
@@ -90,7 +89,7 @@ const getAccountByUsernamePassword = async (username, password) => {
     };
     return { code: 200, message: "Thành công", data: data };
   } catch (error) {
-    console.log(error);
+    console.log("Error in getAccountByUsernamePassword", error);
     return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
@@ -179,10 +178,8 @@ const updatePasswordAuthByOldPassMobile = async (
     if (!obj) {
       return { code: 400, message: "Không tìm thấy tài khoản", data: null };
     }
-    console.log("oldpass", oldPass);
 
     const isMatch = await bcrypt.compare(oldPass, obj.password);
-    console.log("obj.password", obj.password);
 
     if (!isMatch) {
       return { code: 400, message: "Sai mật khẩu", data: null };

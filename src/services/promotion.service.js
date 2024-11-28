@@ -180,16 +180,19 @@ const createPromotionLine = async (data) => {
     }
     data.lineId = await generateID("CTKMCT", { session });
     await increaseLastId("CTKMCT", { session });
+
     for (let i = 0; i < data.detail.length; i++) {
       // data.detail[i].code = await generateID("COD", { session });
       // await increaseLastId("COD", { session });
-      data.detail[i].description = await addDescriptionPromotionDetail(
+      data.detail[i].description = addDescriptionPromotionDetail(
         data.detail[i],
         data.type
       );
     }
+
     data.startDate = new Date(startDate);
     data.endDate = new Date(endDate);
+    console.log("data = ", data);
     const result = await PromotionLine.create([data], { session });
     await session.commitTransaction();
     return {
@@ -198,7 +201,7 @@ const createPromotionLine = async (data) => {
       data: result[0],
     };
   } catch (error) {
-    console.log(error);
+    console.log("Error in createPromotionLine", error);
 
     await session.abortTransaction();
     if (error.code == 11000) {
@@ -224,7 +227,7 @@ const createPromotionLine = async (data) => {
       data: null,
     };
   } finally {
-    session.endSession();
+    await session.endSession();
   }
 };
 const updatePromotionLine = async (id, promotionLine) => {
@@ -612,15 +615,12 @@ const getProService = async (time, listItemId) => {
   ]);
   return data;
 };
-const addDescriptionPromotionDetail = async (
-  promotionDetail,
-  promotionType
-) => {
+const addDescriptionPromotionDetail = (promotionDetail, promotionType) => {
   let str;
   if (promotionType == "discount-bill") {
     const bill = formatCurrency(promotionDetail.bill);
     const limitDiscount = formatCurrency(promotionDetail.limitDiscount);
-    str = `Giảm ${promotionDetail.discount}% đối với hoá đơn từ ${bill} trở lên, giảm tối đa ${limitDiscount}`;
+    str = `Giảm ${promotionDetail.discount}% (tối đa: ${limitDiscount}đ) với hoá đơn từ ${bill}đ`;
   } else {
     if (promotionDetail.itemId == promotionDetail.itemGiftId) {
       str = `Giảm ${promotionDetail.discount}% cho ${promotionDetail.itemName}`;
@@ -826,6 +826,44 @@ const updateStatusPromotionLine = async (id) => {
     return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
+const findPromotionCurrentMobile = async () => {
+  try {
+    const now = new Date();
+    const pipeline = [
+      {
+        $match: {
+          startDate: { $lte: now },
+          endDate: { $gte: now },
+          status: "active",
+        },
+      },
+      {
+        $unwind: {
+          path: "$detail",
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          endDate: "$endDate",
+          type: "$type",
+          description: "$detail.description",
+          serviceId: "$detail.itemId",
+          serviceGiftId: "$detail.itemGiftId",
+          bill: "$detail.bill",
+          discount: "$detail.discount",
+          limitDiscount: "$detail.limitDiscount",
+        },
+      },
+    ];
+    const result = await PromotionLine.aggregate(pipeline);
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in findPromotionLineCurrentMobile", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
 module.exports = {
   createPromotion,
   updatePromotion,
@@ -848,4 +886,5 @@ module.exports = {
   updateStatusActivePromotionLine,
   updateStatusInactivePromotionLine,
   updateStatusPromotionLine,
+  findPromotionCurrentMobile,
 };

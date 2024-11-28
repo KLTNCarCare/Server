@@ -13,6 +13,7 @@ const {
   updateStatusActivePromotionLine,
   updateStatusInactivePromotionLine,
   updateStatusPromotionLine,
+  findPromotionCurrentMobile,
 } = require("../services/promotion.service");
 const { findServiceById } = require("../services/service.service");
 
@@ -122,6 +123,10 @@ const changeStatusPromotionLine = async (req, res) => {
   const result = await updateStatusPromotionLine(id);
   return res.status(result.code).json(result);
 };
+const getPromotionCurrentMobile = async (req, res) => {
+  const result = await findPromotionCurrentMobile();
+  return res.status(result.code).json(result);
+};
 module.exports = {
   savePromotion,
   removePromotion,
@@ -137,4 +142,5 @@ module.exports = {
   activePromotionLine,
   inactivePromotionLine,
   changeStatusPromotionLine,
+  getPromotionCurrentMobile,
 };

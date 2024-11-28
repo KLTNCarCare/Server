@@ -8,7 +8,6 @@ const statisticsByCustomerService = async (fromDate, toDate, page, limit) => {
     t1.setHours(0, 0, 0, 0);
     t2.setDate(t2.getDate() + 1);
     t2.setHours(0, 0, 0, 0);
-    console.log(t1, t2);
 
     const count = await Invoice.aggregate([
       {
@@ -164,15 +163,34 @@ const statisticsByCustomerService = async (fromDate, toDate, page, limit) => {
           custId: "$_id.custId",
           custName: "$_id.custName",
           items: "$items",
+          sale_before: { $sum: "$items.sale_before" },
+          discount: { $sum: "$items.discount" },
+          sale_after: { $sum: "$items.sale_after" },
         },
       },
-
+      {
+        $group: {
+          _id: null,
+          sale_before: { $sum: "$sale_before" },
+          discount: { $sum: "$discount" },
+          sale_after: { $sum: "$sale_after" },
+          items: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+        },
+      },
       {
         $unwind: "$items",
       },
       {
+        $unwind: "$items.items",
+      },
+      {
         $sort: {
-          custId: 1,
+          "items.custId": 1,
         },
       },
       { $skip: (page - 1) * limit },
@@ -180,18 +198,53 @@ const statisticsByCustomerService = async (fromDate, toDate, page, limit) => {
       {
         $group: {
           _id: {
-            custId: "$custId",
-            custName: "$custName",
+            custId: "$items.custId",
+            custName: "$items.custName",
           },
-          items: { $push: "$items" },
+          custId: { $first: "$items.custId" },
+          custName: { $first: "$items.custName" },
+          total_sale_before: { $first: "$sale_before" },
+          total_discount: { $first: "$discount" },
+          total_sale_after: { $first: "$sale_after" },
+          sale_before: { $first: "$items.sale_before" },
+          discount: { $first: "$items.discount" },
+          sale_after: { $first: "$items.sale_after" },
+          items: {
+            $push: "$items.items",
+          },
+        },
+      },
+
+      {
+        $project: {
+          _id: 0,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          sale_before: { $first: "$total_sale_before" },
+          discount: { $first: "$total_discount" },
+          sale_after: { $first: "$total_sale_after" },
+          items: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $set: {
+          items: {
+            $sortArray: {
+              input: "$items", // Sắp xếp mảng `items`
+              sortBy: { custId: 1 }, // Sắp xếp tăng dần theo `id`
+            },
+          },
         },
       },
       {
         $project: {
           _id: 0,
-          custId: "$_id.custId",
-          custName: "$_id.custName",
-          items: "$items",
+          "items.total_sale_before": 0,
+          "items.total_discount": 0,
+          "items.total_sale_after": 0,
         },
       },
     ];
@@ -360,7 +413,34 @@ const statisticsByCustomerExportCSVService = async (fromDate, toDate) => {
           _id: 0,
           custId: "$_id.custId",
           custName: "$_id.custName",
+          sale_before: { $sum: "$items.sale_before" },
+          discount: { $sum: "$items.discount" },
+          sale_after: { $sum: "$items.sale_after" },
           items: "$items",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          sale_before: { $sum: "$sale_before" },
+          discount: { $sum: "$discount" },
+          sale_after: { $sum: "$sale_after" },
+          items: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $set: {
+          items: {
+            $sortArray: {
+              input: "$items", // Sắp xếp mảng `items`
+              sortBy: { custId: 1 }, // Sắp xếp tăng dần theo `id`
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
         },
       },
     ];
@@ -623,6 +703,16 @@ const statisticsByStaffService = async (fromDate, toDate, page, limit) => {
         },
       },
       {
+        $set: {
+          items: {
+            $sortArray: {
+              input: "$items", // Sắp xếp mảng `items`
+              sortBy: { staffId: 1 }, // Sắp xếp tăng dần theo `id`
+            },
+          },
+        },
+      },
+      {
         $project: {
           _id: 0,
         },
@@ -799,6 +889,16 @@ const statisticsByStaffExportCSVService = async (fromDate, toDate) => {
         },
       },
       {
+        $set: {
+          items: {
+            $sortArray: {
+              input: "$items", // Sắp xếp mảng `items`
+              sortBy: { staffId: 1 }, // Sắp xếp tăng dần theo `id`
+            },
+          },
+        },
+      },
+      {
         $project: {
           _id: 0,
         },
@@ -959,6 +1059,12 @@ const statisticsServiceRefundService = async (
       { $unwind: "$items" },
       { $unwind: "$items.items" },
       {
+        $sort: {
+          refundInvoiceId: 1,
+          "items.serviceId": 1,
+        },
+      },
+      {
         $skip: (page - 1) * limit,
       },
       {
@@ -988,6 +1094,39 @@ const statisticsServiceRefundService = async (
               refundInvoiceId: "$_id.refundInvoiceId",
               refundInvoiceCreatedAt: "$_id.refundInvoiceCreatedAt",
               items: "$items",
+            },
+          },
+        },
+      },
+      {
+        $set: {
+          items: {
+            $sortArray: {
+              input: "$items", // Sắp xếp mảng `items`
+              sortBy: { invoiceRefundId: 1 }, // Sắp xếp tăng dần theo `id`
+            },
+          },
+        },
+      },
+      {
+        $set: {
+          items: {
+            $map: {
+              input: "$items", // Duyệt qua từng phần tử của `items`
+              as: "item",
+              in: {
+                $mergeObjects: [
+                  "$$item", // Giữ nguyên các trường khác trong `item`
+                  {
+                    items: {
+                      $sortArray: {
+                        input: "$$item.items", // Sắp xếp cấp 2
+                        sortBy: { serviceId: 1 }, // Sắp xếp theo `serviceId`
+                      },
+                    },
+                  },
+                ],
+              },
             },
           },
         },
@@ -1131,6 +1270,39 @@ const statisticsServiceRefundExportCSVService = async (fromDate, toDate) => {
               refundInvoiceId: "$refundInvoiceId",
               refundInvoiceCreatedAt: "$refundInvoiceCreatedAt",
               items: "$items",
+            },
+          },
+        },
+      },
+      {
+        $set: {
+          items: {
+            $sortArray: {
+              input: "$items", // Sắp xếp mảng `items`
+              sortBy: { refundInvoiceId: 1 }, // Sắp xếp tăng dần theo `id`
+            },
+          },
+        },
+      },
+      {
+        $set: {
+          items: {
+            $map: {
+              input: "$items", // Duyệt qua từng phần tử của `items`
+              as: "item",
+              in: {
+                $mergeObjects: [
+                  "$$item", // Giữ nguyên các trường khác trong `item`
+                  {
+                    items: {
+                      $sortArray: {
+                        input: "$$item.items", // Sắp xếp cấp 2
+                        sortBy: { serviceId: 1 }, // Sắp xếp theo `serviceId`
+                      },
+                    },
+                  },
+                ],
+              },
             },
           },
         },
@@ -1298,6 +1470,7 @@ const statisticsPromotionResultService = async (
         $project: {
           promotionId: "$promotionId",
           promotionName: "$promotionName",
+          detailId: "$detailId",
           startDate: "$startDate",
           endDate: "$endDate",
           type: "$type",
@@ -1313,11 +1486,7 @@ const statisticsPromotionResultService = async (
           },
         },
       },
-      {
-        $sort: {
-          promotionId: 1,
-        },
-      },
+
       {
         $group: {
           _id: {
@@ -1331,6 +1500,7 @@ const statisticsPromotionResultService = async (
           items: {
             $push: {
               type: "$type",
+              detailId: "$detailId",
               serviceId: "$serviceId",
               serviceName: "$serviceName",
               total_apply: "$total_apply",
@@ -1339,6 +1509,7 @@ const statisticsPromotionResultService = async (
           },
         },
       },
+
       {
         $project: {
           _id: 0,
@@ -1351,37 +1522,98 @@ const statisticsPromotionResultService = async (
           items: "$items",
         },
       },
+      {
+        $group: {
+          _id: null,
+          total_apply: { $sum: "$total_apply" },
+          total_amount: { $sum: "$total_amount" },
+          items: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+        },
+      },
       { $unwind: "$items" },
+      { $unwind: "$items.items" },
       {
         $sort: {
           promotionId: 1,
+          "items.detailId": 1,
         },
       },
       { $skip: (page - 1) * limit },
       { $limit: limit },
+
       {
         $group: {
           _id: {
-            promotionId: "$promotionId",
-            promotionName: "$promotionName",
-            startDate: "$startDate",
-            endDate: "$endDate",
+            promotionId: "$items.promotionId",
           },
-          total_apply: { $first: "$total_apply" },
-          total_amount: { $first: "$total_amount" },
-          items: { $push: "$items" },
+          promotionId: { $first: "$items.promotionId" },
+          promotionName: { $first: "$items.promotionName" },
+          startDate: { $first: "$items.startDate" },
+          endDate: { $first: "$items.endDate" },
+          total_apply: { $first: "$items.total_apply" },
+          total_amount: { $first: "$items.total_amount" },
+          total_total_apply: { $first: "$total_apply" },
+          total_total_amount: { $first: "$total_amount" },
+          items: { $push: "$items.items" },
         },
       },
       {
         $project: {
           _id: 0,
-          promotionId: "$_id.promotionId",
-          promotionName: "$_id.promotionName",
-          startDate: "$_id.startDate",
-          endDate: "$_id.endDate",
-          total_apply: "$total_apply",
-          total_amount: "$total_amount",
-          items: "$items",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total_apply: { $first: "$total_total_apply" },
+          total_amount: { $first: "$total_total_amount" },
+          items: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $set: {
+          items: {
+            $sortArray: {
+              input: "$items", // Sắp xếp mảng `items`
+              sortBy: { promotionId: 1 }, // Sắp xếp tăng dần theo `id`
+            },
+          },
+        },
+      },
+      {
+        $set: {
+          items: {
+            $map: {
+              input: "$items", // Duyệt qua từng phần tử của `items`
+              as: "item",
+              in: {
+                $mergeObjects: [
+                  "$$item", // Giữ nguyên các trường khác trong `item`
+                  {
+                    items: {
+                      $sortArray: {
+                        input: "$$item.items", // Sắp xếp cấp 2
+                        sortBy: { detailId: 1 }, // Sắp xếp theo `serviceId`
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          "items.total_total_apply": 0,
+          "items.tota_total_amount": 0,
+          "items.items.detailId": 0,
         },
       },
     ];
@@ -1502,6 +1734,7 @@ const statisticsPromotionResultExportCSVService = async (fromDate, toDate) => {
         $project: {
           promotionId: "$promotionId",
           promotionName: "$promotionName",
+          detailId: "$detailId",
           startDate: "$startDate",
           endDate: "$endDate",
           type: "$type",
@@ -1517,11 +1750,7 @@ const statisticsPromotionResultExportCSVService = async (fromDate, toDate) => {
           },
         },
       },
-      {
-        $sort: {
-          promotionId: 1,
-        },
-      },
+
       {
         $group: {
           _id: {
@@ -1535,6 +1764,7 @@ const statisticsPromotionResultExportCSVService = async (fromDate, toDate) => {
           items: {
             $push: {
               type: "$type",
+              detailId: "$detailId",
               serviceId: "$serviceId",
               serviceName: "$serviceName",
               total_apply: "$total_apply",
@@ -1543,6 +1773,7 @@ const statisticsPromotionResultExportCSVService = async (fromDate, toDate) => {
           },
         },
       },
+
       {
         $project: {
           _id: 0,
@@ -1553,6 +1784,53 @@ const statisticsPromotionResultExportCSVService = async (fromDate, toDate) => {
           total_apply: "$total_apply",
           total_amount: "$total_amount",
           items: "$items",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total_apply: { $sum: "$total_apply" },
+          total_amount: { $sum: "$total_amount" },
+          items: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $set: {
+          items: {
+            $sortArray: {
+              input: "$items", // Sắp xếp mảng `items`
+              sortBy: { promotionId: 1 }, // Sắp xếp tăng dần theo `id`
+            },
+          },
+        },
+      },
+      {
+        $set: {
+          items: {
+            $map: {
+              input: "$items", // Duyệt qua từng phần tử của `items`
+              as: "item",
+              in: {
+                $mergeObjects: [
+                  "$$item", // Giữ nguyên các trường khác trong `item`
+                  {
+                    items: {
+                      $sortArray: {
+                        input: "$$item.items", // Sắp xếp cấp 2
+                        sortBy: { detailId: 1 }, // Sắp xếp theo `serviceId`
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          "items.items.detailId": 0,
         },
       },
     ];

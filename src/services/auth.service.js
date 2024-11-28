@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const { Otp } = require("../models/otp.model");
+const { createMessage } = require("./twilio.service");
 
 const getSecondLeftToken = (token) => {
   const decoded = jwt.decode(token);
@@ -19,6 +20,7 @@ const createOTP = async (phone) => {
         phoneNumber: phone,
         code: otp,
       });
+      createMessage(phone, otp);
     }
     return { code: 200, message: "", data: null };
   } catch (error) {
@@ -35,6 +37,7 @@ const verifyOTP = async (phone, otpFE) => {
     if (!otpBE || otpBE.code != otpFE) {
       return { code: 400, message: "", data: null };
     }
+    await Otp.deleteOne({ phoneNumber: phone });
     return { code: 200, message: "", data: null };
   } catch (error) {
     console.log("Error in verifyOTP", error);
