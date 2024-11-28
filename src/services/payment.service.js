@@ -282,17 +282,6 @@ const createZaloPayAppToApp = async (input) => {
       ...info,
     };
 
-    //test
-    const test = {
-      items: info.items,
-      status: "confirmed",
-      invoiceCreated: true,
-      ...embed_data.data,
-    };
-
-    const rs = await createInfoOrderMobile(test);
-    console.log("result =", rs);
-
     return {
       code: 200,
       message: "Thành công",
