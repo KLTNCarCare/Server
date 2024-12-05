@@ -25,9 +25,9 @@ const customerSchema = mongoose.Schema(
 );
 const staffSchema = mongoose.Schema(
   {
-    staffId: { type: String, required: true },
+    staffId: { type: String, default: "NV000" },
 
-    name: { type: String, required: true },
+    name: { type: String, default: "App" },
   },
   { _id: false }
 );
