@@ -15,10 +15,12 @@ const startServer = async (port) => {
 
   // option cors
   const corsOptions = {
-    origin: ["https://carcarewweb.vercel.app:443"], // Thay thế bằng nguồn gốc của bạn
+    origin: [
+      process.env.REACT_APP_FRONTEND_URL_PROD, // Địa chỉ frontend trên Vercel
+      process.env.REACT_APP_FRONTEND_URL, // Địa chỉ frontend trên localhost (dùng cho phát triển)
+    ],
     credentials: true, // Cho phép gửi cookie và các thông tin xác thực khác
   };
-
   //middleware cors
   app.use(cors(corsOptions));
 
