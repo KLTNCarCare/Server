@@ -3,8 +3,12 @@ const {
   getAllInvoice,
   getInvoiceByAppointmentId,
   payInvoice,
-  refundInvoice,
+  getInvoiceByCustId,
 } = require("../controllers/invoice.controller");
+const {
+  saveInvoiceRefund,
+  getAllInvoiceRefund,
+} = require("../controllers/invoice_refund.controller");
 const auth = require("../middlewares/auth.middleware");
 const router = require("express").Router();
 router.post("/create/:appointmentId", auth(["admin", "staff"]), saveInvoice);
@@ -15,5 +19,20 @@ router.get(
   getInvoiceByAppointmentId
 );
 router.put("/pay-invoice/:id", auth(["admin", "staff"]), payInvoice);
-router.put("/refund-invoice/:id", auth(["admin", "staff"]), refundInvoice);
+router.get(
+  "/get-by-custId/:id",
+  auth(["admin", "staff", "customer"]),
+  getInvoiceByCustId
+);
+// invoice refund
+router.post(
+  "/create-invoice-refund/:id",
+  auth(["admin", "staff"]),
+  saveInvoiceRefund
+);
+router.get(
+  "/get-all-invoice-refund",
+  auth(["admin", "staff"]),
+  getAllInvoiceRefund
+);
 module.exports = router;

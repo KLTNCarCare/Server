@@ -1,13 +1,24 @@
-const { type } = require("express/lib/response");
 const mongoose = require("mongoose");
-
+const { phoneNumberRegex } = require("../utils/regex");
+const staffSchema = mongoose.Schema(
+  {
+    staffId: { type: String, required: true },
+    name: { type: String, required: true },
+  },
+  { _id: false }
+);
 const customerSchema = mongoose.Schema(
   {
+    _id: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+    },
+    custId: { type: String, required: true },
     phone: {
       type: String,
       required: true,
+      match: [phoneNumberRegex, "Số điện thoại không hợp lệ"],
     },
-
     name: { type: String, required: true },
   },
   { _id: false }
@@ -65,9 +76,9 @@ const serviceSchema = mongoose.Schema(
   {
     typeId: {
       type: String,
-      required: true,
+      required: false,
     },
-    typeName: { type: String, required: true },
+    typeName: { type: String, required: false },
     serviceId: { type: String, required: true },
     serviceName: {
       type: String,
@@ -103,6 +114,13 @@ const invoiceSchema = mongoose.Schema(
       type: String,
       default: null,
     },
+    staff: {
+      type: staffSchema,
+      default: {
+        staffId: "NV000",
+        name: "App",
+      },
+    },
     customer: {
       type: customerSchema,
       required: true,
@@ -114,11 +132,6 @@ const invoiceSchema = mongoose.Schema(
     notes: {
       type: String,
       default: null,
-    },
-    type: {
-      type: String,
-      enum: ["normal", "refund"],
-      default: "normal",
     },
     items: {
       type: [serviceSchema],
@@ -139,6 +152,10 @@ const invoiceSchema = mongoose.Schema(
       type: String,
       enum: ["cash", "transfer"],
       required: true,
+    },
+    isRefund: {
+      type: Boolean,
+      default: false,
     },
     createdAt: {
       type: Date,
@@ -180,4 +197,4 @@ invoiceSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
   next();
 });
 const Invoice = mongoose.model("Invoice", invoiceSchema);
-module.exports = Invoice;
+module.exports = { Invoice, invoiceSchema };

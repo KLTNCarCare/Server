@@ -1,117 +1,189 @@
 const { default: mongoose } = require("mongoose");
-const Invoice = require("../models/invoice.model");
+const crypto = require("crypto");
+const { Invoice } = require("../models/invoice.model");
 const {
   getAppointmentById,
   updateAppointmentCreatedInvoice,
+  getAppointmentByAppointmentId,
+  getAppointmentLeanById,
+  createAppointmentRaw,
 } = require("./appointment.service");
+const {
+  createPromotionResult,
+  createManyPromotionResult,
+} = require("./promotion_result.service");
+const {
+  generateInvoiceID,
+  generateAppointmentID,
+} = require("./lastID.service");
+const { log } = require("console");
 const Appointment = require("../models/appointment.model");
-const { createPromotionResult } = require("./promotion_result.service");
-const { generateInvoiceID } = require("./lastID.service");
+const { sendMessageAllStaff } = require("./sockjs_manager");
+const { messageType } = require("../utils/constants");
 
 const createInvoiceFromAppointmentId = async (appId, paymentMethod) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const app = await getAppointmentById(appId);
-    const promotion_result = [];
+    const app = await getAppointmentLeanById(appId);
     // Không tìm thấy appointment
     if (!app) {
       return {
         code: 400,
-        message: "Dont find appointment with _id " + appId,
+        message: "Không tìm thấy đơn hàng",
         data: null,
       };
     }
-    app.invoiceId = await generateInvoiceID();
+    if (app.invoiceCreated == true) {
+      return {
+        code: 400,
+        message: "Đơn hàng đã có hoá đơn",
+        data: null,
+      };
+    }
+    app.invoiceId = await generateInvoiceID({ session });
     app.appointmentId = app._id;
     app.payment_method = paymentMethod;
     delete app._id;
     // lưu hoá đơn
-    const result = await Invoice.create(app);
+    const result = await Invoice.create([app], { session });
     // cập nhật appointment đã được tạo invoice
-    await updateAppointmentCreatedInvoice(appId);
-    console.log(app.promotion);
-
+    await updateAppointmentCreatedInvoice(appId, { session });
     // lưu kết quả khuyến mãi
     if (app.promotion.length > 0) {
       for (let pro of app.promotion) {
-        await createPromotionResult({ ...pro, invoice: result._id });
+        await createPromotionResult(
+          { ...pro, invoice: result[0]._id },
+          {
+            session,
+          }
+        );
       }
     }
-    session.commitTransaction();
-    const invoice = await findInvoiceById(result._id);
+    await session.commitTransaction();
+    const invoice = new Invoice(result[0]);
     return {
       code: 200,
-      message: "Successfully",
+      message: "Thành công",
       data: invoice,
     };
   } catch (error) {
-    session.abortTransaction();
+    await session.abortTransaction();
     console.log(error);
-
+    if (error.name == "ValidationError" && error.errors) {
+      if (error.errors["payment_method"]) {
+        return {
+          code: 400,
+          message:
+            "Phương thức thanh toán không hợp lệ: " +
+            error.errors["payment_method"].value,
+          data: null,
+        };
+      }
+      if (error.errors["e_invoice_code"]) {
+        return {
+          code: 400,
+          message:
+            "Cần mã hoá đơn điên tử cho phương thức thanh toán chuyển khoản",
+          data: null,
+        };
+      }
+    }
     return {
       code: 500,
-      message: error.message,
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   } finally {
     session.endSession();
   }
 };
-const updateInvoiceStatusToPaid = async (id) => {
+const createInvoiceByAppointmentId = async (appId, paymentMethod) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
-    if (!id) {
-      return { code: 400, message: "Bad request", data: null };
-    }
-    const result = await Invoice.findOneAndUpdate(
-      { _id: id },
-      { status: "paid" },
-      { new: true }
-    );
-    if (!result) {
+    const app = await getAppointmentByAppointmentId(appId);
+    // Không tìm thấy appointment
+    if (!app) {
       return {
         code: 400,
-        message: "Unsuccessful",
-        data: result,
+        message: "Không tìm thấy đơn hàng",
+        data: null,
       };
     }
-    return {
-      code: 200,
-      message: "Successful",
-      data: result,
-    };
-  } catch (error) {
-    console.log(error);
-    return { code: 500, message: "Internal server error", data: null };
-  }
-};
-const updateInvoiceTypeToRefund = async (id) => {
-  try {
-    if (!id) {
-      return { code: 400, message: "Bad request", data: null };
-    }
-    const result = await Invoice.findOneAndUpdate(
-      { _id: id },
-      { type: "refund" },
-      { new: true }
-    );
-    if (!result) {
+    if (app.invoiceCreated == true) {
       return {
         code: 400,
-        message: "Unsuccessful",
-        data: result,
+        message: "Đơn hàng đã có hoá đơn",
+        data: null,
       };
     }
+    app.invoiceId = await generateInvoiceID({ session });
+    app.appointmentId = app._id;
+    app.payment_method = paymentMethod;
+    delete app._id;
+    // lưu hoá đơn
+    console.log(app); //log
+
+    const result = await Invoice.create([app], { session });
+    console.log(result);
+
+    // cập nhật appointment đã được tạo invoice
+    await updateAppointmentCreatedInvoice(app.appointmentId, { session });
+    // lưu kết quả khuyến mãi
+    if (app.promotion.length > 0) {
+      for (let pro of app.promotion) {
+        await createPromotionResult(
+          { ...pro, invoice: result[0]._id },
+          {
+            session,
+          }
+        );
+      }
+    }
+    await session.commitTransaction();
     return {
       code: 200,
-      message: "Successful",
-      data: result,
+      message: "Thành công",
+      data: null,
     };
   } catch (error) {
+    await session.abortTransaction();
     console.log(error);
-    return { code: 500, message: "Internal server error", data: null };
+    if (error.name == "ValidationError" && error.errors) {
+      if (error.errors["payment_method"]) {
+        return {
+          code: 400,
+          message:
+            "Phương thức thanh toán không hợp lệ: " +
+            error.errors["payment_method"].value,
+          data: null,
+        };
+      }
+      if (error.errors["e_invoice_code"]) {
+        return {
+          code: 400,
+          message:
+            "Cần mã hoá đơn điên tử cho phương thức thanh toán chuyển khoản",
+          data: null,
+        };
+      }
+    }
+    return {
+      code: 500,
+      message: "Đã xảy ra lỗi máy chủ",
+      data: null,
+    };
+  } finally {
+    session.endSession();
   }
 };
+const refundInvoice = async (id, session) =>
+  await Invoice.findOneAndUpdate(
+    { _id: id },
+    { isRefund: true },
+    { new: true, ...session }
+  );
 const findInvoiceByAppointmentId = async (appointmentId) => {
   try {
     if (!appointmentId) {
@@ -120,25 +192,29 @@ const findInvoiceByAppointmentId = async (appointmentId) => {
     const result = await Invoice.findOne({ appointmentId: appointmentId });
     return {
       code: 200,
-      message: "Successful",
+      message: "Thành công",
       data: result,
     };
   } catch (error) {
     console.log(error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
-const findInvoiceById = async (id) => await Invoice.findOne({ _id: id });
-const findAllInvoice = async (page, limit) => {
+const findInvoiceById = async (id) => await Invoice.findById(id).lean();
+const findAllInvoice = async (page, limit, field, word) => {
   try {
-    const result = await Invoice.find()
-      .sort({ createdAt: -1 })
+    const filter = {};
+    if (field && word) {
+      filter[field] = RegExp(word, "iu");
+    }
+    const result = await Invoice.find(filter)
       .skip((page - 1) * limit)
-      .limit(limit);
-    const totalCount = await Invoice.countDocuments();
+      .limit(limit)
+      .sort({ createdAt: -1 });
+    const totalCount = await Invoice.countDocuments(filter);
     return {
       code: 200,
-      message: "Successful",
+      message: "Thành công",
       data: {
         data: result,
         totalPage: Math.ceil(totalCount / limit),
@@ -150,16 +226,64 @@ const findAllInvoice = async (page, limit) => {
 
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
 };
-
+const findInvoiceByCustId = async (custId) => {
+  try {
+    const result = await Invoice.find({ "customer.custId": custId }).sort({
+      createdAt: -1,
+    });
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in getInvoiceByCustId", error);
+    return { code: 500, messasge: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
+const createInfoOrderMobile = async (data) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    data.appointmentId = await generateAppointmentID({ session });
+    data.invoiceId = await generateInvoiceID({ session });
+    data.payment_method = "transfer";
+    data.promotion.forEach((element) => {
+      element.promotion_line = element.lineId;
+    });
+    const appointmentResult = await createAppointmentRaw(data, { session });
+    const invoiceResult = await Invoice.create([data], { session });
+    if (!appointmentResult || !invoiceResult[0]) {
+      throw new Error("create appointment, invoice mobile fail");
+    }
+    data.promotion.forEach((element) => {
+      element.invoice = invoiceResult[0]._id;
+    });
+    await createManyPromotionResult(data.promotion, { session });
+    sendMessageAllStaff(messageType.save_app, appointmentResult);
+    sendMessageAllStaff(messageType.save_invoice, invoiceResult[0]);
+    await session.commitTransaction();
+    return { code: 200, message: "Thành công", data: appointmentResult };
+  } catch (error) {
+    console.log("Error in createInfoOrderMobile", error);
+    await session.abortTransaction();
+    return {
+      code: 500,
+      message: "Đã xảy ra lỗi máy chủ",
+      data: null,
+    };
+  } finally {
+    await session.endSession();
+  }
+};
 module.exports = {
   createInvoiceFromAppointmentId,
   findAllInvoice,
+  findInvoiceById,
   findInvoiceByAppointmentId,
-  updateInvoiceStatusToPaid,
-  updateInvoiceTypeToRefund,
+  findInvoiceByCustId,
+  refundInvoice,
+  createInvoiceByAppointmentId,
+  createInfoOrderMobile,
 };

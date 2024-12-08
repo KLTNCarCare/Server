@@ -1,4 +1,3 @@
-const { isTime } = require("validator");
 const {
   createPromotion,
   deletePromotion,
@@ -8,14 +7,15 @@ const {
   updatePromotionLine,
   getPromotions,
   getPromotionLineByParent,
-  getPromotion,
-  getTotalPage,
-  getPromotionLineById,
   pushPromotionDetail,
   removePromotionDetail,
   updateEndDatePromotionLine,
+  updateStatusActivePromotionLine,
+  updateStatusInactivePromotionLine,
+  updateStatusPromotionLine,
+  findPromotionCurrentMobile,
 } = require("../services/promotion.service");
-const { findById, findServiceById } = require("../services/service.service");
+const { findServiceById } = require("../services/service.service");
 
 const savePromotion = async (req, res) => {
   const data = req.body;
@@ -53,16 +53,12 @@ const editPromotionLine = async (req, res) => {
 };
 
 const getAllPromotion = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const totalPage = await getTotalPage(limit);
-    const data = await getPromotions(page, limit);
-    return res.status(200).json({ data, totalPage });
-  } catch (error) {
-    console.log("Error in getAllPromotion", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const field = req.query.field;
+  const word = req.query.word;
+  const result = await getPromotions(page, limit, field, word);
+  return res.status(result.code).json(result);
 };
 const getPromotionLineByParentId = async (req, res) => {
   try {
@@ -78,7 +74,7 @@ const getPromotionLineByParentId = async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in getPromotionLineByParentId", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const addPromtionDetail = async (req, res) => {
@@ -91,7 +87,7 @@ const addPromtionDetail = async (req, res) => {
   if (result.EC === 200) {
     return res.status(200).json(result.data);
   }
-  return res.status(500).json({ message: "Internal server error" });
+  return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
 };
 const deletePromotionDetail = async (req, res) => {
   try {
@@ -103,13 +99,32 @@ const deletePromotionDetail = async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in deletePromotionDetail ", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const editEndDatePromotionLine = async (req, res) => {
   const id = req.params.id;
   const endDate = req.body.endDate;
   const result = await updateEndDatePromotionLine(id, endDate);
+  return res.status(result.code).json(result);
+};
+const activePromotionLine = async (req, res) => {
+  const id = req.params.id;
+  const result = await updateStatusActivePromotionLine(id);
+  return res.status(result.code).json(result);
+};
+const inactivePromotionLine = async (req, res) => {
+  const id = req.params.id;
+  const result = await updateStatusInactivePromotionLine(id);
+  return res.status(result.code).json(result);
+};
+const changeStatusPromotionLine = async (req, res) => {
+  const id = req.params.id;
+  const result = await updateStatusPromotionLine(id);
+  return res.status(result.code).json(result);
+};
+const getPromotionCurrentMobile = async (req, res) => {
+  const result = await findPromotionCurrentMobile();
   return res.status(result.code).json(result);
 };
 module.exports = {
@@ -124,4 +139,8 @@ module.exports = {
   addPromtionDetail,
   deletePromotionDetail,
   editEndDatePromotionLine,
+  activePromotionLine,
+  inactivePromotionLine,
+  changeStatusPromotionLine,
+  getPromotionCurrentMobile,
 };

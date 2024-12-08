@@ -1,20 +1,8 @@
 const mongoose = require("mongoose");
 const { phoneNumberRegex } = require("../utils/regex");
-const vehicleSchema = mongoose.Schema(
-  {
-    model: {
-      type: String,
-      required: true,
-    },
-    licensePlate: {
-      type: String,
-      required: true,
-    },
-  },
-  { _id: false }
-);
-const customerSchema = mongoose.Schema({
-  custId: {
+const MongooseDelete = require("mongoose-delete");
+const staffSchema = mongoose.Schema({
+  staffId: {
     type: String,
     required: true,
     unique: true,
@@ -42,20 +30,19 @@ const customerSchema = mongoose.Schema({
     type: Date,
     default: null,
   },
-  vehicles: {
-    type: [vehicleSchema],
-    required: true,
-    default: [],
+  isAccount: {
+    type: Boolean,
+    default: false,
   },
   status: {
     type: String,
-    enum: ["active", "inactive,deleted"],
+    enum: ["active", "inactive"],
     default: "active",
   },
   createdAt: { type: Date, default: Date.now, immutable: true },
   updatedAt: { type: Date, default: Date.now },
 });
-customerSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
+staffSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
   const update = this.getUpdate();
   if (update) {
     update.updatedAt = new Date();
@@ -63,5 +50,9 @@ customerSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
   }
   next();
 });
-const Customer = mongoose.model("Customer", customerSchema);
-module.exports = Customer;
+staffSchema.plugin(MongooseDelete, {
+  deletedAt: true,
+  overrideMethods: true,
+});
+const Staff = mongoose.model("Staff", staffSchema);
+module.exports = Staff;

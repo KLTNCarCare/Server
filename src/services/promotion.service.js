@@ -8,21 +8,26 @@ const createPromotion = async (promotion) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    promotion.promotionId = await generateID("CTKM");
-    await increaseLastId("CTKM");
+    promotion.promotionId = await generateID("CTKM", { session });
+    await increaseLastId("CTKM", { session });
     promotion.startDate = new Date(promotion.startDate);
     promotion.endDate = new Date(promotion.endDate);
     promotion.startDate.setHours(0, 0, 0, 0);
     promotion.endDate.setHours(23, 59, 59, 0);
-    console.log(promotion);
-
-    result = await Promotion.create(promotion);
-    session.commitTransaction();
-    return { code: 200, message: "Thành công", data: result };
+    result = await Promotion.create([promotion], { session });
+    await session.commitTransaction();
+    return { code: 200, message: "Thành công", data: result[0] };
   } catch (error) {
-    session.abortTransaction();
-    console.log("Error in create promotion", error);
-    return { code: 500, message: "Internal server error", data: null };
+    await session.abortTransaction();
+    console.log("Đã xảy ra lỗi máy chủ", error);
+    if (error.code == 11000 && error.keyValue["code"]) {
+      return {
+        code: 400,
+        message: `Mã ${error.keyValue["code"]} đã tồn tại`,
+        data: null,
+      };
+    }
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   } finally {
     session.endSession();
   }
@@ -51,7 +56,14 @@ const updatePromotion = async (id, promotion) => {
     return { code: 200, message: "Thành công", data: result };
   } catch (error) {
     console.log("Errror in update promotion", error);
-    return { code: 500, message: "Internal server error", data: null };
+    if (error.code == 11000 && error.keyValue["code"]) {
+      return {
+        code: 400,
+        message: `Mã ${error.keyValue["code"]} đã tồn tại`,
+        data: null,
+      };
+    }
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const deletePromotion = async (id) => {
@@ -64,7 +76,7 @@ const deletePromotion = async (id) => {
         data: null,
       };
     }
-    lines = await getPromotionLineByParent(id);
+    lines = await getPromotionLineByParent(obj._id);
     if (lines.length > 0) {
       return {
         code: 400,
@@ -80,28 +92,44 @@ const deletePromotion = async (id) => {
     return { code: 200, message: "Thành công", data: result };
   } catch (error) {
     console.log("Errror in update promotion", error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const getPromotion = async (id) => await Promotion.findById(id);
-const getPromotions = async (page, limit) =>
-  await Promotion.find({ status: "active" })
-    .skip((page - 1) * limit)
-    .limit(limit);
+const getPromotions = async (page, limit, field, word) => {
+  try {
+    const filter = { status: { $ne: "deleted" } };
+    if (field && word) {
+      filter[field] = RegExp(word, "iu");
+    }
+    const totalCount = await Promotion.countDocuments(filter);
+    const result = await Promotion.find(filter)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+    const totalPage = Math.ceil(totalCount / limit);
+    return {
+      code: 200,
+      message: "Thành công",
+      totalCount,
+      totalPage,
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in get all promotion", error);
+    return {
+      code: 500,
+      message: "Đã xảy ra lỗi máy chủ",
+      totalCount: 0,
+      totalPage: 0,
+      data: null,
+    };
+  }
+};
 const createPromotionLine = async (data) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    data.lineId = await generateID("CTKMCT");
-    await increaseLastId("CTKMCT");
-    for (let i = 0; i < data.detail.length; i++) {
-      data.detail[i].code = await generateID("COD");
-      await increaseLastId("COD");
-      data.detail[i].description = await addDescriptionPromotionDetail(
-        data.detail[i],
-        data.type
-      );
-    }
     const parent = await Promotion.findById(data.parentId).lean();
     if (!parent) {
       return {
@@ -131,8 +159,6 @@ const createPromotionLine = async (data) => {
         data: null,
       };
     }
-    console.log(parent);
-
     if (startDate < parentStart || endDate > parentEnd) {
       return {
         code: 400,
@@ -141,26 +167,67 @@ const createPromotionLine = async (data) => {
         data: null,
       };
     }
+    // kiêm tra code trùng trong detail
+    if (data.detail.length > 1) {
+      const codes = new Set(data.detail.map((ele) => ele.code));
+      if (codes.size < data.detail.length) {
+        return {
+          code: 400,
+          message: "Mã chi tiết khuyến mãi không được trùng nhau",
+          data: null,
+        };
+      }
+    }
+    data.lineId = await generateID("CTKMCT", { session });
+    await increaseLastId("CTKMCT", { session });
+
+    for (let i = 0; i < data.detail.length; i++) {
+      // data.detail[i].code = await generateID("COD", { session });
+      // await increaseLastId("COD", { session });
+      data.detail[i].description = addDescriptionPromotionDetail(
+        data.detail[i],
+        data.type
+      );
+    }
+
     data.startDate = new Date(startDate);
     data.endDate = new Date(endDate);
-    const result = await PromotionLine.create(data);
-    session.commitTransaction();
+    console.log("data = ", data);
+    const result = await PromotionLine.create([data], { session });
+    await session.commitTransaction();
     return {
       code: 200,
-      message: "Successfully",
-      data: result,
+      message: "Thành công",
+      data: result[0],
     };
   } catch (error) {
-    console.log(error);
+    console.log("Error in createPromotionLine", error);
 
-    session.abortTransaction();
+    await session.abortTransaction();
+    if (error.code == 11000) {
+      if (error.keyValue["code"]) {
+        return {
+          code: 400,
+          message: "Mã dòng khuyến mãi tồn tại " + error.keyValue["code"],
+          data: null,
+        };
+      }
+      if (error.keyValue["detail.code"]) {
+        return {
+          code: 400,
+          message:
+            "Mã chi tiết khuyến mãi tồn tại: " + error.keyValue["detail.code"],
+          data: null,
+        };
+      }
+    }
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   } finally {
-    session.endSession();
+    await session.endSession();
   }
 };
 const updatePromotionLine = async (id, promotionLine) => {
@@ -174,11 +241,11 @@ const updatePromotionLine = async (id, promotionLine) => {
         data: null,
       };
     }
-
     if (obj.status == "active" || obj.status == "expires") {
       return {
         code: 400,
-        message: "Không thể sửa dòng khuyến mãi đang hoạt động hoặc hết hạn",
+        message:
+          "Không thể sửa dòng khuyến mãi đang hoạt động hoặc đã qua sử dụng",
         data: null,
       };
     }
@@ -190,6 +257,16 @@ const updatePromotionLine = async (id, promotionLine) => {
         message: "Không tìm thấy chương trình khuyến mãi của dòng khuyến mãi",
         data: null,
       };
+    }
+    if (newLine.detail.length > 1) {
+      const codes = new Set(newLine.detail.map((ele) => ele.code));
+      if (codes.size < newLine.detail.length) {
+        return {
+          code: 400,
+          message: "Mã chi tiết khuyến mãi không được trùng nhau",
+          data: null,
+        };
+      }
     }
     const parentStart = new Date(parent.startDate);
     const parentEnd = new Date(parent.endDate);
@@ -222,18 +299,43 @@ const updatePromotionLine = async (id, promotionLine) => {
     }
     newLine.startDate = new Date(startDate);
     newLine.endDate = new Date(endDate);
+    for (let i = 0; i < newLine.detail.length; i++) {
+      // data.detail[i].code = await generateID("COD", { session });
+      // await increaseLastId("COD", { session });
+      newLine.detail[i].description = await addDescriptionPromotionDetail(
+        newLine.detail[i],
+        newLine.type
+      );
+    }
     await newLine.validate();
     const result = await PromotionLine.findOneAndUpdate({ _id: id }, newLine, {
       new: true,
     });
     return { code: 200, message: "Thành công", data: result };
   } catch (error) {
+    console.log("Error in update promotion line ", error);
     if (error.name == "ValidationError" && error.errors) {
       console.log("Error validate promotion line ", error);
       return { code: 400, message: "Dữ liệu không hợp lệ", data: null };
     }
-    console.log("Error in update promotion line ", error);
-    return { code: 500, message: "Internal server error", data: null };
+    if (error.code == 11000) {
+      if (error.keyValue["code"]) {
+        return {
+          code: 400,
+          message: "Mã dòng khuyến mãi tồn tại " + error.keyValue["code"],
+          data: null,
+        };
+      }
+      if (error.keyValue["detail.code"]) {
+        return {
+          code: 400,
+          message:
+            "Mã chi tiết khuyến mãi tồn tại " + error.keyValue["detail.code"],
+          data: null,
+        };
+      }
+    }
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 
@@ -250,28 +352,32 @@ const deletePromotionLine = async (id) => {
     if (obj.status == "active" || obj.status == "expires") {
       return {
         code: 400,
-        message: "Không thể xoá dòng khuyến mãi đang hoạt động hoặc hết hạn",
+        message:
+          "Không thể xoá dòng khuyến mãi đang hoạt động hoặc đã qua sử dụng",
         data: null,
       };
     }
-    const result = await PromotionLine.findOneAndUpdate(
-      { _id: id },
-      { status: "deleted" },
-      { new: true }
-    );
+    const result = await PromotionLine.delete({ _id: id });
     return { code: 200, message: "Thành công", data: result };
   } catch (error) {
     console.log("Error in delete promotion line", error);
-    return { code: 500, message: "Internal server error", error };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", error };
   }
 };
 const updateEndDatePromotionLine = async (id, date) => {
   try {
-    const obj = await PromotionLine.findById(id);
+    const obj = await PromotionLine.findById(id).lean();
     if (!obj) {
       return {
         code: 400,
         message: "Không tìm thấy dòng khuyến mãi",
+        data: null,
+      };
+    }
+    if (obj.status == "expires") {
+      return {
+        code: 400,
+        message: "Không thể cập nhật bảng giá đã qua sử dụng",
         data: null,
       };
     }
@@ -299,7 +405,7 @@ const updateEndDatePromotionLine = async (id, date) => {
     if (newEndDate < now) {
       return {
         code: 400,
-        message: "Ngày kết thúc không được nhỏ hơn thời điểm hiện tại",
+        message: "Ngày kết thúc không được nhỏ hơn ngày hiện tại",
         data: null,
       };
     }
@@ -320,7 +426,7 @@ const updateEndDatePromotionLine = async (id, date) => {
     console.log("Error in update endDate promotion line", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -328,12 +434,7 @@ const updateEndDatePromotionLine = async (id, date) => {
 const getPromotionLineByParent = async (parentId) =>
   await PromotionLine.find({
     parentId: parentId,
-    status: { $ne: "deleted" },
   }).lean();
-const getTotalPage = async (limit) => {
-  const totalPromotion = await Promotion.countDocuments({ status: "active" });
-  return Math.ceil(totalPromotion / limit);
-};
 
 const pushPromotionDetail = async (id, data) => {
   const session = await mongoose.startSession();
@@ -359,8 +460,8 @@ const pushPromotionDetail = async (id, data) => {
           return { EC: 400, data: null };
         break;
     }
-    data.code = await generateID("COD");
-    await increaseLastId("COD");
+    data.code = await generateID("COD", { session });
+    await increaseLastId("COD", { session });
     const result = await PromotionLine.findOneAndUpdate(
       { _id: id },
       {
@@ -368,16 +469,16 @@ const pushPromotionDetail = async (id, data) => {
           detail: data,
         },
       },
-      { new: true }
+      { new: true, session }
     );
-    session.commitTransaction();
+    await session.commitTransaction();
     return {
       EC: 200,
       data: result,
     };
   } catch (error) {
     console.log(error);
-    session.abortTransaction();
+    await session.abortTransaction();
     return {
       EC: 500,
       data: null,
@@ -399,13 +500,13 @@ const removePromotionDetail = async (idLine, idDetail) =>
     { new: true }
   );
 const getProBill = async (time, sub_total) => {
-  const data = await PromotionLine.aggregate([
+  const pipeline = [
     {
       $match: {
         status: "active",
+        type: "discount-bill",
         startDate: { $lte: time },
         endDate: { $gte: time },
-        type: "discount-bill",
       },
     },
     {
@@ -416,7 +517,7 @@ const getProBill = async (time, sub_total) => {
             as: "detailItem",
             cond: {
               $and: [
-                { $lt: ["$$detailItem.bill", sub_total] }, // Điều kiện cho discount-bill: bill < sub_total
+                { $lte: ["$$detailItem.bill", sub_total] }, // Điều kiện cho discount-bill: bill < sub_total
               ],
             },
           },
@@ -439,17 +540,19 @@ const getProBill = async (time, sub_total) => {
         newRoot: "$detail", // Thay đổi root thành detail
       },
     },
-  ]);
-
-  const maxDiscountBill =
-    data.length > 0
-      ? data.reduce(
-          (max, item) => (item.discount > max.discount ? item : max),
-          { discount: 0 }
-        )
-      : null; // Nếu rỗng trả về null hoặc giá trị mặc định
-
-  return maxDiscountBill;
+  ];
+  let data = await PromotionLine.aggregate(pipeline);
+  if (data.length == 0) {
+    return null;
+  }
+  data.forEach((ele) => {
+    ele.value =
+      (sub_total * ele.discount) / 100 > ele.limitDiscount
+        ? ele.limitDiscount
+        : (sub_total * ele.discount) / 100;
+  });
+  data.sort((a, b) => b.value - a.value);
+  return data[0];
 };
 
 const getProService = async (time, listItemId) => {
@@ -494,29 +597,30 @@ const getProService = async (time, listItemId) => {
         newRoot: "$detail", // Thay đổi root thành detail
       },
     },
+    {
+      // Sắp xếp tài liệu theo itemGiftId và discount giảm dần
+      $sort: { itemGiftId: 1, discount: -1 },
+    },
+    {
+      // Nhóm theo itemGiftId, lấy tài liệu đầu tiên của mỗi nhóm
+      $group: {
+        _id: "$itemGiftId",
+        highestDiscountDoc: { $first: "$$ROOT" },
+      },
+    },
+    {
+      // Chuyển tài liệu có discount cao nhất lên đầu ra
+      $replaceRoot: { newRoot: "$highestDiscountDoc" },
+    },
   ]);
-
-  const discountServiceByGiftId =
-    data.length > 0
-      ? data.reduce((acc, item) => {
-          const existing = acc.find((el) => el.itemGiftId === item.itemGiftId);
-          if (!existing || item.discount > existing.discount) {
-            return [...acc, item];
-          }
-          return acc;
-        }, [])
-      : [];
-  return discountServiceByGiftId;
+  return data;
 };
-const addDescriptionPromotionDetail = async (
-  promotionDetail,
-  promotionType
-) => {
+const addDescriptionPromotionDetail = (promotionDetail, promotionType) => {
   let str;
   if (promotionType == "discount-bill") {
     const bill = formatCurrency(promotionDetail.bill);
     const limitDiscount = formatCurrency(promotionDetail.limitDiscount);
-    str = `Giảm ${promotionDetail.discount}% đối với hoá đơn từ ${bill} trở lên, giảm tối đa ${limitDiscount}`;
+    str = `Giảm ${promotionDetail.discount}% (tối đa: ${limitDiscount}đ) với hoá đơn từ ${bill}đ`;
   } else {
     if (promotionDetail.itemId == promotionDetail.itemGiftId) {
       str = `Giảm ${promotionDetail.discount}% cho ${promotionDetail.itemName}`;
@@ -546,7 +650,7 @@ const refreshStatusPromotionLine = async () => {
     console.log("Error in refreshStatusPrmotionLine");
   }
 };
-const updateItemNamePromotionLine = async (itemId, itemName) => {
+const updateItemNamePromotionLine = async (itemId, itemName, session) => {
   await PromotionLine.updateMany(
     {
       status: {
@@ -562,6 +666,7 @@ const updateItemNamePromotionLine = async (itemId, itemName) => {
     },
     {
       arrayFilters: [{ "elem.itemId": itemId }],
+      ...session,
     }
   );
   await PromotionLine.updateMany(
@@ -583,6 +688,182 @@ const updateItemNamePromotionLine = async (itemId, itemName) => {
   );
 };
 const getPromotionLineById = async (id) => await PromotionLine.findById(id);
+const updateStatusActivePromotionLine = async (id) => {
+  try {
+    const obj = await PromotionLine.findById(id).lean();
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy dòng khuyến mãi",
+        data: null,
+      };
+    }
+    if (new Date(obj.startDate) < new Date()) {
+      return {
+        code: 400,
+        message: "Chỉ có thể kích hoạt dòng khuyến mãi trong tương lai",
+        data: null,
+      };
+    }
+    if (obj.type == "discount-service") {
+      const lineDuplicate = await findPromotionDetailDuplicate(obj);
+      if (lineDuplicate) {
+        return {
+          code: 400,
+          message: `Xung đột với dòng khuyến mãi <${lineDuplicate.code}> mã chi tiết <${lineDuplicate.detail.code}>`,
+          data: null,
+        };
+      }
+    }
+    const result = await PromotionLine.findOneAndUpdate(
+      { _id: obj._id },
+      { status: "active" },
+      { new: true }
+    );
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in active promotion line", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
+const updateStatusInactivePromotionLine = async (id) => {
+  try {
+    const obj = await PromotionLine.findById(id).lean();
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy dòng khuyến mãi",
+        data: null,
+      };
+    }
+    if (obj.status == "expires") {
+      return {
+        code: 400,
+        message: "Dòng khuyến mãi đã qua sử dụng không thể chỉnh sửa",
+        data: null,
+      };
+    }
+    if (new Date(obj.startDate) < new Date()) {
+      return {
+        code: 400,
+        message: "Dòng khuyến mãi đang được sử dụng không thể ngưng hoạt động",
+        data: null,
+      };
+    }
+    const result = await PromotionLine.findOneAndUpdate(
+      { _id: obj._id },
+      { status: "inactive" },
+      { new: true }
+    );
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in inactive promotion line", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
+const findPromotionDetailDuplicate = async (promotionLine) => {
+  const listDetail = promotionLine.detail;
+  if (!listDetail || listDetail.length == 0) {
+    return null;
+  }
+  const d1 = new Date(promotionLine.startDate);
+  const d2 = new Date(promotionLine.endDate);
+  const pipeline = [
+    {
+      $match: {
+        status: "active",
+        type: "discount-service",
+        $or: [
+          { startDate: { $gte: d1, $lt: d2 } },
+          { endDate: { $gt: d1, $lte: d2 } },
+          { startDate: { $lte: d1 }, endDate: { $gte: d2 } },
+        ],
+      },
+    },
+    { $unwind: "$detail" },
+    {
+      $replaceRoot: {
+        newRoot: { detail: "$detail", code: "$code" },
+      },
+    },
+  ];
+  const listDetailInfluence = await PromotionLine.aggregate(pipeline);
+  console.log(listDetailInfluence); //log
+  for (let detailX of listDetailInfluence) {
+    for (let detailY of listDetail) {
+      if (
+        detailX.detail.itemId == detailY.itemId &&
+        detailX.detail.itemGiftId == detailY.itemGiftId
+      ) {
+        return detailX;
+      }
+    }
+  }
+  return null;
+};
+const updateStatusPromotionLine = async (id) => {
+  try {
+    const obj = await PromotionLine.findById(id).lean();
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy bảng giá",
+        data: null,
+      };
+    }
+    if (obj.status == "active") {
+      return await updateStatusInactivePromotionLine(obj);
+    } else if (obj.status == "inactive") {
+      return await updateStatusActivePromotionLine(obj);
+    }
+    return {
+      code: 400,
+      message: "Chỉ có đổi qua lại giữa đang hoạt động và ngưng hoạt động",
+      data: null,
+    };
+  } catch (error) {
+    console.log("Error in updateStatusPromotionLine", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
+const findPromotionCurrentMobile = async () => {
+  try {
+    const now = new Date();
+    const pipeline = [
+      {
+        $match: {
+          startDate: { $lte: now },
+          endDate: { $gte: now },
+          status: "active",
+        },
+      },
+      {
+        $unwind: {
+          path: "$detail",
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          endDate: "$endDate",
+          type: "$type",
+          description: "$detail.description",
+          serviceId: "$detail.itemId",
+          serviceGiftId: "$detail.itemGiftId",
+          bill: "$detail.bill",
+          discount: "$detail.discount",
+          limitDiscount: "$detail.limitDiscount",
+        },
+      },
+    ];
+    const result = await PromotionLine.aggregate(pipeline);
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in findPromotionLineCurrentMobile", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
 module.exports = {
   createPromotion,
   updatePromotion,
@@ -594,7 +875,6 @@ module.exports = {
   deletePromotionLine,
   getPromotionLineByParent,
   getPromotionLineById,
-  getTotalPage,
   pushPromotionDetail,
   removePromotionDetail,
   getProBill,
@@ -603,4 +883,8 @@ module.exports = {
   updateEndDatePromotionLine,
   refreshStatusPromotionLine,
   updateItemNamePromotionLine,
+  updateStatusActivePromotionLine,
+  updateStatusInactivePromotionLine,
+  updateStatusPromotionLine,
+  findPromotionCurrentMobile,
 };

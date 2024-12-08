@@ -3,6 +3,8 @@ const {
   findAllCustomer,
   updateCustomer,
   deleteCustomer,
+  createCustomer,
+  updateCustomerRoleCustomer,
 } = require("../services/customer.service");
 
 const getCustomerByTextPhone = async (req, res) => {
@@ -10,10 +12,10 @@ const getCustomerByTextPhone = async (req, res) => {
     const textPhone = req.query.searchText || "";
     const limit = Number(req.query.limit) || 5;
     const result = await findCustByPhone(textPhone, limit);
-    return res.status(200).json({ message: "Successful", data: result });
+    return res.status(200).json({ message: "Thành công", data: result });
   } catch (error) {
     console.log("Error in getCustomerByPhone", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const getAllCustomer = async (req, res) => {
@@ -39,9 +41,25 @@ const editCustomer = async (req, res) => {
   const result = await updateCustomer(id, newCust);
   return res.status(result.code).json(result);
 };
+const editCustomerRoleCustomer = async (req, res) => {
+  const newCust = req.body;
+  const id = req.params.id;
+  const result = await updateCustomerRoleCustomer(id, newCust);
+  return res.status(result.code).json(result);
+};
 const removeCustomer = async (req, res) => {
   const id = req.params.id;
   const result = await deleteCustomer(id);
+  return res.status(result.code).json(result);
+};
+const saveCustomer = async (req, res) => {
+  const data = req.body;
+  const result = await createCustomer(data);
+  return res.status(result.code).json(result);
+};
+const getCustomerByPhone = async (req, res) => {
+  const phone = req.params.phone;
+  const result = await findCustByPhone(phone);
   return res.status(result.code).json(result);
 };
 module.exports = {
@@ -49,4 +67,7 @@ module.exports = {
   getAllCustomer,
   editCustomer,
   removeCustomer,
+  saveCustomer,
+  getCustomerByPhone,
+  editCustomerRoleCustomer,
 };

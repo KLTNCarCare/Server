@@ -21,10 +21,9 @@ const promotionResultSchema = mongoose.Schema({
     min: 0,
     immutable: true,
   },
-  type: {
-    type: String,
-    enum: ["normal", "refund"],
-    default: "normal",
+  isRefund: {
+    type: Boolean,
+    default: false,
   },
   createdAt: {
     type: Date,

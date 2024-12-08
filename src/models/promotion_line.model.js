@@ -1,11 +1,12 @@
 const mongoose = require("mongoose");
-const Promotion = require("./promotion.model");
-const { increaseLastId } = require("../services/lastID.service");
+const mongooseDelete = require("mongoose-delete");
 const detailSchema = new mongoose.Schema(
   {
     code: {
       type: String,
       required: true,
+      immutable: true,
+      unique: true,
     },
     itemId: {
       type: String,
@@ -52,6 +53,12 @@ const lineSchema = new mongoose.Schema({
     unique: true,
     immutable: true,
   },
+  code: {
+    type: String,
+    required: true,
+    immutable: true,
+    unique: true,
+  },
   parentId: {
     type: String,
     required: true,
@@ -64,7 +71,7 @@ const lineSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: true,
+    default: "",
   },
   startDate: {
     type: Date,
@@ -131,6 +138,7 @@ lineSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
   }
   next();
 });
-// inscrease Last id
+
+lineSchema.plugin(mongooseDelete, { deletedAt: true, overrideMethods: true });
 const PromotionLine = mongoose.model("Promotion_line", lineSchema);
 module.exports = PromotionLine;

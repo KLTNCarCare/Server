@@ -1,4 +1,4 @@
-const { default: mongoose } = require("mongoose");
+const { default: mongoose, ConnectionStates } = require("mongoose");
 
 const { generateID, increaseLastId } = require("./lastID.service");
 const Customer = require("../models/customer.model");
@@ -7,33 +7,52 @@ const createCustomer = async (cust) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    cust.custId = await generateID("KH");
-    await increaseLastId("KH");
-    const result = await Customer.create(cust);
-    session.commitTransaction();
+    cust.custId = await generateID("KH", { session });
+    await increaseLastId("KH", { session });
+    const result = await Customer.create([cust], { session });
+    await session.commitTransaction();
     return {
       code: 200,
-      message: "Successful",
-      data: result,
+      message: "Thành công",
+      data: result[0],
     };
   } catch (error) {
-    console.log(error);
-
-    session.abortTransaction();
+    await session.abortTransaction();
+    if (error.code == 11000) {
+      return { code: 400, message: "Số điện thoại đã tồn tại", data: null };
+    }
+    if (
+      error.name == "ValidationError" &&
+      error.errors &&
+      error.errors["phone"]
+    )
+      return { code: 400, message: error.errors["phone"].message, data: null };
     return {
       code: 500,
-      message: error.message,
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   } finally {
     session.endSession();
   }
 };
+const getCustByPhone = async (phone) =>
+  await Customer.findOne({ phone: phone });
 const findCustById = async (id) => await Customer.findById(id);
 const findCustByCustId = async (custId) =>
   await Customer.findOne({ custId: custId });
-const findCustByPhone = async (phone) =>
-  await Customer.findOne({ phone: phone }).lean();
+const findCustByPhone = async (phone) => {
+  try {
+    const result = await Customer.findOne({ phone: phone });
+    if (!result) {
+      return { code: 400, message: "Không tìm thấy người dùng", data: null };
+    }
+    return { code: 200, message: "Thành công", data: result };
+  } catch (error) {
+    console.log("Error in findCustByPhone", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
 const pushVehicle = async (id, vehicle) =>
   await Customer.findOneAndUpdate(
     { _id: id, "vehicles.licensePlate": { $ne: vehicle.licensePlate } },
@@ -59,9 +78,8 @@ const findAllCustomer = async (page, limit, k, v, sort, sortOrder) => {
     const sortMap = {};
     sortMap[sort] = sortOrder;
     if (k && v) {
-      filter[k] = RegExp("^" + v, "iu");
+      filter[k] = RegExp(v, "iu");
     }
-    console.log(filter, sort);
     const count = await Customer.countDocuments(filter);
     const data = await Customer.find(filter)
       .skip((page - 1) * limit)
@@ -80,26 +98,94 @@ const findAllCustomer = async (page, limit, k, v, sort, sortOrder) => {
     console.log("Error in find all customer", error);
     return {
       code: 200,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
 };
 const updateCustomer = async (id, custUpdate) => {
   try {
-    const result = await Customer.findOneAndUpdate({ _id: id }, custUpdate, {
-      new: true,
-    });
+    const obj = await Customer.findById(id).lean();
+    if (!obj) {
+      return { code: 400, message: "Không tìm thấy khách hàng", data: null };
+    }
+    const { findAccountByUseranme } = require("./account.service");
+    const existingAccount = await findAccountByUseranme(obj.phone);
+    if (existingAccount) {
+      return {
+        code: 400,
+        message: "Khách hàng đã có tài khoản không thể đổi thông tin",
+        data: null,
+      };
+    }
+    const newCustomer = new Customer({ ...obj, ...custUpdate });
+    await newCustomer.validate();
+    const result = await Customer.findOneAndUpdate(
+      { _id: id },
+      { $set: newCustomer },
+      {
+        new: true,
+      }
+    );
     return {
       code: 200,
-      message: "Succesful",
+      message: "Thành công",
       data: result,
     };
   } catch (error) {
     console.log("Error in updateCustomer", error);
+    if (
+      error.name == "ValidationErorr" &&
+      error.errors &&
+      error.erros["phone"]
+    ) {
+      return { code: 400, message: error.errors["phone"].message, data: null };
+    }
+    if (error.code == 11000) {
+      return { code: 400, message: "Số điện thoại đã tồn tại", data: null };
+    }
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
+      data: null,
+    };
+  }
+};
+const updateCustomerRoleCustomer = async (custId, custUpdate) => {
+  try {
+    const obj = await Customer.findOne({ custId: custId }).lean();
+    if (!obj) {
+      return { code: 400, message: "Không tìm thấy khách hàng", data: null };
+    }
+    const newCustomer = new Customer({ ...obj, ...custUpdate });
+    await newCustomer.validate();
+    const result = await Customer.findOneAndUpdate(
+      { custId: custId },
+      { $set: newCustomer },
+      {
+        new: true,
+      }
+    );
+    return {
+      code: 200,
+      message: "Thành công",
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in updateCustomer", error);
+    if (
+      error.name == "ValidationErorr" &&
+      error.errors &&
+      error.erros["phone"]
+    ) {
+      return { code: 400, message: error.errors["phone"].message, data: null };
+    }
+    if (error.code == 11000) {
+      return { code: 400, message: "Số điện thoại đã tồn tại", data: null };
+    }
+    return {
+      code: 500,
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -120,7 +206,7 @@ const deleteCustomer = async (id) => {
     console.log("Error in updateCustomer", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -135,4 +221,6 @@ module.exports = {
   findAllCustomer,
   updateCustomer,
   deleteCustomer,
+  getCustByPhone,
+  updateCustomerRoleCustomer,
 };

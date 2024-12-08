@@ -5,38 +5,53 @@ const res = require("express/lib/response");
 const { updateItemNamePriceCatalog } = require("./price_catalog.service");
 const { updateItemNamePromotionLine } = require("./promotion.service");
 const { getAppointmentByServiceId } = require("./appointment.service");
-
 const createService = async (service) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    service.serviceId = await generateID("DV");
-    await increaseLastId("DV");
-    const result = await Service.create(service);
-    session.commitTransaction();
+    service.serviceId = await generateID("DV", { session });
+    await increaseLastId("DV", { session });
+    const result = await Service.create([service], { session });
+    await session.commitTransaction();
     return {
       code: 200,
-      message: "Successful",
+      message: "Thành công",
       data: result,
     };
   } catch (error) {
     console.log("Error in save service", error);
-    session.abortTransaction();
-    return { code: 500, message: "Internal server error", data: null };
+    await session.abortTransaction();
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   } finally {
     session.endSession();
   }
 };
 const deleteService = async (id) => {
   try {
+    const obj = await Service.findById(id).lean();
+    if (!obj) {
+      return { code: 400, message: "Không tìm thấy dịch vụ", data: null };
+    }
+    if (obj.status == "active") {
+      return {
+        code: 400,
+        message: "Không thể xoá dịch vụ đang hoạt động",
+        data: null,
+      };
+    }
+    const appointment = await getAppointmentByServiceId(id);
+    if (appointment) {
+      return {
+        code: 400,
+        message: "Dịch vụ đã được sử dụng không thể xoá",
+        data: null,
+      };
+    }
     const result = await Service.findOneAndUpdate(
       { _id: id },
       { status: "deleted" },
       { new: true }
     );
-    if (!result) {
-      return { code: 400, message: "Xoá thất bại", data: null };
-    }
     return {
       code: 200,
       message: "Xoá thành công",
@@ -44,7 +59,7 @@ const deleteService = async (id) => {
     };
   } catch (error) {
     console.log("Error in delete service", error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const inactiveService = async (id) => {
@@ -64,7 +79,7 @@ const inactiveService = async (id) => {
     };
   } catch (error) {
     console.log("Error in delete service", error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const activeService = async (id) => {
@@ -84,7 +99,7 @@ const activeService = async (id) => {
     };
   } catch (error) {
     console.log("Error in delete service", error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const updateService = async (id, service) => {
@@ -126,7 +141,6 @@ const updateService = async (id, service) => {
     if (appointment) {
       if (obj.status == "inactive") {
         for (let key in obj) {
-          console.log(key);
           if (key == "status") {
             continue;
           }
@@ -141,16 +155,22 @@ const updateService = async (id, service) => {
       }
     }
     if (service.serviceName && service.serviceName != obj.serviceName) {
-      await updateItemNamePriceCatalog(String(obj._id), service.serviceName);
-      await updateItemNamePromotionLine(String(obj._id), service.serviceName);
+      await updateItemNamePriceCatalog(String(obj._id), service.serviceName, {
+        session,
+      });
+      await updateItemNamePromotionLine(String(obj._id), service.serviceName, {
+        session,
+      });
     }
     const result = await Service.findOneAndUpdate(
       { _id: id },
       { $set: service },
       {
+        session,
         new: true,
       }
     );
+    await session.commitTransaction();
     return {
       code: 200,
       message: "Thành công",
@@ -158,7 +178,10 @@ const updateService = async (id, service) => {
     };
   } catch (error) {
     console.log("Error in update service", error);
-    return { code: 500, message: "Internal server error", data: null };
+    await session.abortTransaction();
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  } finally {
+    session.endSession();
   }
 };
 const getTotalPage = async (limit) => {
@@ -281,6 +304,263 @@ const findAllServiceToPick = async (textSearch) => {
   const result = await Service.aggregate(pipeline);
   return { code: 200, message: "Thành công", data: result };
 };
+const findAllPriceServicesMobile = async (textSearch) => {
+  const now = new Date();
+  const pipeline = [
+    {
+      $match: {
+        status: "active",
+      },
+    },
+    {
+      $addFields: {
+        packObj: {
+          $toObjectId: "$categoryId",
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "service_packages",
+        localField: "packObj",
+        foreignField: "_id",
+        as: "service_package",
+      },
+    },
+    {
+      $unwind: {
+        path: "$service_package",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "pricecatalogs",
+        let: {
+          itemId: "$_id",
+          day: {
+            $toDate: now,
+          },
+        },
+        pipeline: [
+          {
+            $match: {
+              status: "active",
+              startDate: { $lte: now },
+              endDate: { $gte: now },
+            },
+          },
+          {
+            $unwind: "$items",
+          },
+          {
+            $addFields: {
+              objId: {
+                $toObjectId: "$items.itemId",
+              },
+            },
+          },
+          {
+            $match: {
+              $expr: {
+                $eq: ["$objId", "$$itemId"],
+              },
+            },
+          },
+          {
+            $project: {
+              price: "$items.price",
+              _id: 0,
+            },
+          },
+        ],
+        as: "price",
+      },
+    },
+    {
+      $unwind: {
+        path: "$price",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $replaceRoot: {
+        newRoot: {
+          itemId: "$_id",
+          itemName: "$serviceName",
+          categoryId: "$service_package._id",
+          categoryName: "$service_package.categoryName",
+          duration: "$duration",
+          price: "$price.price",
+        },
+      },
+    },
+    {
+      $match: {
+        price: {
+          $ne: null,
+        },
+      },
+    },
+    {
+      $group: {
+        _id: { packageId: "$categoryId", packageName: "$categoryName" },
+        services: {
+          $push: {
+            serviceId: "$itemId",
+            serviceName: "$itemName",
+            duration: "$duration",
+            price: "$price",
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        packageId: "$_id.packageId",
+        packageName: "$_id.packageName",
+        services: 1,
+      },
+    },
+    {
+      $sort: {
+        packageName: 1,
+      },
+    },
+  ];
+  if (textSearch != "") {
+    pipeline.push({
+      $match: {
+        "services.serivceName": {
+          $regex: RegExp(textSearch, "iu"),
+        },
+      },
+    });
+  }
+  const result = await Service.aggregate(pipeline);
+  return { code: 200, message: "Thành công", data: result };
+};
+const findOneSerivceByCategoryId = async (categoryId) =>
+  await Service.findOne({
+    categoryId: categoryId,
+    status: { $ne: "deleted" },
+  }).lean();
+const findServiceAppointment = async (ids, startTime) => {
+  const now = new Date();
+  const pipline = [
+    {
+      $match: {
+        _id: { $in: ids },
+        status: "active",
+      },
+    },
+    {
+      $addFields: {
+        packObj: {
+          $toObjectId: "$categoryId",
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "service_packages",
+        localField: "packObj",
+        foreignField: "_id",
+        as: "service_package",
+      },
+    },
+    {
+      $unwind: {
+        path: "$service_package",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "pricecatalogs",
+        let: {
+          itemId: "$_id",
+          day: {
+            $toDate: startTime,
+          },
+        },
+        pipeline: [
+          {
+            $match: {
+              status: "active",
+              startDate: { $lte: startTime },
+              endDate: { $gte: startTime },
+            },
+          },
+          {
+            $unwind: "$items",
+          },
+          {
+            $addFields: {
+              objId: {
+                $toObjectId: "$items.itemId",
+              },
+            },
+          },
+          {
+            $match: {
+              $expr: {
+                $eq: ["$objId", "$$itemId"],
+              },
+            },
+          },
+          {
+            $project: {
+              price: "$items.price",
+              _id: 0,
+            },
+          },
+        ],
+        as: "price",
+      },
+    },
+    {
+      $unwind: {
+        path: "$price",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $replaceRoot: {
+        newRoot: {
+          serviceId: "$_id",
+          serviceName: "$serviceName",
+          typeId: "$service_package._id",
+          typeName: "$service_package.categoryName",
+          duration: "$duration",
+          price: "$price.price",
+        },
+      },
+    },
+    {
+      $match: {
+        price: {
+          $ne: null,
+        },
+      },
+    },
+  ];
+  return await Service.aggregate(pipline);
+};
+const getCategoryIdsByServiceIds = async (serviceIds) =>
+  await Service.aggregate([
+    {
+      $match: {
+        _id: { $in: serviceIds },
+      },
+    },
+    {
+      $project: {
+        categoryId: 1,
+      },
+    },
+  ]);
 module.exports = {
   createService,
   deleteService,
@@ -292,4 +572,8 @@ module.exports = {
   findServiceById,
   findServicesByListId,
   findAllServiceToPick,
+  findOneSerivceByCategoryId,
+  findServiceAppointment,
+  findAllPriceServicesMobile,
+  getCategoryIdsByServiceIds,
 };

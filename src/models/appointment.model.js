@@ -3,15 +3,31 @@ const {
   findCustByPhone,
   pushVehicle,
   createCustomer,
+  getCustByPhone,
 } = require("../services/customer.service");
+const { phoneNumberRegex } = require("../utils/regex");
 const customerSchema = mongoose.Schema(
   {
+    _id: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+    },
+    custId: { type: String, required: true },
     phone: {
       type: String,
       required: true,
+      match: [phoneNumberRegex, "Số điện thoại không hợp lệ"],
     },
 
     name: { type: String, required: true },
+  },
+  { _id: false }
+);
+const staffSchema = mongoose.Schema(
+  {
+    staffId: { type: String, default: "NV000" },
+
+    name: { type: String, default: "App" },
   },
   { _id: false }
 );
@@ -19,11 +35,11 @@ const vehicleSchema = mongoose.Schema(
   {
     licensePlate: {
       type: String,
-      default: null,
+      required: true,
     },
     model: {
       type: String,
-      default: null,
+      required: true,
     },
   },
   { _id: false }
@@ -47,9 +63,30 @@ const serviceSchema = mongoose.Schema(
   {
     typeId: {
       type: String,
-      required: true,
+      required: false,
     },
-    typeName: { type: String, required: true },
+    startTime: {
+      type: Date,
+      default: null,
+    },
+    endTime: {
+      type: Date,
+      default: null,
+    },
+    startActual: {
+      type: Date,
+      default: null,
+    },
+    endActual: {
+      type: Date,
+      default: null,
+    },
+    duration: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    typeName: { type: String, required: false },
     serviceId: { type: String, required: true },
     serviceName: {
       type: String,
@@ -68,7 +105,7 @@ const serviceSchema = mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "in-progess", "completed", "canceled"],
+      enum: ["pending", "in-progress", "completed"],
       default: "pending",
     },
   },
@@ -113,97 +150,99 @@ const PromotionSchema = mongoose.Schema(
   },
   { _id: false }
 );
-const appointmentSchema = mongoose.Schema({
-  appointmentId: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  customer: {
-    type: customerSchema,
-    required: true,
-  },
-  vehicle: {
-    type: vehicleSchema,
-    required: true,
-  },
-  total_duration: {
-    type: Number,
-    min: 0,
-    required: true,
-  },
-  startTime: {
-    type: Date,
-    required: true,
-  },
-  endTime: {
-    type: Date,
-    required: true,
-  },
-  startActual: {
-    type: Date,
-    required: true,
-  },
-  endActual: {
-    type: Date,
-    required: true,
-  },
-  notes: {
-    type: String,
-    default: null,
-  },
-  status: {
-    type: String,
-    enum: [
-      "pending",
-      "confirmed",
-      "in-progress",
-      "completed",
-      "canceled",
-      "rescheduled",
-      "missed",
-    ],
-    default: "pending",
-  },
-  discount: {
-    type: discountSchema,
-    default: {
-      per: 0,
-      value_max: 0,
+const appointmentSchema = mongoose.Schema(
+  {
+    appointmentId: {
+      type: String,
+      required: true,
+      unique: true,
     },
-  },
-  promotion: {
-    type: [PromotionSchema],
-    default: [],
-  },
-  payment: {
-    type: paymentSchema,
-  },
-  invoiceCreated: {
-    type: Boolean,
-    default: false,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    immutable: true,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
-  items: {
-    type: [serviceSchema],
-    required: true,
-    validate: {
-      validator: function (items) {
-        const itemIds = items.map((item) => item.serviceId);
-        return itemIds.length === new Set(itemIds).size;
+    staff: {
+      type: staffSchema,
+      default: {
+        staffId: "NV000",
+        name: "App",
       },
-      message: "Dịch vụ trong một đơn hàng phải là duy nhất",
+    },
+    customer: {
+      type: customerSchema,
+      required: true,
+    },
+    vehicle: {
+      type: vehicleSchema,
+      required: true,
+    },
+    total_duration: {
+      type: Number,
+      min: 0,
+      required: true,
+    },
+    startTime: {
+      type: Date,
+      required: true,
+    },
+    endTime: {
+      type: Date,
+      required: true,
+    },
+    startActual: {
+      type: Date,
+      required: true,
+    },
+    endActual: {
+      type: Date,
+      required: true,
+    },
+    notes: {
+      type: String,
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "confirmed", "in-progress", "completed", "canceled", ,],
+      default: "pending",
+    },
+    discount: {
+      type: discountSchema,
+      default: {
+        per: 0,
+        value_max: 0,
+      },
+    },
+    promotion: {
+      type: [PromotionSchema],
+      default: [],
+    },
+    payment: {
+      type: paymentSchema,
+    },
+    invoiceCreated: {
+      type: Boolean,
+      default: false,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+      immutable: true,
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    items: {
+      type: [serviceSchema],
+      required: true,
+      validate: {
+        validator: function (items) {
+          const itemIds = items.map((item) => item.typeId);
+          return itemIds.length === new Set(itemIds).size;
+        },
+        message: "Không thể đặt cùng một loại dịch vụ",
+      },
     },
   },
-});
+  { toObject: { virtuals: true }, toJSON: { virtuals: true } }
+);
 appointmentSchema.virtual("sub_total").get(function () {
   return this.items.reduce(
     (total, service) => total + service.price * (1 - service.discount / 100),
@@ -230,7 +269,7 @@ appointmentSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
 });
 appointmentSchema.post("save", async function (doc) {
   try {
-    const result = await findCustByPhone(doc.customer.phone);
+    const result = await getCustByPhone(doc.customer.phone);
     if (result) {
       await pushVehicle(result._id, doc.vehicle);
     } else {

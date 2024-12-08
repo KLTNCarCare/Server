@@ -6,41 +6,40 @@ const createCatalog = async (data) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    data.priceId = await generateID("BG");
-    await increaseLastId("BG");
+    data.priceId = await generateID("BG", { session });
+    await increaseLastId("BG", { session });
     const priceCatalog = new PriceCatalog(data);
     await priceCatalog.validate();
-
-    const serviceIds = priceCatalog.items.map((item) => item.itemId);
-    const listObj = await getCatalogByRangeDate(
-      new Date(priceCatalog.startDate),
-      new Date(priceCatalog.endDate)
-    );
     //check item exist in another catalog
-    if (listObj.length > 0) {
-      for (let catalog of listObj) {
-        const check = catalog.items.some((item) =>
-          serviceIds.includes(item.itemId)
-        );
-        if (check) {
-          return {
-            code: 400,
-            message: "Xung đột với bảng giá " + catalog.priceId,
-            data: null,
-          };
-        }
-      }
-    }
-    const result = await PriceCatalog.create(data);
-    session.commitTransaction();
+    // const serviceIds = priceCatalog.items.map((item) => item.itemId);
+    // const listObj = await getCatalogByRangeDate(
+    //   new Date(priceCatalog.startDate),
+    //   new Date(priceCatalog.endDate)
+    // );
+    // if (listObj.length > 0) {
+    //   for (let catalog of listObj) {
+    //     const check = catalog.items.some((item) =>
+    //       serviceIds.includes(item.itemId)
+    //     );
+    //     if (check) {
+    //       return {
+    //         code: 400,
+    //         message: "Xung đột với bảng giá " + catalog.priceId,
+    //         data: null,
+    //       };
+    //     }
+    //   }
+    // }
+    const result = await PriceCatalog.create([data], { session });
+    await session.commitTransaction();
     return {
       code: 200,
       message: "Thành công",
-      data: result,
+      data: result[0],
     };
   } catch (error) {
     console.log("Error in  create price catalog", error);
-    session.abortTransaction();
+    await session.abortTransaction();
     if (
       (error.name = "ValidatorError" && error.errors && error.errors["items"])
     ) {
@@ -52,7 +51,7 @@ const createCatalog = async (data) => {
     }
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   } finally {
@@ -73,7 +72,7 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
       return {
         code: 400,
         message:
-          "Không thể cập nhật bảng giá đang hoạt động và bảng giá đã hết hạn",
+          "Không thể cập nhật bảng giá đang hoạt động và bảng giá đã qua sử dụng",
         data: null,
       };
     }
@@ -94,7 +93,6 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
       };
     }
     await data.validate();
-
     const serviceIds = data.items.map((item) => item.itemId);
     const listObj = await getCatalogByRangeDateOtherId(
       new Date(data.startDate),
@@ -138,7 +136,7 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
 
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -194,18 +192,17 @@ const updateEndDate = async (id, date) => {
     console.log("Error in update endDate price catalog", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
 };
-const activeCatalog = async (id) => {
+const activeCatalog = async (obj) => {
   try {
-    const obj = await PriceCatalog.findById(id);
-    if (!obj) {
+    if (new Date(obj.startDate) <= new Date()) {
       return {
         code: 400,
-        message: "Thất bại! Không tìm thấy bảng giá",
+        message: "Chỉ được phép kích hoạt bảng giá tương lai",
         data: null,
       };
     }
@@ -223,14 +220,14 @@ const activeCatalog = async (id) => {
         if (check) {
           return {
             code: 400,
-            message: "Xung đột với bảng giá " + catalog.priceId,
+            message: "Xung đột với bảng giá - " + catalog.priceId,
             data: null,
           };
         }
       }
     }
     const result = await PriceCatalog.findOneAndUpdate(
-      { _id: id },
+      { _id: obj._id },
       { status: "active" },
       { new: true }
     );
@@ -243,23 +240,29 @@ const activeCatalog = async (id) => {
     console.log("Error in active price catalog", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
 };
-const inactiveCatalog = async (id) => {
+const inactiveCatalog = async (obj) => {
   try {
-    const ojb = await PriceCatalog.findById(id);
-    if (!ojb) {
+    if (new Date(obj.startDate) <= new Date()) {
       return {
         code: 400,
-        message: "Thất bại! Không tìm thấy bảng giá",
+        message: "Bảng giá đang được áp dụng không được ngưng hoạt động",
+        data: null,
+      };
+    }
+    if (obj.status != "active") {
+      return {
+        code: 400,
+        message: "Bảng giá đã qua sử dụng không được phép chỉnh sửa",
         data: null,
       };
     }
     const result = await PriceCatalog.findOneAndUpdate(
-      { _id: id },
+      { _id: obj._id },
       { status: "inactive" },
       { new: true }
     );
@@ -268,7 +271,7 @@ const inactiveCatalog = async (id) => {
     console.log("Error in inactive price catalog", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -283,16 +286,10 @@ const deleteCatalog = async (id) => {
         data: null,
       };
     }
-    const startDate = new Date(obj.startDate);
-    const endDate = new Date(obj.endDate);
-    const now = new Date();
-    if (
-      (startDate < now && now < endDate && obj.status == "active") ||
-      obj.status == "expires"
-    ) {
+    if (obj.status != "inactive") {
       return {
         code: 400,
-        message: "Không thể xoá bảng giá đang hoạt động và bảng giá đã hết hạn",
+        message: "Không được xoá bảng giá đang hoạt động hoặc đã qua sử dụng",
         data: null,
       };
     }
@@ -310,7 +307,7 @@ const deleteCatalog = async (id) => {
     console.log("Error in delete price catalog", error);
     return {
       code: 500,
-      message: "Internal server error",
+      message: "Đã xảy ra lỗi máy chủ",
       data: null,
     };
   }
@@ -359,16 +356,35 @@ const getActiveCatalog = async (page, limit) =>
     .skip((page - 1) * limit)
     .limit(limit);
 // get all catalog with active, inactive status
-const getAllCatalog = async (page, limit) =>
-  await PriceCatalog.find({ status: { $ne: "deleted" } })
-    .skip((page - 1) * limit)
-    .limit(limit)
-    .sort({ status: 1 });
-const getTotalPage = async (limit) => {
-  const total = await PriceCatalog.countDocuments({
-    status: { $ne: "deleted" },
-  });
-  return Math.ceil(total / limit);
+const getAllCatalog = async (page, limit, field, word) => {
+  try {
+    const filter = { status: { $ne: "deleted" } };
+    if (field && word) {
+      filter[field] = RegExp(word, "iu");
+    }
+    const totalCount = await PriceCatalog.countDocuments(filter);
+    const result = await PriceCatalog.find(filter)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+    const totalPage = Math.ceil(totalCount / limit);
+    return {
+      code: 200,
+      message: "Thành công",
+      totalCount,
+      totalPage,
+      data: result,
+    };
+  } catch (error) {
+    console.log("Error in get all price catalog", error);
+    return {
+      code: 500,
+      message: "Đã xảy ra lỗi máy chủ",
+      totalCount: 0,
+      totalPage: 0,
+      data: null,
+    };
+  }
 };
 const getPriceByServices = async (time, services) => {
   const result = await PriceCatalog.aggregate([
@@ -489,15 +505,15 @@ const getAllPriceCurrent = async (textSearch) => {
     const data = await PriceCatalog.aggregate(pipeline);
     return {
       code: 200,
-      message: "Successful",
+      message: "Thành công",
       data: data,
     };
   } catch (error) {
     console.log(error);
-    return { code: 500, message: "Internal server error", data: null };
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
-const updateItemNamePriceCatalog = async (itemId, itemName) =>
+const updateItemNamePriceCatalog = async (itemId, itemName, session) =>
   PriceCatalog.updateMany(
     {
       status: {
@@ -512,6 +528,7 @@ const updateItemNamePriceCatalog = async (itemId, itemName) =>
     },
     {
       arrayFilters: [{ "elem.itemId": itemId }],
+      ...session,
     }
   );
 const refreshStatusPriceCatalog = async () => {
@@ -519,15 +536,36 @@ const refreshStatusPriceCatalog = async () => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     await PriceCatalog.updateMany(
-      { startDate: { $eq: now } },
-      { status: "active" }
-    );
-    await PriceCatalog.updateMany(
-      { endDate: { $lte: now } },
+      { endDate: { $lte: now }, status: "active" },
       { status: "expires" }
     );
   } catch (error) {
     console.log("Error in refreshStatusPriceCatalog");
+  }
+};
+const updateStatusPriceCatalog = async (id) => {
+  try {
+    const obj = await PriceCatalog.findById(id).lean();
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Không tìm thấy bảng giá",
+        data: null,
+      };
+    }
+    if (obj.status == "active") {
+      return await inactiveCatalog(obj);
+    } else if (obj.status == "inactive") {
+      return await activeCatalog(obj);
+    }
+    return {
+      code: 400,
+      message: "Chỉ có đổi qua lại giữa đang hoạt động và ngưng hoạt động",
+      data: null,
+    };
+  } catch (error) {
+    console.log("Error in updateStatusPriceCatalog", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 module.exports = {
@@ -542,9 +580,9 @@ module.exports = {
   getAllCatalog,
   getActiveCurrentDate,
   getActiveCatalog,
-  getTotalPage,
   getPriceByServices,
   getAllPriceCurrent,
   updateItemNamePriceCatalog,
   refreshStatusPriceCatalog,
+  updateStatusPriceCatalog,
 };

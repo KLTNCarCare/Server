@@ -30,7 +30,7 @@ const getAllServices = async (req, res) => {
     return res.status(200).json(data);
   } catch (error) {
     console.log("Error in getAll", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 module.exports = {
