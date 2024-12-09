@@ -15,7 +15,7 @@ const startServer = async (port) => {
 
   // option cors
   const corsOptions = {
-    origin: ["http://localhost:3000", "http://localhost:8080"], // Thay thế bằng nguồn gốc của bạn
+    origin: ["http://localhost:3000", "https://carcarewweb.vercel.app"], // Thay thế bằng nguồn gốc của bạn
     credentials: true, // Cho phép gửi cookie và các thông tin xác thực khác
   };
 

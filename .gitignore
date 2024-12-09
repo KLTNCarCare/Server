@@ -25,3 +25,4 @@ database.yml
 # Thư mục IDE
 .idea/
 .vscode/
+.vercel

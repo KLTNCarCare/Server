@@ -20,7 +20,7 @@ const statisticRouter = require("./statistic.route");
 router.all("*", delayMiddleware);
 router.use("/account", accountRouter);
 router.use("/auth", authRouter);
-router.use("/heart-beat", auth(["admin", "staff", "customer"]), (req, res) => {
+router.use("/heart-beat", (req, res) => {
   res.status(200).json(req.body);
 });
 router.use("/employee", employeeRouter);
