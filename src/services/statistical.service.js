@@ -1343,11 +1343,8 @@ const statisticsPromotionResultService = async (
     const count = await Promotion.aggregate([
       {
         $match: {
-          $or: [
-            { startDate: { $lte: t1, $gte: t2 } },
-            { endDate: { $gte: t1, $lte: t2 } },
-            { startDate: { $gte: t1 }, endDate: { $lte: t2 } },
-          ],
+          startDate: { $gte: t1 },
+          endDate: { $lte: t2 },
         },
       },
 
@@ -1382,11 +1379,8 @@ const statisticsPromotionResultService = async (
     const pipeline = [
       {
         $match: {
-          $or: [
-            { startDate: { $lte: t1, $gte: t2 } },
-            { endDate: { $gte: t1, $lte: t2 } },
-            { startDate: { $gte: t1 }, endDate: { $lte: t2 } },
-          ],
+          startDate: { $gte: t1 },
+          endDate: { $lte: t2 },
         },
       },
 
@@ -1646,11 +1640,8 @@ const statisticsPromotionResultExportCSVService = async (fromDate, toDate) => {
     const pipeline = [
       {
         $match: {
-          $or: [
-            { startDate: { $lte: t1, $gte: t2 } },
-            { endDate: { $gte: t1, $lte: t2 } },
-            { startDate: { $gte: t1 }, endDate: { $lte: t2 } },
-          ],
+          startDate: { $gte: t1 },
+          endDate: { $lte: t2 },
         },
       },
 
