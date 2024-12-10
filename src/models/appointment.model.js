@@ -231,6 +231,7 @@ const appointmentSchema = mongoose.Schema(
     },
     items: {
       type: [serviceSchema],
+      minlength: 1,
       required: true,
       validate: {
         validator: function (items) {
