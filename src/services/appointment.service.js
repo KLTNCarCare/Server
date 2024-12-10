@@ -245,7 +245,7 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
       }
     }
     if (!Array.isArray(appointment.items)) {
-      return status400("Bad request");
+      return { code: 500, message: "Dịch vụ phải là mảng", data: null };
     }
     const ids = appointment.items.map((item) => item.serviceId);
     const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
@@ -258,11 +258,11 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
       ids.includes(service.serviceId.toString())
     );
     if (!checkMatchItems) {
-      return status400("Hệ thống không lấy được thông tin dịch vụ");
+      return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
     }
-    //check dịch vụ trùng
+    //check dịch vụ rỗng
     if (services.length == 0) {
-      return status400("Chưa có dịch vụ");
+      return { code: 500, message: "Chưa chọn dịch vụ", data: null };
     }
     const idServiceSet = new Set(services.map((item) => item.serviceId));
     const idTypeSet = new Set(services.map((item) => item.typeId));
@@ -270,7 +270,7 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
       idServiceSet.size < services.lenght ||
       idTypeSet.size < services.lenght
     ) {
-      return status400("Dịch vụ không hợp lệ");
+      return { code: 500, message: "Dịch vụ không hợp lệ", data: null };
     }
     const itemsSort = [];
     for (let id of ids) {
@@ -364,7 +364,7 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
       (error.name = "ValidatorError" && error.errors && error.errors["items"])
     ) {
       return {
-        code: 400,
+        code: 500,
         message: error.errors["items"].message,
         data: null,
       };
@@ -443,7 +443,7 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
     }
     //Xử lý items
     if (!Array.isArray(appointment.items)) {
-      return status400("Bad request");
+      return { code: 500, message: "Dịch vụ phải là mảng", data: null };
     }
     const ids = appointment.items.map((item) => item.serviceId);
     const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
@@ -456,7 +456,15 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
       ids.includes(service.serviceId.toString())
     );
     if (!checkMatchItems) {
-      return status400("Hệ thống không lấy được thông tin dịch vụ");
+      return {
+        code: 500,
+        message: "Hệ thống không lấy được dịch vụ",
+        data: null,
+      };
+    }
+    //check dịch vụ rỗng
+    if (services.length == 0) {
+      return { code: 500, message: "Chưa chọn dịch vụ", data: null };
     }
     const itemsSort = [];
     for (let id of ids) {
@@ -546,7 +554,7 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
       (error.name = "ValidatorError" && error.errors && error.errors["items"])
     ) {
       return {
-        code: 400,
+        code: 500,
         message: error.errors["items"].message,
         data: null,
       };

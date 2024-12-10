@@ -231,10 +231,12 @@ const appointmentSchema = mongoose.Schema(
     },
     items: {
       type: [serviceSchema],
-      minlength: 1,
       required: true,
       validate: {
         validator: function (items) {
+          if (items.length === 0) {
+            return false;
+          }
           const itemIds = items.map((item) => item.typeId);
           return itemIds.length === new Set(itemIds).size;
         },
