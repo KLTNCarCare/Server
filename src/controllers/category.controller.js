@@ -19,22 +19,14 @@ const saveCategory = async (req, res) => {
     return res.status(201).json(result);
   } catch (error) {
     console.log("Error in saveCategory", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 
 const deleteCategory = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await delCategory(id);
-    if (!result) {
-      return res.status(400).json({ message: "Failed to delete category" });
-    }
-    return res.status(200).json({ message: "Category deleted successfully" });
-  } catch (error) {
-    console.log("Error in delCategory", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const id = req.params.id;
+  const result = await delCategory(id);
+  return res.status(result.code).json(result);
 };
 
 const inactiveCategory = async (req, res) => {
@@ -44,10 +36,10 @@ const inactiveCategory = async (req, res) => {
     if (!result) {
       return res.status(400).json({ message: "Failed to inactive category" });
     }
-    return res.status(200).json({ message: "Category inactive successfully" });
+    return res.status(200).json({ message: "Category inactive Thành công" });
   } catch (error) {
     console.log("Error in inactiveCategory", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const activeCategory = async (req, res) => {
@@ -57,10 +49,10 @@ const activeCategory = async (req, res) => {
     if (!result) {
       return res.status(400).json({ message: "Failed to inactive category" });
     }
-    return res.status(200).json({ message: "Category inactive successfully" });
+    return res.status(200).json({ message: "Category inactive Thành công" });
   } catch (error) {
     console.log("Error in inactiveCategory", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 const editCategory = async (req, res) => {
@@ -71,26 +63,20 @@ const editCategory = async (req, res) => {
     if (!result) {
       return res.status(400).json({ message: "Failed to update category" });
     }
-    return res.status(200).json({ message: "Category updated successfully" });
+    return res.status(200).json({ message: "Category updated Thành công" });
   } catch (error) {
     console.log("Error in updateCategory", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 
 const getAllCategories = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    console.log(page, limit);
-
-    const totalPage = await getTotalCategory(limit);
-    const data = await findAllCategory(page, limit);
-    return res.status(200).json({ data, totalPage });
-  } catch (error) {
-    console.log("Error in findAllCategory", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const field = req.query.field;
+  const word = req.query.word;
+  const result = await findAllCategory(page, limit, field, word);
+  return res.status(result.code).json(result);
 };
 module.exports = {
   saveCategory,

@@ -1,15 +1,21 @@
 const express = require("express");
-const app = express();
 const connection = require("./config/database");
 const router = require("./routes");
 const cors = require("cors");
+const {
+  cronJobExpiresAppointment,
+  cronJobResetIdInvoice,
+  cronRefreshPriceCatalog,
+  cronRefreshPromotionLine,
+} = require("./services/cron_job.service");
+const { app, server } = require("./config/socket");
 const startServer = async (port) => {
   //connect database
   await connection();
 
   // option cors
   const corsOptions = {
-    origin: "http://localhost:3000", // Thay thế bằng nguồn gốc của bạn
+    origin: ["http://localhost:3000", "https://carcarewweb.vercel.app"], // Thay thế bằng nguồn gốc của bạn
     credentials: true, // Cho phép gửi cookie và các thông tin xác thực khác
   };
 
@@ -47,13 +53,15 @@ const startServer = async (port) => {
     // Nếu không phải môi trường 'development', chỉ gửi thông báo lỗi chung
     return res.status(err.status || 500).json({
       error: {
-        message: "Internal Server Error",
+        message: "Đã xảy ra lỗi máy chủ",
       },
     });
   });
-
+  cronJobResetIdInvoice.start();
+  cronRefreshPriceCatalog.start();
+  cronRefreshPromotionLine.start();
   //start server
-  app.listen(port, () => {
+  server.listen(port, "0.0.0.0", () => {
     console.log(`Server is running on port ${port}`);
   });
 };

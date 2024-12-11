@@ -10,11 +10,17 @@ const categoryRouter = require("./category.route");
 const serviceRouter = require("./service.route");
 const productRouter = require("./product.route");
 const appointmentRouter = require("./appointment.route");
+const invoiceRouter = require("./invoice.route");
+const customerRouter = require("./customer.route");
+const paymentRouter = require("./payment.route");
+const staffRouter = require("./staff.route");
+const otpRouter = require("./otp.route");
+const statisticRouter = require("./statistic.route");
 //delayMiddleware return response
 router.all("*", delayMiddleware);
 router.use("/account", accountRouter);
 router.use("/auth", authRouter);
-router.use("/heart-beat", auth(["admin", "staff", "customer"]), (req, res) => {
+router.use("/heart-beat", (req, res) => {
   res.status(200).json(req.body);
 });
 router.use("/employee", employeeRouter);
@@ -24,4 +30,10 @@ router.use("/category", categoryRouter);
 router.use("/service", serviceRouter);
 router.use("/product", productRouter);
 router.use("/appointment", appointmentRouter);
+router.use("/invoice", invoiceRouter);
+router.use("/customer", customerRouter);
+router.use("/payment", paymentRouter);
+router.use("/staff", staffRouter);
+router.use("/otp", otpRouter);
+router.use("/statistic", statisticRouter);
 module.exports = router;

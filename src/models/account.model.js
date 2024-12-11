@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const { phoneNumberRegex } = require("../utils/regex");
 const { increaseLastId } = require("../services/lastID.service");
+const MongooseDelete = require("mongoose-delete");
 const accountSchema = mongoose.Schema({
   accountId: {
     type: String,
@@ -10,7 +11,7 @@ const accountSchema = mongoose.Schema({
   },
   username: {
     type: String,
-    match: [phoneNumberRegex, "Username must be a string of 10 digits"],
+    match: [phoneNumberRegex, "Số điện thoại không hợp lệ"],
     required: true,
     unique: true,
     immutable: true,
@@ -32,8 +33,12 @@ const accountSchema = mongoose.Schema({
   createdAt: { type: Date, default: Date.now, immutable: true },
   updatedAt: { type: Date, default: Date.now },
 });
-accountSchema.pre("findOneAndUpdate", function (next) {
-  this.getUpdate().updatedAt = Date.now();
+accountSchema.pre(["findOneAndUpdate", "upDateOne"], function (next) {
+  const update = this.getUpdate();
+  if (update) {
+    update.updatedAt = new Date();
+    this.setUpdate(update); // Đảm bảo cập nhật lại giá trị
+  }
   next();
 });
 // inscrease Last id
@@ -43,6 +48,10 @@ accountSchema.post("save", async (doc) => {
   } catch (error) {
     console.log("Error in increase last id", error);
   }
+});
+accountSchema.plugin(MongooseDelete, {
+  deletedAt: true,
+  overrideMethods: true,
 });
 const Account = mongoose.model("Account", accountSchema);
 module.exports = Account;

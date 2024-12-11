@@ -8,6 +8,13 @@ const {
   editPromotionLine,
   getAllPromotion,
   getPromotionLineByParentId,
+  addPromtionDetail,
+  deletePromotionDetail,
+  editEndDatePromotionLine,
+  activePromotionLine,
+  inactivePromotionLine,
+  changeStatusPromotionLine,
+  getPromotionCurrentMobile,
 } = require("../controllers/promotion.controller");
 const auth = require("../middlewares/auth.middleware");
 router.post("/create-promotion", auth(["admin"]), savePromotion);
@@ -21,5 +28,32 @@ router.get(
   "/get-line-by-parentId/:parentId",
   auth(["admin"]),
   getPromotionLineByParentId
+);
+router.put("/add-promotion-detail/:id", auth(["admin"]), addPromtionDetail);
+router.put(
+  "/delete-promotion-detail/:id/:idDetail",
+  auth(["admin"]),
+  deletePromotionDetail
+);
+router.put(
+  "/update-end-date/:id",
+  auth(["admin", "staff"]),
+  editEndDatePromotionLine
+);
+router.put("/active-line/:id", auth(["admin", "staff"]), activePromotionLine);
+router.put(
+  "/inactive-line/:id",
+  auth(["admin", "staff"]),
+  inactivePromotionLine
+);
+router.put(
+  "/change-status-line/:id",
+  auth(["admin", "staff"]),
+  changeStatusPromotionLine
+);
+router.get(
+  "/get-promotion-current",
+  auth(["admin", "staff", "customer"]),
+  getPromotionCurrentMobile
 );
 module.exports = router;

@@ -1,4 +1,3 @@
-const { isTime } = require("validator");
 const {
   createPromotion,
   deletePromotion,
@@ -8,154 +7,58 @@ const {
   updatePromotionLine,
   getPromotions,
   getPromotionLineByParent,
-  getPromotion,
-  getTotalPage,
-  getPromotionLineById,
+  pushPromotionDetail,
+  removePromotionDetail,
+  updateEndDatePromotionLine,
+  updateStatusActivePromotionLine,
+  updateStatusInactivePromotionLine,
+  updateStatusPromotionLine,
+  findPromotionCurrentMobile,
 } = require("../services/promotion.service");
-const { findById, findServiceById } = require("../services/service.service");
+const { findServiceById } = require("../services/service.service");
 
 const savePromotion = async (req, res) => {
-  try {
-    const promotion = req.body;
-    const result = await createPromotion(promotion);
-    if (!result) {
-      return res.status(500).json({ message: "Internal server error" });
-    }
-    return res.status(201).json(result);
-  } catch (error) {
-    console.log("Error in savePromotion", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const data = req.body;
+  const result = await createPromotion(data);
+  return res.status(result.code).json(result);
 };
 const removePromotion = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await deletePromotion(id);
-    if (!result) {
-      return res.status(404).json({ message: "Promotion not found" });
-    }
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in removePromotion", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const id = req.params.id;
+  const result = await deletePromotion(id);
+  return res.status(result.code).json(result);
 };
 const editPromotion = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const promotion = await getPromotion(id);
-    if (!promotion) {
-      return res.status(404).json({ message: "Promotion not found" });
-    }
-    const infoChange = {
-      promotionName: req.body.promotionName || promotion.promotionName,
-      description: req.body.description || promotion.description,
-      startDate: req.body.startDate || promotion.startDate,
-      endDate: req.body.endDate || promotion.endDate,
-    };
-    const startDate = new Date(infoChange.startDate);
-    const endDate = new Date(infoChange.endDate);
-    //check date range
-    if (startDate >= endDate || Date.now() >= startDate) {
-      return res
-        .status(400)
-        .json({ message: "Valid range : Date now <  startDate < endDate" });
-    }
-    const result = await updatePromotion(id, infoChange);
-    if (!result) {
-      return res.status(500).json({ message: "Internal server error" });
-    }
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in editPromotion", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const id = req.params.id;
+  const data = req.body;
+  const result = await updatePromotion(id, data);
+  return res.status(result.code).json(result);
 };
 
 const savePromotionLine = async (req, res) => {
-  try {
-    const promotionLine = req.body;
-    console.log(promotionLine);
-
-    const result = await createPromotionLine(promotionLine);
-    if (!result) {
-      return res.status(500).json({ message: "Internal server error" });
-    }
-    return res.status(201).json(result);
-  } catch (error) {
-    console.log("Error in savePromotionLine", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const promotionLine = req.body;
+  const result = await createPromotionLine(promotionLine);
+  return res.status(result.code).json(result);
 };
 const removePromotionLine = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await deletePromotionLine(id);
-    if (!result) {
-      return res.status(404).json({ message: "Promotion line not found" });
-    }
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in deletePromotionLine", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const id = req.params.id;
+  const result = await deletePromotionLine(id);
+  return res.status(result.code).json(result);
 };
 
 const editPromotionLine = async (req, res) => {
-  try {
-    const id = req.params.id;
-    let line = await getPromotionLineById(id);
-    if (!line) {
-      return res.status(400).json({ message: "Promotion line not found" });
-    }
-    const infoChange = {
-      description: req.body.description || line.description,
-      discount: req.body.discount || line.discount,
-      startDate: req.body.startDate || line.startDate,
-      endDate: req.body.endDate || line.endDate,
-      itemId: req.body.itemId || line.itemId,
-      itemGiftId: req.body.itemGiftId || line.itemGiftId,
-      discount: req.body.discount || line.discount,
-      limitDiscount: req.body.limitDiscount || line.limitDiscount,
-    };
-
-    //check date range
-    const parent = await getPromotion(line.parentId);
-    if (!parent) {
-      return res.status(500).json({ message: "Promotion not found" });
-    }
-    const startDate = new Date(infoChange.startDate);
-    const endDate = new Date(infoChange.endDate);
-    const parentStartDate = new Date(parent.startDate);
-    const parentEndDate = new Date(parent.endDate);
-    if (startDate < parentStartDate || endDate > parentEndDate) {
-      return res.status(400).json({
-        message:
-          "Valid range : parent.startDate <  startDate < endDate < parent.endDate",
-      });
-    }
-    const result = await updatePromotionLine(id, infoChange);
-    if (!result) {
-      return res.status(500).json({ message: "Internal server error" });
-    }
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in editPromotionLine", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const id = req.params.id;
+  const line = req.body;
+  const result = await updatePromotionLine(id, line);
+  return res.status(result.code).json(result);
 };
 
 const getAllPromotion = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const totalPage = await getTotalPage(limit);
-    const data = await getPromotions(page, limit);
-    return res.status(200).json({ data, totalPage });
-  } catch (error) {
-    console.log("Error in getAllPromotion", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const field = req.query.field;
+  const word = req.query.word;
+  const result = await getPromotions(page, limit, field, word);
+  return res.status(result.code).json(result);
 };
 const getPromotionLineByParentId = async (req, res) => {
   try {
@@ -167,13 +70,62 @@ const getPromotionLineByParentId = async (req, res) => {
         line.itemGift = await findServiceById(line.itemGiftId);
       }
     }
-
     //get list item gift
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in getPromotionLineByParentId", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
+};
+const addPromtionDetail = async (req, res) => {
+  const id = req.params.id;
+  const data = req.body;
+  const result = await pushPromotionDetail(id, data);
+  if (result.EC === 400) {
+    return res.status(400).json({ message: "Bad request" });
+  }
+  if (result.EC === 200) {
+    return res.status(200).json(result.data);
+  }
+  return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
+};
+const deletePromotionDetail = async (req, res) => {
+  try {
+    const { id, idDetail } = req.params;
+    const result = await removePromotionDetail(id, idDetail);
+    if (!result) {
+      return res.status(400).json({ message: "Bad request" });
+    }
+    return res.status(200).json(result);
+  } catch (error) {
+    console.log("Error in deletePromotionDetail ", error);
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
+  }
+};
+const editEndDatePromotionLine = async (req, res) => {
+  const id = req.params.id;
+  const endDate = req.body.endDate;
+  const result = await updateEndDatePromotionLine(id, endDate);
+  return res.status(result.code).json(result);
+};
+const activePromotionLine = async (req, res) => {
+  const id = req.params.id;
+  const result = await updateStatusActivePromotionLine(id);
+  return res.status(result.code).json(result);
+};
+const inactivePromotionLine = async (req, res) => {
+  const id = req.params.id;
+  const result = await updateStatusInactivePromotionLine(id);
+  return res.status(result.code).json(result);
+};
+const changeStatusPromotionLine = async (req, res) => {
+  const id = req.params.id;
+  const result = await updateStatusPromotionLine(id);
+  return res.status(result.code).json(result);
+};
+const getPromotionCurrentMobile = async (req, res) => {
+  const result = await findPromotionCurrentMobile();
+  return res.status(result.code).json(result);
 };
 module.exports = {
   savePromotion,
@@ -184,4 +136,11 @@ module.exports = {
   editPromotionLine,
   getAllPromotion,
   getPromotionLineByParentId,
+  addPromtionDetail,
+  deletePromotionDetail,
+  editEndDatePromotionLine,
+  activePromotionLine,
+  inactivePromotionLine,
+  changeStatusPromotionLine,
+  getPromotionCurrentMobile,
 };

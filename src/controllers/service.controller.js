@@ -4,54 +4,24 @@ const {
   deleteService,
   updateService,
   findAllService,
-  getTotalPage,
 } = require("../services/service.service");
 
 const saveService = async (req, res) => {
-  try {
-    const service = req.body;
-    const result = await createService(service);
-    if (!result) {
-      return res.status(500).json({ message: "Create service unsuccessfull" });
-    }
-    return res.status(201).json(result);
-  } catch (error) {
-    console.log("Error in saveService", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const data = req.body;
+  const result = await createService(data);
+  return res.status(result.code).json(result);
 };
-
 const removeService = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const result = await deleteService(id);
-    if (!result) {
-      return res.status(500).json({ message: "Unsuccessful" });
-    }
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in removeService", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const id = req.params.id;
+  const result = await deleteService(id);
+  return res.status(result.code).json(result);
 };
 
 const editService = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const { serviceName, duration, description } = req.body;
-    const result = await updateService(id, {
-      serviceName,
-      duration,
-      description,
-    });
-    if (!result) {
-      return res.status(500).json({ message: "Unsuccessful" });
-    }
-    return res.status(200).json(result);
-  } catch (error) {
-    console.log("Error in editService", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
+  const id = req.params.id;
+  const data = req.body;
+  const result = await updateService(id, data);
+  return res.status(result.code).json(result);
 };
 const getAllServices = async (req, res) => {
   try {
@@ -60,7 +30,7 @@ const getAllServices = async (req, res) => {
     return res.status(200).json(data);
   } catch (error) {
     console.log("Error in getAll", error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ" });
   }
 };
 module.exports = {

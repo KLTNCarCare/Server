@@ -1,6 +1,4 @@
 const mongoose = require("mongoose");
-const { increaseLastId } = require("../services/lastID.service");
-
 const serviceSchema = mongoose.Schema({
   serviceId: {
     type: String,
@@ -30,7 +28,7 @@ const serviceSchema = mongoose.Schema({
   status: {
     type: String,
     enum: ["active", "inactive", "deleted"],
-    default: "active",
+    default: "inactive",
   },
   createdAt: {
     type: Date,
@@ -42,16 +40,13 @@ const serviceSchema = mongoose.Schema({
     default: Date.now,
   },
 });
-serviceSchema.pre("findOneAndUpdate", function (next) {
-  this.getUpdate().updatedAt = new Date();
-  next();
-});
-serviceSchema.post("save", async function (doc) {
-  try {
-    await increaseLastId("DV");
-  } catch (error) {
-    console.log(error);
+serviceSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
+  const update = this.getUpdate();
+  if (update) {
+    update.updatedAt = new Date();
+    this.setUpdate(update); // Đảm bảo cập nhật lại giá trị
   }
+  next();
 });
 const Service = mongoose.model("Service", serviceSchema);
 module.exports = Service;

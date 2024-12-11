@@ -1,12 +1,63 @@
 const mongoose = require("mongoose");
-const Promotion = require("./promotion.model");
-const { increaseLastId } = require("../services/lastID.service");
+const mongooseDelete = require("mongoose-delete");
+const detailSchema = new mongoose.Schema(
+  {
+    code: {
+      type: String,
+      required: true,
+      immutable: true,
+      unique: true,
+    },
+    itemId: {
+      type: String,
+      default: null,
+    },
+    itemName: {
+      type: String,
+      default: null,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    itemGiftId: {
+      type: String,
+      default: null,
+    },
+    itemGiftName: {
+      type: String,
+      default: null,
+    },
+    bill: {
+      type: Number,
+      min: 0,
+      default: null,
+    },
+    discount: {
+      type: Number,
+      min: 0,
+      max: 100,
+      required: true,
+    },
+    limitDiscount: {
+      type: Number,
+      default: null,
+    },
+  },
+  { _id: false }
+);
 const lineSchema = new mongoose.Schema({
   lineId: {
     type: String,
     required: true,
     unique: true,
     immutable: true,
+  },
+  code: {
+    type: String,
+    required: true,
+    immutable: true,
+    unique: true,
   },
   parentId: {
     type: String,
@@ -20,7 +71,7 @@ const lineSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: true,
+    default: "",
   },
   startDate: {
     type: Date,
@@ -30,28 +81,44 @@ const lineSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  itemId: {
-    type: String,
-    default: null,
-  },
-  itemGiftId: {
-    type: String,
-    default: null,
-  },
-  discount: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 100,
-  },
-  limitDiscount: {
-    type: Number,
-    default: 0,
+  detail: {
+    type: [detailSchema],
+    default: [],
+    validate: {
+      validator: function (items) {
+        if (this.type == "discount-service") {
+          if (items.length > 0) {
+            for (let item of items) {
+              if (
+                !item.itemId ||
+                !item.itemGiftId ||
+                !item.itemName ||
+                !item.itemGiftName
+              ) {
+                return false;
+              }
+            }
+            return true;
+          }
+        } else if (this.type == "discount-bill") {
+          if (items.length > 0) {
+            for (let item of items) {
+              if (!item.bill || !item.limitDiscount) {
+                return false;
+              }
+            }
+            return true;
+          }
+        }
+        return true;
+      },
+      message: "Thiếu dữ liệu chi tiết giảm giá",
+    },
   },
   status: {
     type: String,
-    enum: ["active", "inactive"],
-    default: "active",
+    enum: ["active", "inactive", "deleted", "expires"],
+    default: "inactive",
   },
   createdAt: {
     type: Date,
@@ -62,39 +129,16 @@ const lineSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
-lineSchema.pre("save", async function (next) {
-  try {
-    const parent = await Promotion.findOne({ _id: this.parentId });
-    if (!parent) {
-      return next(new Error("Promotion not found"));
-    }
-    const startDate = new Date(this.startDate);
-    const endDate = new Date(this.endDate);
-    const parentStartDate = new Date(parent.startDate);
-    const parentEndDate = new Date(parent.endDate);
-    if (startDate < parentStartDate || endDate > parentEndDate) {
-      return next(
-        new Error(
-          "Valid range : parent.startDate <  startDate < endDate < parent.endDate"
-        )
-      );
-    }
-  } catch (error) {
-    next(error);
-  }
-});
 // modify updatedAt
-lineSchema.pre("findOneAndUpdate", function (next) {
-  this.getUpdate().updatedAt = Date.now();
+lineSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
+  const update = this.getUpdate();
+  if (update) {
+    update.updatedAt = new Date();
+    this.setUpdate(update); // Đảm bảo cập nhật lại giá trị
+  }
   next();
 });
-// inscrease Last id
-lineSchema.post("save", async (doc) => {
-  try {
-    await increaseLastId("CTKMCT");
-  } catch (error) {
-    console.log("Error in increase last id", error);
-  }
-});
+
+lineSchema.plugin(mongooseDelete, { deletedAt: true, overrideMethods: true });
 const PromotionLine = mongoose.model("Promotion_line", lineSchema);
 module.exports = PromotionLine;

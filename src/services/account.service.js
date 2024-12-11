@@ -1,69 +1,250 @@
 const Account = require("../models/account.model");
 const bcrypt = require("bcrypt");
 const { generateID } = require("./lastID.service");
+const { findCustByPhone } = require("./customer.service");
+const jwt = require("jsonwebtoken");
+const { findStaffById } = require("./staff.services");
+const { Otp } = require("../models/otp.model");
+const { trusted } = require("mongoose");
 const saltRounds = 10;
 const createAccountService = async (username, password, role, userId) => {
-  try {
-    // Hash password
-    const hashPassword = await bcrypt.hash(password, saltRounds);
-    // create accountId
-    const accountId = await generateID("TK");
-    // Store in database
-    let result = await Account.create({
-      accountId: accountId,
-      username,
-      password: hashPassword,
-      userId,
-      role: role,
-    });
-    return result;
-  } catch (error) {
-    console.log("Error in createAccountService", error);
-    return null;
-  }
+  // Hash password
+  const hashPassword = await bcrypt.hash(password, saltRounds);
+  // create accountId
+  const accountId = await generateID("TK");
+  return await Account.create({
+    accountId: accountId,
+    username,
+    password: hashPassword,
+    userId,
+    role: role,
+  });
 };
 const checkAccountExist = async (username) => {
   try {
-    const account = await Account.findOne({ username });
-    return account !== null ? true : false;
+    const obj = await Account.findOne({ username: username }).lean();
+    if (!obj) {
+      return { code: 200, message: "Số điện thoại có thể đăng ký", data: true };
+    }
+    return { code: 200, message: "Số điện thoại đã tồn tại", data: false };
   } catch (error) {
-    log.error("Error in getAccountByUsername", error);
-    return null;
+    console.log("Error in checkAccountExist", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 const getAccountByUsernamePassword = async (username, password) => {
   try {
     //check username
-    const account = await Account.findOne({ username });
-    if (account) {
-      //check password
-      const isMatch = await bcrypt.compare(password, account.password);
-      return isMatch
-        ? {
-            message: "Login success",
-            account,
-            statusCode: 200,
-          }
-        : {
-            message: "Bad request",
-            statusCode: 400,
-          };
+    const obj = await Account.findOne({
+      username,
+      role: { $in: ["admin", "staff"] },
+    }).lean();
+
+    if (!obj) {
+      return {
+        code: 400,
+        message: "Thông tin tài khoản hoặc mật khẩu không chính xác",
+        data: null,
+      };
+    }
+    const isMatch = await bcrypt.compare(password, obj.password);
+    if (!isMatch) {
+      return {
+        code: 400,
+        message: "Thông tin tài khoản hoặc mật khẩu không chính xác",
+        data: null,
+      };
     }
 
-    return {
-      message: "Bad request",
-      statusCode: 400,
+    const staff = await findStaffById(obj.userId);
+    if (!staff) {
+      return {
+        code: 500,
+        message: "Không tìm thấy thông tin nhân viên",
+        data: null,
+      };
+    }
+    const payload = {
+      username: obj.username,
+      role: obj.role,
     };
+    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
+      expiresIn: process.env.ACCESS_TOKEN_LIFE,
+    });
+    const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
+      expiresIn: process.env.REFRESH_TOKEN_LIFE,
+    });
+    const data = {
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      role: obj.role,
+      username: obj.username,
+      _id: staff._id,
+      staffId: staff.staffId,
+      phone: staff.phone,
+      name: staff.name,
+      dob: staff.dob,
+      email: staff.email,
+      address: staff.address,
+    };
+    return { code: 200, message: "Thành công", data: data };
   } catch (error) {
-    console.log(error);
-    return {
-      message: "Internal Server Error",
-      statusCode: 500,
+    console.log("Error in getAccountByUsernamePassword", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
+const findAccountByUseranme = async (username) => {
+  return await Account.findOne({ username: username });
+};
+
+const getAccountMapCustomer = async (username, password) => {
+  try {
+    const acc = await Account.findOne({
+      username: username,
+      role: "customer",
+    }).lean();
+    if (!acc) {
+      return {
+        code: 400,
+        message: "Thông tin đăng nhập không chính xác",
+        data: null,
+      };
+    }
+    const isMatch = await bcrypt.compare(password, acc.password);
+    if (!isMatch) {
+      return {
+        code: 400,
+        message: "Thông tin đăng nhập không chính xác",
+        data: null,
+      };
+    }
+    const userInfo = await findCustByPhone(username);
+    if (userInfo.code != 200) {
+      return userInfo;
+    }
+    const payload = {
+      username: acc.username,
+      role: acc.role,
     };
+    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
+      expiresIn: process.env.ACCESS_TOKEN_LIFE,
+    });
+    const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
+      expiresIn: process.env.REFRESH_TOKEN_LIFE,
+    });
+    const objUser = userInfo.data.toObject();
+    const result = {
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      ...objUser,
+    };
+    return { code: 200, message: "Đăng nhập thành công", data: result };
+  } catch (error) {
+    console.log("Error in getAccountMapCustomer", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
+const changePassword = async (username, oldPass, newPass, otp) => {
+  try {
+    const obj = await Account.findOne({ username: username }).lean();
+    if (!obj) {
+      return { code: 400, message: "Không tìm thấy tài khoản", data: null };
+    }
+    const isMatch = await bcrypt.compare(oldPass, obj.password);
+    if (!isMatch) {
+      return { code: 400, message: "Sai mật khẩu", data: null };
+    }
+    if (otp != "111111") {
+      return { code: 400, message: "OTP không hợp lệ", data: null };
+    }
+    const hashPass = await bcrypt.hash(newPass, saltRounds);
+    await Account.findOneAndUpdate(
+      { username: username },
+      { $set: { password: hashPass } }
+    );
+    return { code: 200, message: "Thành công", data: null };
+  } catch (error) {
+    console.log("Error in changePassword", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
+const updatePasswordAuthByOldPassMobile = async (
+  username,
+  oldPass,
+  newPass
+) => {
+  try {
+    const obj = await Account.findOne({ username: username }).lean();
+    if (!obj) {
+      return { code: 400, message: "Không tìm thấy tài khoản", data: null };
+    }
+
+    const isMatch = await bcrypt.compare(oldPass, obj.password);
+
+    if (!isMatch) {
+      return { code: 400, message: "Sai mật khẩu", data: null };
+    }
+    const hashPass = await bcrypt.hash(newPass, saltRounds);
+    await Account.findOneAndUpdate(
+      { username: username },
+      { $set: { password: hashPass } }
+    );
+    return { code: 200, message: "Thành công", data: null };
+  } catch (error) {
+    console.log("Error in changePassword", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
+const createAccountCustomer = async (data) => {
+  try {
+    const { getCustByPhone, createCustomer } = require("./customer.service");
+    let cust = await getCustByPhone(data.username);
+    if (!cust) {
+      cust = await createCustomer({
+        phone: data.username,
+        name: data.name,
+      });
+    }
+    await createAccountService(
+      data.username,
+      data.password,
+      "customer",
+      cust._id
+    );
+    return { code: 200, message: "Thành công", data: null };
+  } catch (error) {
+    console.log("Error in createAccountCustomer", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
+  }
+};
+const updatePasswordMobile = async (username, newPass) => {
+  try {
+    const hashPass = await bcrypt.hash(newPass, saltRounds);
+    const obj = await Account.findOneAndUpdate(
+      { username: username },
+      {
+        $set: {
+          password: hashPass,
+        },
+      }
+    );
+    if (!obj) {
+      return { code: 400, message: "Không tìm thấy tài khoản", data: null };
+    }
+    return { code: 200, message: "Thành công", data: null };
+  } catch (error) {
+    console.log("Error in changePasswordMobile", error);
+    return { code: 500, message: "Đã xảy ra lỗi máy chủ", data: null };
   }
 };
 module.exports = {
   createAccountService,
   getAccountByUsernamePassword,
   checkAccountExist,
+  getAccountMapCustomer,
+  findAccountByUseranme,
+  changePassword,
+  createAccountCustomer,
+  updatePasswordMobile,
+  updatePasswordAuthByOldPassMobile,
 };
