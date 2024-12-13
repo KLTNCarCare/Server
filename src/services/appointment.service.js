@@ -37,7 +37,7 @@ const findAppointmentInRangeDate = async (d1, d2) =>
       },
     },
   ]);
-const findAppointmentStatusNotCanceledCompletedInRangeDate = async (d1, d2) =>
+const findAppointmentUseSlot = async (d1, d2) =>
   await Appointment.aggregate([
     {
       $match: {
@@ -46,7 +46,7 @@ const findAppointmentStatusNotCanceledCompletedInRangeDate = async (d1, d2) =>
           { endActual: { $gt: d1, $lte: d2 } },
           { startActual: { $lte: d1 }, endActual: { $gte: d2 } },
         ],
-        status: { $nin: ["canceled", "completed"] },
+        status: { $in: ["pending", "in-progress", "confirmed"] },
       },
     },
     {
@@ -182,6 +182,7 @@ const pipelineFindAppointmentDashboard = (d1) => [
     // Nếu không cần trường sortPriority trong kết quả cuối
     $project: {
       sortPriority: 0,
+      startTime: 1,
     },
   },
 ];
@@ -204,11 +205,7 @@ const createAppointmentOnSite = async (appointment, skipCond) => {
     appointment.endActual = new Date(end_timestamp);
     appointment.status = "in-progress";
     //Lấy ra những lịch hẹn ảnh hưởng đến khung giờ đặt lịch
-    const existing_apps =
-      await findAppointmentStatusNotCanceledCompletedInRangeDate(
-        start_time,
-        end_time
-      );
+    const existing_apps = await findAppointmentUseSlot(start_time, end_time);
     //Kiểm tra thời gian bắt đầu nếu 6 vị trí đang in-progress thì không cho đặt
     const apps_inProgress = existing_apps.filter(
       (item) => item.status == "in-progress"
@@ -398,11 +395,7 @@ const createAppointmentOnSiteFuture = async (appointment, skipCond) => {
     appointment.status = "pending";
 
     //Lấy ra những lịch hẹn ảnh hưởng đến khung giờ đặt lịch
-    const existing_apps =
-      await findAppointmentStatusNotCanceledCompletedInRangeDate(
-        start_time,
-        end_time
-      );
+    const existing_apps = await findAppointmentUseSlot(start_time, end_time);
     //Kiểm tra thời gian bắt đầu nếu 6 vị trí đang in-progress thì không cho đặt
     const apps_inProgress = [];
     existing_apps.forEach((item) => {
@@ -882,11 +875,10 @@ const getTimePointAvailableBooking_New = async (date, duration) => {
   const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
   const start = date_booking.getTime() + end_work * 60 * 60 * 1000;
   const t2 = calEndtime(start, duration - interval);
-  const booking_exist =
-    await findAppointmentStatusNotCanceledCompletedInRangeDate(
-      new Date(t1),
-      new Date(t2)
-    );
+  const booking_exist = await findAppointmentUseSlot(
+    new Date(t1),
+    new Date(t2)
+  );
   const slot_time_point = await groupSlotTimePoint(booking_exist, t1, t2);
 
   const time_available = [];
@@ -918,11 +910,10 @@ const getAllSlotInDate = async (d) => {
   const t1 = date_booking.getTime() + start_work * 60 * 60 * 1000;
   const t2 = date_booking.getTime() + end_work * 60 * 60 * 1000;
 
-  const booking_exist =
-    await findAppointmentStatusNotCanceledCompletedInRangeDate(
-      new Date(t1),
-      new Date(t2)
-    );
+  const booking_exist = await findAppointmentUseSlot(
+    new Date(t1),
+    new Date(t2)
+  );
   const slot_list = await groupSlotTimePoint(booking_exist, t1, t2);
   const result = slot_list.map((slot, index) => ({
     time_point: (index + 14) / 2,
