@@ -121,71 +121,87 @@ const pipelineFindAppointmentDashboard = (d1) => [
       $or: [
         { status: { $in: ["in-progress", "confirmed", "pending"] } }, // hiện đơn hàng đang xử lý, đã được xác nhận
         { status: "completed", invoiceCreated: false }, // đơn hàng đã hoàn thành nhưng chưa thanh toán
-        { status: { $in: ["missed", "canceled"] }, startActual: { $gte: d1 } }, // đơn hàng bị huỷ và bỏ lỡ
       ],
     },
   },
   {
-    // Thêm trường sortPriority dựa trên status
-    $addFields: {
-      sortPriority: {
-        $switch: {
-          branches: Object.entries(statusPriority).map(
-            ([status, priority]) => ({
-              case: { $eq: ["$status", status] },
-              then: priority,
-            })
-          ),
-          default: 0,
-        },
-      },
-    },
-  },
-  {
-    $project: {
-      day: { $dayOfMonth: "$startActual" },
-      month: { $month: "$startActual" },
-      year: { $year: "$startActual" },
-      sortPriority: 1,
-      appointment: "$$ROOT",
-    },
-  },
-  {
-    $group: {
-      _id: { year: "$year", month: "$month", day: "$day" },
-      appointments: { $push: "$appointment" },
-    },
-  },
-  { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } },
-  {
-    $project: {
-      _id: 1,
-      appointments: {
-        $sortArray: {
-          input: "$appointments",
-          sortBy: { status: 1 }, // tùy chỉnh sắp xếp theo thứ tự ưu tiên trạng thái nếu cần
-        },
-      },
-    },
-  },
-  {
-    $unwind: {
-      path: "$appointments",
-    },
-  },
-  {
-    $replaceRoot: {
-      newRoot: "$appointments",
-    },
-  },
-  {
-    // Nếu không cần trường sortPriority trong kết quả cuối
-    $project: {
-      sortPriority: 0,
+    $sort: {
       startTime: 1,
     },
   },
 ];
+// const pipelineFindAppointmentDashboard = (d1) => [
+//   {
+//     // Đầu tiên, lọc các document theo khoảng thời gian
+//     $match: {
+//       $or: [
+//         { status: { $in: ["in-progress", "confirmed", "pending"] } }, // hiện đơn hàng đang xử lý, đã được xác nhận
+//         { status: "completed", invoiceCreated: false }, // đơn hàng đã hoàn thành nhưng chưa thanh toán
+//         { status: { $in: ["missed", "canceled"] }, startActual: { $gte: d1 } }, // đơn hàng bị huỷ và bỏ lỡ
+//       ],
+//     },
+//   },
+//   {
+//     // Thêm trường sortPriority dựa trên status
+//     $addFields: {
+//       sortPriority: {
+//         $switch: {
+//           branches: Object.entries(statusPriority).map(
+//             ([status, priority]) => ({
+//               case: { $eq: ["$status", status] },
+//               then: priority,
+//             })
+//           ),
+//           default: 0,
+//         },
+//       },
+//     },
+//   },
+//   {
+//     $project: {
+//       day: { $dayOfMonth: "$startActual" },
+//       month: { $month: "$startActual" },
+//       year: { $year: "$startActual" },
+//       sortPriority: 1,
+//       appointment: "$$ROOT",
+//     },
+//   },
+//   {
+//     $group: {
+//       _id: { year: "$year", month: "$month", day: "$day" },
+//       appointments: { $push: "$appointment" },
+//     },
+//   },
+//   { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } },
+//   {
+//     $project: {
+//       _id: 1,
+//       appointments: {
+//         $sortArray: {
+//           input: "$appointments",
+//           sortBy: { status: 1 }, // tùy chỉnh sắp xếp theo thứ tự ưu tiên trạng thái nếu cần
+//         },
+//       },
+//     },
+//   },
+//   {
+//     $unwind: {
+//       path: "$appointments",
+//     },
+//   },
+//   {
+//     $replaceRoot: {
+//       newRoot: "$appointments",
+//     },
+//   },
+//   {
+//     // Nếu không cần trường sortPriority trong kết quả cuối
+//     $project: {
+//       sortPriority: 0,
+
+//     },
+//   },
+// ];
 const createAppointmentOnSite = async (appointment, skipCond) => {
   const session = await mongoose.startSession();
   session.startTransaction();
