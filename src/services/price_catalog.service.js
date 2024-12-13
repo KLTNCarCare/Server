@@ -93,27 +93,6 @@ const updatePriceCatalog = async (id, newPriceCatalog) => {
       };
     }
     await data.validate();
-    const serviceIds = data.items.map((item) => item.itemId);
-    const listObj = await getCatalogByRangeDateOtherId(
-      new Date(data.startDate),
-      new Date(data.endDate),
-      obj._id
-    );
-    //check item exist in another catalog
-    if (listObj.length > 0) {
-      for (let catalog of listObj) {
-        const check = catalog.items.some((item) =>
-          serviceIds.includes(item.itemId)
-        );
-        if (check) {
-          return {
-            code: 400,
-            message: "Xung đột với bảng giá " + catalog.priceId,
-            data: null,
-          };
-        }
-      }
-    }
     const result = await PriceCatalog.findOneAndUpdate({ _id: id }, data, {
       new: true,
     });
